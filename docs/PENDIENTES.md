@@ -7,8 +7,9 @@ Prioridad: **Alta** = sin esto no se puede usar con un negocio real · **Media**
 ---
 
 ## Etapa 0 · Orden del proyecto
-- [ ] **Alta** · Poner la carpeta bajo control de versiones (`git init`) y subirla a un repositorio privado. Hoy no hay historial de cambios.
-- [ ] **Media** · Agregar `.gitignore` para `gavilan_app/build/` y archivos locales.
+- [x] **Alta** · Poner la carpeta bajo control de versiones y subirla a GitHub: [almeida-crypto/Conect-Tzuca](https://github.com/almeida-crypto/Conect-Tzuca) (público). *26/10/2026*
+- [x] **Media** · Agregar `.gitignore` para `gavilan_app/build/`, archivos locales, llaves y el PDF maestro. *26/10/2026*
+- [ ] **Media** · Cuando haya llaves reales (Supabase, PowerSync, firma de Android), guardarlas fuera del repositorio: es público.
 
 ## Etapa 1 · Que la app guarde y sincronice
 - [ ] **Alta** · Guardar los datos en el teléfono con Drift (SQLite). Hoy todo vive en memoria y se pierde al cerrar la app.

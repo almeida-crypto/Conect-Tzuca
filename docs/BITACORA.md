@@ -76,3 +76,15 @@ Errores encontrados y corregidos durante las pruebas:
 
 ### 7. Documentación
 Se creó esta carpeta `docs/` y el `README.md` de la raíz para llevar el control.
+
+---
+
+## 26 de octubre de 2026 · Sesión 2
+
+### 1. Repositorio en GitHub
+- El usuario creó [almeida-crypto/Conect-Tzuca](https://github.com/almeida-crypto/Conect-Tzuca). Es **público**.
+- Se inició git en la carpeta, con la rama `main`, y se subió el primer commit con todo el proyecto.
+- **Decisión del usuario:** dejarlo público pero **sin el PDF maestro**, que tiene la estrategia de negocio. El PDF se queda solo en la copia local y `.gitignore` excluye cualquier `.pdf`.
+- `.gitignore` también deja fuera la carpeta `build` de Flutter (154 MB), los `.env`, las llaves de firma y la configuración local de Claude Code.
+- `.gitattributes` fija los saltos de línea en LF, para evitar ruido entre Windows y GitHub.
+- Antes de subir se revisó que no hubiera llaves ni contraseñas en los archivos.
