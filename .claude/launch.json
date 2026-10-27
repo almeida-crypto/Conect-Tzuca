@@ -1,0 +1,7 @@
+{
+  "version": "0.0.1",
+  "configurations": [
+    { "name": "design-lab", "runtimeExecutable": "node", "runtimeArgs": ["design-lab/server.js"], "port": 4173 },
+    { "name": "gavilan-web", "runtimeExecutable": "node", "runtimeArgs": ["design-lab/server.js", "gavilan_app/build/web", "4180"], "port": 4180 }
+  ]
+}

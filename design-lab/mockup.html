@@ -1,0 +1,254 @@
+<!doctype html>
+<html lang="es"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Gavilán · maqueta</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Archivo:wght@500;800&family=Space+Mono:wght@400;700&display=swap">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@3.19.0/dist/tabler-icons.min.css">
+<style>
+body{margin:0;background:#CFC6B4;font-family:'Archivo',system-ui,sans-serif;display:flex;gap:40px;justify-content:center;align-items:flex-start;padding:30px 20px;flex-wrap:wrap}
+.g-phone{--papel:#F4ECDD;--papel2:#E9DEC8;--tinta:#221C17;--pardo:#6B4226;--oxido:#B5471B;--ocre:#D8A02A;--monte:#2E5E3E;--rojo:#A12D1E;--line:rgba(34,28,23,.2);--eye:#F4ECDD;width:320px;height:640px;background:#221C17;border-radius:36px;padding:9px;box-sizing:border-box;flex:none}
+.g-screen{position:relative;width:100%;height:100%;background:var(--papel);border-radius:28px;overflow:hidden;display:flex;flex-direction:column;font-family:'Archivo',system-ui,sans-serif;color:var(--tinta)}
+.g-screen button{font-family:inherit;color:inherit}
+.g-status{height:22px;flex:none;display:flex;justify-content:space-between;align-items:center;padding:0 16px;font-size:11px;font-weight:500}
+.g-body{position:relative;flex:1;min-height:0;display:flex;flex-direction:column}
+.g-nav{flex:none;height:56px;display:flex;border-top:1px solid var(--line);background:var(--papel)}
+.g-nav button{flex:1;border:0;background:none;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;font-size:11px;font-weight:500;color:rgba(34,28,23,.55);cursor:pointer}
+.g-nav button i{font-size:21px}
+.g-nav button.on{color:var(--oxido)}
+.g-nav button.on::after{content:'';width:18px;height:3px;background:var(--oxido);margin-top:1px}
+.g-head{display:flex;align-items:center;gap:8px;padding:6px 14px 8px}
+.g-head .mk{width:54px;flex:none}
+.g-head .mk img{display:block;width:100%}
+.g-head .nm{flex:1;font-weight:800;font-size:15px;line-height:1.1}
+.g-head .nm small{display:block;font-weight:500;font-size:11px;color:rgba(34,28,23,.6)}
+.g-pill{border:1px solid var(--line);background:var(--papel2);border-radius:99px;font-size:11px;padding:3px 9px;cursor:pointer;display:flex;align-items:center;gap:5px;font-weight:500}
+.g-pill b{width:7px;height:7px;border-radius:50%;background:var(--monte);display:block}
+.g-pill.off b{background:var(--ocre)}
+.g-scan{margin:0 14px 10px;display:flex;gap:8px}
+.g-scan .f{flex:1;border:1px solid var(--line);background:#FBF6EC;border-radius:4px;padding:9px 10px;font-size:13px;color:rgba(34,28,23,.55);display:flex;gap:8px;align-items:center}
+.g-scan .f i,.g-scan .b i{font-size:18px}
+.g-scan .b{width:40px;border:0;background:var(--tinta);color:var(--papel)!important;border-radius:4px;cursor:pointer}
+.g-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px;padding:0 14px}
+.g-tile{position:relative;text-align:left;border:1px solid var(--line);border-bottom:3px solid rgba(34,28,23,.38);background:var(--papel2);border-radius:4px;padding:8px 10px 8px;height:74px;cursor:pointer;display:flex;flex-direction:column;justify-content:space-between}
+.g-tile:active{transform:translateY(2px);border-bottom-width:1px}
+.g-tile i{font-size:17px;color:var(--pardo)}
+.g-tile .n{font-size:12px;font-weight:500;line-height:1.1}
+.g-tile .p{font-weight:800;font-size:18px;font-variant-numeric:tabular-nums}
+.g-tile .q{position:absolute;top:6px;right:6px;background:var(--oxido);color:var(--papel);font-size:11px;font-weight:800;min-width:20px;height:20px;border-radius:2px;display:flex;align-items:center;justify-content:center}
+.g-cart{position:absolute;left:0;right:0;bottom:0;background:#FBF6EC;border-top:2px dashed rgba(34,28,23,.45);padding:12px 14px 12px}
+.g-cart .cut{position:absolute;top:-11px;left:12px;background:var(--papel);padding:0 4px;font-size:16px;color:rgba(34,28,23,.6)}
+.g-cart .ln{font-family:'Space Mono',monospace;font-size:11px;display:flex;justify-content:space-between;line-height:1.55}
+.g-cart .em{font-size:12px;color:rgba(34,28,23,.55);padding:6px 0 4px}
+.g-cart .tt{display:flex;align-items:flex-end;justify-content:space-between;margin-top:8px;gap:10px}
+.g-cart .tt small{font-size:11px;font-weight:500;letter-spacing:.08em;color:rgba(34,28,23,.6)}
+.g-cart .tt .v{font-weight:800;font-size:30px;line-height:1;font-variant-numeric:tabular-nums}
+.g-btn{border:0;background:var(--oxido);color:var(--papel)!important;font-weight:800;font-size:16px;padding:12px 22px;border-radius:4px;border-bottom:3px solid #7E2F0F;cursor:pointer}
+.g-btn.sec{background:transparent;color:var(--tinta)!important;border:1.5px solid var(--tinta);border-bottom-width:3px;font-size:14px;padding:10px 14px}
+.g-btn.mon{background:var(--monte);border-bottom-color:#1D3C28}
+.g-scrim{position:absolute;inset:0;background:rgba(34,28,23,.5)}
+.g-sheet{position:absolute;left:0;right:0;bottom:0;background:var(--papel);padding:16px 14px 14px;border-top:3px solid var(--tinta)}
+.g-sheet h3{margin:0 0 2px;font-size:13px;font-weight:500;color:rgba(34,28,23,.65)}
+.g-sheet .big{font-weight:800;font-size:38px;line-height:1.05;font-variant-numeric:tabular-nums}
+.g-chips{display:flex;gap:6px;margin:12px 0}
+.g-chip{flex:1;border:1px solid var(--tinta);background:transparent;border-radius:4px;padding:9px 0;font-weight:800;font-size:14px;cursor:pointer}
+.g-chip.on{background:var(--tinta);color:var(--papel)!important}
+.g-cambio{display:flex;justify-content:space-between;align-items:baseline;border-top:1px dashed var(--line);border-bottom:1px dashed var(--line);padding:8px 0;margin-bottom:12px;font-size:13px}
+.g-cambio b{font-size:22px;font-weight:800;font-variant-numeric:tabular-nums}
+.g-row2{display:flex;gap:8px}
+.g-row2 .g-btn:last-child{flex:1}
+.g-ticket{margin:10px 22px;background:#FBF6EC;border:1px solid var(--line);padding:16px 14px 14px;position:relative;font-family:'Space Mono',monospace;font-size:11px;line-height:1.7}
+.g-ticket .t1{text-align:center;font-family:'Archivo',sans-serif;font-weight:800;font-size:15px;letter-spacing:.12em}
+.g-ticket .t2{text-align:center;color:rgba(34,28,23,.6);margin-bottom:8px}
+.g-ticket .r{display:flex;justify-content:space-between}
+.g-ticket hr{border:0;border-top:1px dashed rgba(34,28,23,.45);margin:7px 0}
+.g-ticket .tot{font-weight:700;font-size:14px}
+.g-stamp{position:absolute;right:10px;bottom:36px;border:3px solid var(--monte);color:var(--monte);font-family:'Archivo',sans-serif;font-weight:800;font-size:24px;letter-spacing:.08em;padding:2px 10px;border-radius:3px;transform:rotate(-9deg);animation:g-stamp .45s cubic-bezier(.2,.9,.3,1.2) .15s both}
+.g-stamp.red{border-color:var(--rojo);color:var(--rojo)}
+.g-tk-actions{padding:0 22px;display:flex;flex-direction:column;gap:8px}
+.g-h1{padding:6px 16px 4px;font-weight:800;font-size:22px}
+.g-sub{padding:0 16px;font-size:12px;color:rgba(34,28,23,.6)}
+.g-calle{margin:10px 16px 8px;padding:10px 0 10px;border-top:2px solid var(--tinta);border-bottom:1px solid var(--line)}
+.g-calle small{font-size:11px;font-weight:500;letter-spacing:.08em;color:rgba(34,28,23,.6)}
+.g-calle .v{font-weight:800;font-size:34px;color:var(--rojo);font-variant-numeric:tabular-nums;line-height:1.1}
+.g-debt{display:flex;align-items:center;gap:10px;padding:10px 16px 10px 13px;border-bottom:1px solid var(--line);border-left:3px solid var(--ocre)}
+.g-debt.old{border-left-color:var(--rojo)}
+.g-debt .w{flex:1;min-width:0}
+.g-debt .w b{display:block;font-size:14px;font-weight:800}
+.g-debt .w span{font-size:11px;color:rgba(34,28,23,.6)}
+.g-debt .m{font-weight:800;font-size:16px;font-variant-numeric:tabular-nums}
+.g-debt button{border:1px solid var(--tinta);background:transparent;border-radius:4px;font-size:12px;font-weight:800;padding:6px 9px;cursor:pointer}
+.g-debt button.wa{border:0;padding:4px;color:var(--monte)!important;font-size:20px}
+.g-ledger{margin:12px 16px 0;font-family:'Space Mono',monospace;font-size:11.5px}
+.g-ledger .r{display:flex;align-items:baseline;gap:6px;padding:5px 0}
+.g-ledger .r i{flex:1;border-bottom:1.5px dotted rgba(34,28,23,.4);transform:translateY(-3px)}
+.g-ledger .r.s{font-weight:700;font-size:13px;border-top:1.5px solid var(--tinta);margin-top:6px;padding-top:9px}
+.g-count{margin:14px 16px 0}
+.g-count label{font-size:12px;font-weight:500;display:block;margin-bottom:5px}
+.g-count input{width:100%;box-sizing:border-box;height:46px;font-family:'Archivo',sans-serif;font-weight:800;font-size:24px;background:#FBF6EC;border:1.5px solid var(--tinta);border-radius:4px;padding:0 12px;color:var(--tinta)}
+.g-diff{height:22px;font-weight:800;font-size:14px;margin:7px 0 10px}
+.g-inv{display:flex;align-items:center;gap:10px;padding:10px 16px;border-bottom:1px solid var(--line)}
+.g-inv .w{flex:1}
+.g-inv .w b{font-size:13px;font-weight:500;display:block}
+.g-inv .bar{height:6px;background:var(--papel2);margin-top:5px}
+.g-inv .bar i{display:block;height:100%;background:var(--pardo)}
+.g-inv.low .bar i{background:var(--rojo)}
+.g-inv .st{font-weight:800;font-size:16px;font-variant-numeric:tabular-nums;min-width:56px;text-align:right}
+.g-inv.low .st{color:var(--rojo)}
+.g-hawk{display:block;width:100%;height:auto;fill:currentColor;overflow:visible}
+.g-splash{position:absolute;inset:0;z-index:5;background:var(--papel);overflow:hidden;color:var(--tinta)}
+.g-sun{position:absolute;width:280px;height:280px;border-radius:50%;background:var(--oxido);right:-120px;top:-100px;animation:g-fade .9s ease-out both}
+.g-fly{position:absolute;left:0;top:50%;width:240px;margin-top:-152px;animation:g-pass 2.4s linear .3s both}
+.g-bob{transform-origin:50% 60%;animation:g-bob 2.4s cubic-bezier(.3,.1,.5,1) .3s both}
+.g-splash #nearWing{transform-origin:288px 154px;animation:g-arm .55s cubic-bezier(.45,0,.55,1) .3s 2}
+.g-splash #hand{transform-origin:238px 60px;animation:g-hand .55s cubic-bezier(.45,0,.55,1) .3s 2}
+.g-splash #farWing{transform-origin:296px 152px;animation:g-arm .55s cubic-bezier(.45,0,.55,1) .3s 2}
+.g-splash #bird{animation:g-beat .55s cubic-bezier(.45,0,.55,1) .3s 2}
+.g-word{position:absolute;left:50%;top:50%;margin-top:-22px;transform:translateX(-50%);white-space:nowrap;font-weight:800;font-size:36px;line-height:44px;letter-spacing:.14em;padding-left:.14em;clip-path:inset(0 100% 0 0);animation:g-reveal 2.4s linear .3s forwards}
+.g-greca{position:absolute;left:50%;top:50%;margin:25px 0 0 -110px;width:220px;height:13px;overflow:visible}
+.g-greca path{stroke-dasharray:1;stroke-dashoffset:1;animation:g-ink .9s ease-out 2.3s forwards}
+.g-hipil{position:absolute;left:0;right:0;bottom:0;width:100%;height:auto;display:block;animation:g-rise .7s cubic-bezier(.2,.8,.3,1) 2.9s both}
+.g-tag{position:absolute;left:0;right:0;top:50%;margin-top:42px;text-align:center;font-family:'Space Mono',monospace;font-size:12px;color:var(--pardo);animation:g-fade .8s ease-out 2.6s both}
+.g-foot{position:absolute;left:0;right:0;bottom:86px;text-align:center;font-family:'Space Mono',monospace;font-size:11px;color:rgba(34,28,23,.5);animation:g-fade .8s ease-out 3.1s both}
+@keyframes g-pass{from{transform:translateX(-250px)}to{transform:translateX(330px)}}
+@keyframes g-bob{0%{transform:translateY(150px) rotate(-10deg)}50%{transform:translateY(0) rotate(-2deg)}100%{transform:translateY(-130px) rotate(-10deg)}}
+@keyframes g-arm{0%,100%{transform:rotate(0) scaleY(1)}42%{transform:rotate(-10deg) scaleY(-.82)}}
+@keyframes g-hand{0%,100%{transform:rotate(0)}20%{transform:rotate(12deg)}42%{transform:rotate(-6deg)}72%{transform:rotate(-22deg)}}
+@keyframes g-beat{0%,100%{transform:translateY(0)}42%{transform:translateY(-10px)}}
+@keyframes g-reveal{0%,40%{clip-path:inset(0 100% 0 0)}77%,100%{clip-path:inset(0 0 0 0)}}
+@keyframes g-draw{to{transform:scaleX(1)}}
+@keyframes g-ink{to{stroke-dashoffset:0}}
+@keyframes g-rise{from{transform:translateY(100%)}to{transform:none}}
+@keyframes g-fade{from{opacity:0}to{opacity:1}}
+@keyframes g-stamp{0%{transform:rotate(-9deg) scale(2.2);opacity:0}60%{opacity:1;transform:rotate(-9deg) scale(.93)}100%{transform:rotate(-9deg) scale(1);opacity:1}}
+.g-side{width:270px;flex:none;font-size:13px;color:#3d362e;line-height:1.5}
+.g-side h4{margin:0 0 8px;font-size:12px;font-weight:500}
+.g-sw{display:grid;grid-template-columns:repeat(3,1fr);gap:6px;margin-bottom:18px}
+.g-sw div{height:54px;border-radius:4px;padding:6px;font-size:11px;display:flex;flex-direction:column;justify-content:flex-end;line-height:1.2}
+.g-side button{width:100%;margin-bottom:8px;text-align:left;padding:9px 12px;border:1px solid #3d362e;background:transparent;border-radius:4px;font-family:inherit;font-size:13px;cursor:pointer}
+</style></head><body>
+<div class="g-phone"><div class="g-screen" id="g-screen"></div></div>
+<div class="g-side">
+  <h4>Paleta, sacada del gavilán y del papel</h4>
+  <div class="g-sw">
+    <div style="background:#F4ECDD;color:#221C17">Papel</div>
+    <div style="background:#221C17;color:#F4ECDD">Tinta</div>
+    <div style="background:#6B4226;color:#F4ECDD">Pardo</div>
+    <div style="background:#B5471B;color:#F4ECDD">Óxido</div>
+    <div style="background:#D8A02A;color:#221C17">Ocre</div>
+    <div style="background:#2E5E3E;color:#F4ECDD">Monte</div>
+  </div>
+  <button id="g-replay">Repetir el vuelo</button>
+  <button id="g-off">Simular sin internet</button>
+  <p>El gavilán cruza de izquierda a derecha y el nombre va quedando escrito a su paso. A los 4 segundos pasa solo a la caja.</p>
+</div>
+<script src="hawk-build.js"></script>
+<script>
+(function(){
+var P=[{id:1,n:'Coca 600 ml',p:18,i:'ti-bottle'},{id:2,n:'Sabritas',p:17,i:'ti-cookie'},{id:3,n:'Huevo, kg',p:42,i:'ti-egg'},{id:4,n:'Tortilla, kg',p:24,i:'ti-wheat'},{id:5,n:'Jabón Zote',p:15,i:'ti-bucket'},{id:6,n:'Agua 1 L',p:12,i:'ti-droplet'}];
+var S={tab:'splash',cart:{},sheet:null,recv:null,ticket:null,off:false,folio:43,counted:'',
+ debts:[{n:'Doña Lupe',d:3,m:320},{n:'Don Beto',d:18,m:580},{n:'Sra. Chelo',d:6,m:140},{n:'Pedro el albañil',d:21,m:200}]};
+var el=document.getElementById('g-screen'),timer;
+function f(n){return '$'+n.toLocaleString('es-MX',{minimumFractionDigits:2,maximumFractionDigits:2});}
+function total(){return P.reduce(function(a,p){return a+(S.cart[p.id]||0)*p.p;},0);}
+function items(){return P.filter(function(p){return S.cart[p.id];});}
+function greca(w){
+ var d="M0 12 H"+w;
+ for(var x=2;x+16<=w;x+=20){d+=" M"+x+" 12 V1 H"+(x+15)+" V8 H"+(x+7)+" V4.5";}
+ return '<svg class="g-greca" viewBox="0 0 '+w+' 13" aria-hidden="true"><path pathLength="1" d="'+d+'" fill="none" stroke="#B5471B" stroke-width="2.2" stroke-linecap="square"/></svg>';
+}
+function hipil(){
+ var cell=3,W=302,rows=[],flower=[".1...1.","111.111",".11111.","..121..",".11111.","111.111",".1...1."],leaf=[".3.","333",".3."];
+ var colors={1:null,2:"#D8A02A",3:"#2E5E3E"},petal=["#B5471B","#C2416F"],out="",unit=42,i=0;
+ function stamp(pat,ox,oy,c1){pat.forEach(function(r,y){r.split("").forEach(function(ch,x){if(ch===".")return;var c=ch==="1"?c1:colors[ch];out+='<rect x="'+(ox+x*cell)+'" y="'+(oy+y*cell)+'" width="'+(cell-.6)+'" height="'+(cell-.6)+'" fill="'+c+'"/>';});});}
+ for(var x=4;x<W;x+=unit){stamp(flower,x,16,petal[i%2]);stamp(leaf,x+27,25,null);i++;}
+ var zig="";for(var z=0;z<W;z+=8){zig+="M"+z+" 8 l4 -4 l4 4 ";}
+ var zig2="";for(var z2=0;z2<W;z2+=8){zig2+="M"+z2+" 48 l4 4 l4 -4 ";}
+ return '<svg class="g-hipil" viewBox="0 0 302 60" aria-hidden="true"><rect width="302" height="60" fill="#FBF6EC"/><path d="M0 1 H302" stroke="#221C17" stroke-width="1.2"/><path d="'+zig+'" fill="none" stroke="#2E5E3E" stroke-width="1.6"/>'+out+'<path d="'+zig2+'" fill="none" stroke="#2E5E3E" stroke-width="1.6"/></svg>';
+}
+function splash(){
+ return '<div class="g-splash"><div class="g-sun"></div><div class="g-word">GAVILÁN</div>'+greca(220)+'<div class="g-fly"><div class="g-bob"><svg viewBox="0 0 400 260" class="g-hawk" aria-hidden="true">'+window.HAWK_MARKUP+'</svg></div></div><div class="g-tag">ojo de gavilán para tu negocio</div><div class="g-foot">hecho en Tzucacab, Yucatán</div>'+hipil()+'</div>';
+}
+function head(){
+ return '<div class="g-head"><div class="mk"><img src="gavilan-vuelo.svg" alt=""></div><div class="nm">Abarrotes Doña Mary<small>Caja abierta · Turno de la mañana</small></div><button class="g-pill'+(S.off?' off':'')+'" data-act="net"><b></b>'+(S.off?'Sin internet':'En línea')+'</button></div>';
+}
+function cobrar(){
+ var g=P.map(function(p){var q=S.cart[p.id];return '<button class="g-tile" data-act="add" data-id="'+p.id+'"><i class="ti '+p.i+'" aria-hidden="true"></i><span class="n">'+p.n+'</span><span class="p">'+f(p.p).replace('.00','')+'</span>'+(q?'<span class="q">'+q+'</span>':'')+'</button>';}).join('');
+ var it=items(),lines='';
+ if(!it.length){lines='<div class="em">Toca un producto para empezar la cuenta.</div>';}
+ else{lines=it.slice(0,2).map(function(p){return '<div class="ln"><span>'+S.cart[p.id]+' x '+p.n+'</span><span>'+f(S.cart[p.id]*p.p)+'</span></div>';}).join('')+(it.length>2?'<div class="ln"><span>+ '+(it.length-2)+' más</span><span></span></div>':'');}
+ var t=total();
+ var off=S.off?'<div style="margin:8px 14px 0;font-size:11px;color:var(--pardo)">Sin internet. Todo se guarda aquí y se sube solo.</div>':'';
+ return head()+'<div class="g-scan"><div class="f"><i class="ti ti-search" aria-hidden="true"></i>Buscar producto</div><button class="b" data-act="scan" aria-label="Escanear código"><i class="ti ti-barcode" aria-hidden="true"></i></button></div><div class="g-grid">'+g+'</div>'+off+
+ '<div class="g-cart"><i class="ti ti-scissors cut" aria-hidden="true"></i>'+lines+'<div class="tt"><div><small>TOTAL</small><div class="v">'+f(t)+'</div></div><button class="g-btn" data-act="pay">Cobrar</button></div></div>'+
+ (S.sheet==='pay'?paySheet(t):'');
+}
+function paySheet(t){
+ var opts=[50,100,200,500].filter(function(x){return x>=t;}).slice(0,3);
+ var chips='<button class="g-chip'+(S.recv===null?' on':'')+'" data-act="recv" data-v="exact">Justo</button>'+opts.map(function(x){return '<button class="g-chip'+(S.recv===x?' on':'')+'" data-act="recv" data-v="'+x+'">$'+x+'</button>';}).join('');
+ var ch=S.recv===null?0:S.recv-t;
+ return '<div class="g-scrim" data-act="close"></div><div class="g-sheet"><h3>Total a cobrar</h3><div class="big">'+f(t)+'</div><div style="font-size:12px;margin-top:10px;font-weight:500">¿Con cuánto paga?</div><div class="g-chips">'+chips+'</div><div class="g-cambio"><span>Cambio</span><b>'+f(ch)+'</b></div><div class="g-row2"><button class="g-btn sec" data-act="fiar">Fiar</button><button class="g-btn mon" data-act="done">Cobrar en efectivo</button></div></div>';
+}
+function ticketView(){
+ var k=S.ticket,rows=k.lines.map(function(l){return '<div class="r"><span>'+l.q+' x '+l.n+'</span><span>'+f(l.m)+'</span></div>';}).join('');
+ var pie=k.kind==='paid'?'<div class="r"><span>Recibió</span><span>'+f(k.recv)+'</span></div><div class="r"><span>Cambio</span><span>'+f(k.recv-k.total)+'</span></div>':'<div class="r"><span>Cliente</span><span>Doña Lupe</span></div><div class="r"><span>Nuevo saldo</span><span>'+f(320+k.total)+'</span></div>';
+ return head()+'<div class="g-ticket"><div class="t1">ABARROTES DOÑA MARY</div><div class="t2">Folio A-00'+k.folio+'</div>'+rows+'<hr><div class="r tot"><span>TOTAL</span><span>'+f(k.total)+'</span></div><hr>'+pie+'<div class="g-stamp'+(k.kind==='paid'?'':' red')+'">'+(k.kind==='paid'?'PAGADO':'FIADO')+'</div></div><div class="g-tk-actions"><button class="g-btn mon" data-act="wa"><i class="ti ti-brand-whatsapp" aria-hidden="true"></i> Mandar por WhatsApp</button><button class="g-btn sec" data-act="new">Nueva venta</button></div>';
+}
+function fiados(){
+ var tot=S.debts.reduce(function(a,d){return a+d.m;},0);
+ var rows=S.debts.filter(function(d){return d.m>0;}).map(function(d,i){return '<div class="g-debt'+(d.d>14?' old':'')+'"><div class="w"><b>'+d.n+'</b><span>hace '+d.d+' días</span></div><div class="m">'+f(d.m).replace('.00','')+'</div><button data-act="abono" data-i="'+i+'">Abonar</button><button class="wa" data-act="wa2" aria-label="Recordar por WhatsApp"><i class="ti ti-brand-whatsapp" aria-hidden="true"></i></button></div>';}).join('');
+ return '<div class="g-h1">Fiados</div><div class="g-sub">Quién te debe y desde cuándo</div><div class="g-calle"><small>EN LA CALLE</small><div class="v">'+f(tot)+'</div></div>'+rows+'<div class="g-sub" style="padding-top:10px">Raya roja: más de 2 semanas sin pagar.</div>';
+}
+function inv(){
+ var d=[['Coca 600 ml','24 pz',80,0],['Sabritas','3 pz',10,1],['Huevo, kg','12 kg',60,0],['Tortilla, kg','8 kg',45,0],['Jabón Zote','2 pz',8,1],['Agua 1 L','30 pz',90,0]];
+ return '<div class="g-h1">Inventario</div><div class="g-sub">2 productos por acabarse</div><div style="height:8px"></div>'+d.map(function(x){return '<div class="g-inv'+(x[3]?' low':'')+'"><div class="w"><b>'+x[0]+'</b><div class="bar"><i style="width:'+x[2]+'%"></i></div></div><div class="st">'+x[1]+'</div></div>';}).join('');
+}
+function caja(){
+ function r(a,b,c){return '<div class="r"><span>'+a+'</span><i></i><span style="color:'+(c||'inherit')+'">'+b+'</span></div>';}
+ return '<div class="g-h1">Corte de hoy</div><div class="g-sub">Se cuadra en un minuto</div><div class="g-ledger">'+r('Fondo inicial','500.00')+r('Ventas en efectivo','2,340.00')+r('Abonos de fiados','150.00')+r('Gastos (hielo, gas)','-180.00','#A12D1E')+'<div class="r s"><span>Debe haber en caja</span><i></i><span>$2,810.00</span></div>'+r('Tarjeta y transferencia','860.00')+'</div><div class="g-count"><label for="g-c">Efectivo que contaste</label><input id="g-c" type="number" inputmode="decimal" placeholder="0.00" value="'+S.counted+'"><div class="g-diff" id="g-d"></div><button class="g-btn" style="width:100%" data-act="close-caja">Cerrar caja</button></div>';
+}
+function nav(){
+ var t=[['cobrar','ti-receipt','Cobrar'],['fiados','ti-notebook','Fiados'],['inv','ti-packages','Inventario'],['caja','ti-calculator','Caja']];
+ return '<div class="g-nav">'+t.map(function(x){return '<button class="'+(S.tab===x[0]?'on':'')+'" data-act="tab" data-t="'+x[0]+'"><i class="ti '+x[1]+'" aria-hidden="true"></i>'+x[2]+'</button>';}).join('')+'</div>';
+}
+function render(){
+ if(S.tab==='splash'){el.innerHTML=splash();return;}
+ var b=S.tab==='cobrar'?(S.sheet==='ticket'?ticketView():cobrar()):S.tab==='fiados'?fiados():S.tab==='inv'?inv():caja();
+ el.innerHTML='<div class="g-status"><span>10:24</span><span>'+(S.off?'sin red':'4G')+'</span></div><div class="g-body">'+b+'</div>'+nav();
+ if(S.tab==='caja')diff();
+}
+function diff(){
+ var d=document.getElementById('g-d');if(!d)return;
+ if(S.counted===''){d.textContent='';return;}
+ var x=Math.round((parseFloat(S.counted)-2810)*100)/100;
+ if(isNaN(x)){d.textContent='';return;}
+ if(x===0){d.textContent='Cuadra al peso';d.style.color='#2E5E3E';}
+ else if(x>0){d.textContent='Te sobran '+f(x);d.style.color='#2E5E3E';}
+ else{d.textContent='Te faltan '+f(-x);d.style.color='#A12D1E';}
+}
+var AUTO=!/[?&]hold/.test(location.search);
+function start(){S.tab='splash';render();clearTimeout(timer);if(AUTO)timer=setTimeout(function(){S.tab='cobrar';render();},4800);}
+function finish(kind){
+ var t=total();if(!t)return;
+ S.ticket={kind:kind,total:t,recv:S.recv===null?t:S.recv,folio:S.folio++,lines:items().map(function(p){return {q:S.cart[p.id],n:p.n,m:S.cart[p.id]*p.p};})};
+ S.sheet='ticket';render();
+}
+el.addEventListener('click',function(e){
+ var t=e.target.closest('[data-act]');if(!t)return;
+ var a=t.dataset.act;
+ if(a==='tab'){S.tab=t.dataset.t;S.sheet=null;render();}
+ else if(a==='add'){var id=t.dataset.id;S.cart[id]=(S.cart[id]||0)+1;render();}
+ else if(a==='pay'){if(total()>0){S.sheet='pay';S.recv=null;render();}}
+ else if(a==='close'){S.sheet=null;render();}
+ else if(a==='recv'){S.recv=t.dataset.v==='exact'?null:parseInt(t.dataset.v,10);render();}
+ else if(a==='done'){finish('paid');}
+ else if(a==='fiar'){finish('fiado');}
+ else if(a==='new'){S.cart={};S.sheet=null;S.recv=null;render();}
+ else if(a==='net'){S.off=!S.off;render();}
+ else if(a==='abono'){var d=S.debts.filter(function(x){return x.m>0;})[parseInt(t.dataset.i,10)];d.m=Math.max(0,d.m-50);render();}
+ else if(a==='close-caja'){var d2=document.getElementById('g-d');if(S.counted===''){d2.textContent='Escribe cuánto contaste';d2.style.color='#A12D1E';}}
+});
+el.addEventListener('input',function(e){if(e.target.id==='g-c'){S.counted=e.target.value;diff();}});
+document.getElementById('g-replay').addEventListener('click',start);
+document.getElementById('g-off').addEventListener('click',function(){S.off=!S.off;this.textContent=S.off?'Volver a conectar':'Simular sin internet';if(S.tab!=='splash')render();});
+start();
+})();
+</script></body></html>

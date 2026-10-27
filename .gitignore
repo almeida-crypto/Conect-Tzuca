@@ -1,0 +1,26 @@
+# Sistema y editores
+.DS_Store
+Thumbs.db
+*.log
+.idea/
+.vscode/
+
+# Node
+node_modules/
+
+# Configuración local de Claude Code (permisos personales)
+.claude/settings.local.json
+
+# Variables de entorno y llaves: nunca al repositorio
+.env
+.env.*
+*.keystore
+*.jks
+**/android/key.properties
+
+# Flutter (gavilan_app tiene además su propio .gitignore)
+gavilan_app/build/
+gavilan_app/.dart_tool/
+
+# Documento maestro de negocio: se queda solo en la computadora (el repositorio es público)
+*.pdf

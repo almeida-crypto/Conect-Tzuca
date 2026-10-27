@@ -1,0 +1,5 @@
+tags:
+  # Cuadros del inicio para revisar a ojo. Para regenerarlos:
+  #   flutter test --run-skipped -t golden --update-goldens
+  golden:
+    skip: "Imágenes de revisión visual; dependen del equipo donde se generan."
