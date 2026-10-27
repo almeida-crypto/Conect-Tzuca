@@ -2,6 +2,10 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:gavilan/app.dart';
+import 'package:gavilan/data/repository.dart';
+import 'package:gavilan/domain/plan.dart';
+import 'package:gavilan/state/seed.dart';
+import 'package:gavilan/state/store.dart';
 import 'package:gavilan/ui/cobrar/ticket_screen.dart';
 import 'package:gavilan/ui/widgets/buttons.dart';
 import 'package:google_fonts/google_fonts.dart';
@@ -9,11 +13,19 @@ import 'package:google_fonts/google_fonts.dart';
 void main() {
   setUpAll(() => GoogleFonts.config.allowRuntimeFetching = false);
 
-  Future<void> start(WidgetTester tester) async {
+  Future<void> start(WidgetTester tester, {bool demo = true}) async {
     tester.view.physicalSize = const Size(375 * 3, 812 * 3);
     tester.view.devicePixelRatio = 3;
     addTearDown(tester.view.reset);
-    await tester.pumpWidget(const ProviderScope(child: GavilanApp(showSplash: false)));
+    await tester.pumpWidget(
+      ProviderScope(
+        overrides: [
+          if (demo)
+            initialDataProvider.overrideWithValue(LoadedData(store: seedStore(DateTime.now()), plan: Plan.semilla)),
+        ],
+        child: const GavilanApp(showSplash: false),
+      ),
+    );
     await tester.pump();
   }
 
@@ -41,5 +53,20 @@ void main() {
     await tester.pumpAndSettle();
     expect(find.byType(TicketScreen), findsOneWidget);
     expect(find.text('PAGADO'), findsOneWidget);
+  });
+
+  testWidgets('primer arranque pide el nombre y entra a la caja vacía', (tester) async {
+    await start(tester, demo: false);
+    expect(find.text('Bienvenido a Gavilán'), findsOneWidget);
+
+    await tester.tap(find.text('Empezar'));
+    await tester.pump();
+    expect(find.text('Escribe el nombre de tu negocio'), findsOneWidget);
+
+    await tester.enterText(find.byType(TextField), 'Tienda La Esperanza');
+    await tester.tap(find.text('Empezar'));
+    await tester.pumpAndSettle();
+    expect(find.text('Tienda La Esperanza'), findsOneWidget);
+    expect(find.text('La caja está cerrada. Ábrela para cobrar.'), findsOneWidget);
   });
 }

@@ -116,8 +116,55 @@ class MasScreen extends ConsumerWidget {
           child: Text('Módulos', style: GText.sans(size: 15, weight: FontWeight.w800)),
         ),
         for (final m in _modules) _ModuleRow(module: m, unlocked: m.unlocked(limits), plan: plan),
+        Padding(
+          padding: const EdgeInsets.fromLTRB(16, 22, 16, 4),
+          child: Text('Datos de este teléfono', style: GText.sans(size: 15, weight: FontWeight.w800)),
+        ),
+        Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 16),
+          child: Text(
+            'Las ventas, fiados y cortes se guardan en el celular aunque no haya internet.',
+            style: GText.muted(size: 12.5),
+          ),
+        ),
+        ListTile(
+          contentPadding: const EdgeInsets.symmetric(horizontal: 16),
+          leading: const Icon(Icons.delete_outline, color: GColors.rojo),
+          title: Text('Borrar todo y empezar de nuevo', style: GText.sans(size: 14, color: GColors.rojo)),
+          subtitle: Text('Útil para quitar la tiendita de ejemplo', style: GText.muted()),
+          onTap: () => _confirmReset(context, ref),
+        ),
       ],
     );
+  }
+
+  Future<void> _confirmReset(BuildContext context, WidgetRef ref) async {
+    final store = ref.read(storeProvider);
+    final ok = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: const Text('¿Borrar todo?'),
+        content: Text(
+          'Se borran de este teléfono los productos, ventas, fiados y cortes de "${store.businessName}". '
+          'No se puede deshacer.',
+          style: GText.sans(size: 14, weight: FontWeight.w400),
+        ),
+        actions: [
+          TextButton(onPressed: () => Navigator.of(ctx).pop(false), child: const Text('Cancelar')),
+          TextButton(
+            onPressed: () => Navigator.of(ctx).pop(true),
+            child: Text(
+              'Borrar todo',
+              style: GText.sans(size: 14, weight: FontWeight.w800, color: GColors.rojo),
+            ),
+          ),
+        ],
+      ),
+    );
+    if (ok != true) return;
+    ref.read(cartProvider.notifier).clear();
+    ref.read(planProvider.notifier).set(Plan.semilla);
+    ref.read(storeProvider.notifier).resetAll();
   }
 }
 

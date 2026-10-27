@@ -2,13 +2,17 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../domain/models.dart';
 import '../domain/plan.dart';
+import 'store.dart';
 
 /// Plan activo. Mientras no hay cobros reales, se puede cambiar desde "Mi plan" para previsualizar.
 class PlanNotifier extends Notifier<Plan> {
   @override
-  Plan build() => Plan.semilla;
+  Plan build() => ref.read(initialDataProvider)?.plan ?? Plan.semilla;
 
-  void set(Plan plan) => state = plan;
+  void set(Plan plan) {
+    state = plan;
+    ref.read(storeProvider.notifier).savePlan(plan);
+  }
 }
 
 final planProvider = NotifierProvider<PlanNotifier, Plan>(PlanNotifier.new);

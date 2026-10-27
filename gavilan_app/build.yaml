@@ -1,0 +1,7 @@
+targets:
+  $default:
+    builders:
+      drift_dev:
+        options:
+          # Fechas como texto ISO (conserva milisegundos y se lee igual en Supabase).
+          store_date_time_values_as_text: true

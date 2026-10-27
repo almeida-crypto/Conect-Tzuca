@@ -76,10 +76,27 @@ Quedan 3 avisos "WARN" que son **intencionales**:
 
 Todo esto está en [PENDIENTES.md](PENDIENTES.md).
 
-## Correspondencia con la app
+## Base local en el teléfono (Drift)
 
-Los modelos de `gavilan_app/lib/domain/models.dart` siguen estas tablas, con dos diferencias de momento:
-- La app guarda las ventas con su forma de pago en `sales`. En la base el pago va en `sale_payments`, lo que permite pagos mixtos.
-- La app descuenta existencias directo en el producto. En la base se hace con `inventory_movements`.
+La app guarda todo en SQLite dentro del teléfono (`gavilan_app/lib/data/database.dart`). Usa los mismos nombres de tabla que Supabase para que la sincronización sea directa:
 
-Al conectar la sincronización hay que alinear ambas.
+| Tabla local | Contenido |
+|---|---|
+| `products` | Productos con existencia, precio, costo, icono y código |
+| `customers` | Clientes |
+| `sales` y `sale_items` | Ventas y sus renglones (incluye la forma de pago en `sales`) |
+| `credit_entries` | Cargos y abonos de fiado |
+| `cash_sessions` y `cash_movements` | Cortes, gastos y entradas |
+| `meta` | Nombre del negocio, siguiente folio y plan |
+
+- Las fechas se guardan como texto ISO, que conserva los milisegundos.
+- Cada operación de la app se escribe en orden, en una sola fila de escrituras.
+- Una venta se guarda completa en una transacción: la venta, sus renglones, las existencias, el cargo de fiado y el folio.
+- Si se cambian las tablas, hay que subir `schemaVersion` y escribir la migración. Después se regenera el código con `dart run build_runner build`, desde `gavilan_app/`.
+
+## Correspondencia con Supabase
+
+Faltan tres cosas para sincronizar:
+- **Forma de pago:** la app la guarda en `sales.method`. En Supabase va en `sale_payments`, lo que permite pagos mixtos.
+- **Existencias:** la app las descuenta directo en `products.stock`. En Supabase se hace con `inventory_movements`.
+- **Negocio:** las tablas locales no llevan `business_id`, porque un teléfono es un solo negocio. Se agrega al sincronizar.

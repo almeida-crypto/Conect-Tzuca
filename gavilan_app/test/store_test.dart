@@ -1,7 +1,10 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:gavilan/core/money.dart';
+import 'package:gavilan/data/repository.dart';
+import 'package:gavilan/domain/plan.dart';
 import 'package:gavilan/domain/models.dart';
+import 'package:gavilan/state/seed.dart';
 import 'package:gavilan/state/store.dart';
 
 void main() {
@@ -15,7 +18,13 @@ void main() {
     return SaleLine(key: p.id, productId: p.id, name: p.name, unitCents: p.priceCents, qty: qty);
   }
 
-  setUp(() => container = ProviderContainer());
+  setUp(
+    () => container = ProviderContainer(
+      overrides: [
+        initialDataProvider.overrideWithValue(LoadedData(store: seedStore(DateTime.now()), plan: Plan.semilla)),
+      ],
+    ),
+  );
   tearDown(() => container.dispose());
 
   test('los datos de ejemplo cuadran con el corte esperado', () {

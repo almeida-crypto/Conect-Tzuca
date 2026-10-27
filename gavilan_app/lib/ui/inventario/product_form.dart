@@ -70,7 +70,10 @@ class _ProductFormState extends ConsumerState<_ProductForm> {
     });
     if (_errors.isNotEmpty) return;
 
-    final base = widget.product ?? Product(id: newId(), name: '', priceCents: 0);
+    // Partimos del producto como está ahora (pudo venderse mientras el formulario estaba abierto).
+    final base =
+        (widget.product == null ? null : store.productById(widget.product!.id)) ??
+        Product(id: newId(), name: '', priceCents: 0);
     ref
         .read(storeProvider.notifier)
         .saveProduct(

@@ -12,17 +12,21 @@ Prioridad: **Alta** = sin esto no se puede usar con un negocio real · **Media**
 - [ ] **Media** · Cuando haya llaves reales (Supabase, PowerSync, firma de Android), guardarlas fuera del repositorio: es público.
 
 ## Etapa 1 · Que la app guarde y sincronice
-- [ ] **Alta** · Guardar los datos en el teléfono con Drift (SQLite). Hoy todo vive en memoria y se pierde al cerrar la app.
+- [x] **Alta** · Guardar los datos en el teléfono con Drift (SQLite): cada venta, abono, gasto y producto se guarda al momento y se carga al abrir. *26/10/2026*
 - [ ] **Alta** · Sincronizar con Supabase (proyecto-Gavilan) usando PowerSync. Hay que configurar sus reglas de sincronización por `business_id`.
 - [ ] **Alta** · Inicio de sesión (Supabase Auth) y alta del negocio con la función `create_business`.
-- [ ] **Alta** · Reemplazar los datos de ejemplo (`lib/state/seed.dart`) por un arranque vacío con guía para el primer producto.
+- [x] **Alta** · Primer arranque: bienvenida con el nombre del negocio, o probar con la tiendita de ejemplo. En Más se puede borrar todo y empezar de nuevo. *26/10/2026*
+- [ ] **Media** · Guía para dar de alta el primer producto cuando el negocio está vacío.
+- [ ] **Media** · En el navegador (vista previa) los datos no se guardan. Si hace falta, agregar `sqlite3.wasm` y `drift_worker.js` a `web/`.
 - [ ] **Alta** · Indicador de conexión real. Hoy el botón "En línea / Sin internet" es una simulación.
 - [ ] **Media** · Folios de venta que no choquen entre dos dispositivos sin internet (prefijo por dispositivo).
 - [ ] **Media** · Probar que un cajero del negocio A no vea nada del negocio B (RLS con usuarios reales).
 
 ## Etapa 2 · Completar el mostrador
 - [ ] **Alta** · Cámara como escáner de códigos (`mobile_scanner`) y modo "¿Cuánto cuesta?".
-- [ ] **Alta** · Probar la app en un celular Android real y en gama baja.
+- [x] **Alta** · Probar la app en Android: probada en el emulador; guarda, cierra a la fuerza, reabre y actualiza sin perder datos. *26/10/2026*
+- [ ] **Alta** · Probarla en un celular Android real de gama baja.
+- [ ] **Media** · Pantalla de carga de Android con los colores de Gavilán: hoy sale un instante blanca con el logo de Flutter.
 - [ ] **Media** · Ticket como imagen PNG para WhatsApp (`RepaintBoundary` + `share_plus`), con logo en planes de pago.
 - [ ] **Media** · Tarjeta para Estados de WhatsApp: foto del producto, precio y sello "Disponible".
 - [ ] **Media** · Fotos de producto en planes de pago: reducir a 600×600 WebP en el teléfono y subir a Supabase Storage.

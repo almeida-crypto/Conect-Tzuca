@@ -86,10 +86,11 @@ class TicketScreen extends ConsumerWidget {
                               style: GText.mono(size: 10.5, color: GColors.tintaTenue),
                             ),
                           ],
-                          const SizedBox(height: 26),
+                          // Espacio libre al pie para el sello, que así no tapa montos.
+                          const SizedBox(height: 70),
                         ],
                       ),
-                      Positioned(right: 0, bottom: 44, child: _Stamp(paid: paid)),
+                      Positioned(right: 4, bottom: 10, child: _Stamp(paid: paid)),
                     ],
                   ),
                 ),

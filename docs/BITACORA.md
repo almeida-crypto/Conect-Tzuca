@@ -88,3 +88,30 @@ Se creó esta carpeta `docs/` y el `README.md` de la raíz para llevar el contro
 - `.gitignore` también deja fuera la carpeta `build` de Flutter (154 MB), los `.env`, las llaves de firma y la configuración local de Claude Code.
 - `.gitattributes` fija los saltos de línea en LF, para evitar ruido entre Windows y GitHub.
 - Antes de subir se revisó que no hubiera llaves ni contraseñas en los archivos.
+
+### 2. Etapa 1: la app guarda los datos en el teléfono
+- Se agregaron **Drift 2.35** y `drift_flutter`: una base SQLite dentro del teléfono (`gavilan_app/lib/data/`).
+- **Tablas locales** con los mismos nombres que en Supabase: productos, clientes, ventas y renglones, fiados, cortes, movimientos de caja y un `meta` con el nombre del negocio, el folio y el plan.
+- **`StoreRepository`:** la interfaz entre la app y el guardado. Hoy usa Drift; después se podrá cambiar a PowerSync sin tocar las pantallas.
+- **Al abrir:** se carga todo lo guardado antes de mostrar la app.
+- **En cada cambio:** venta, abono, gasto, producto, apertura o cierre de caja y plan se escriben al momento, en orden. La venta va completa en una transacción.
+- **Primer arranque:** después del gavilán aparece la bienvenida. Se escribe el nombre del negocio y se empieza vacío, o se prueba la tiendita de ejemplo.
+- **En Más:** "Borrar todo y empezar de nuevo", con confirmación.
+- **En el navegador:** sigue trabajando en memoria, porque es solo la vista previa.
+
+Errores que encontraron las pruebas nuevas, ya corregidos:
+- **El plan se perdía:** si se cambiaba de plan justo después de cargar el ejemplo, el guardado del ejemplo terminaba después y regresaba el plan a Semilla. Ahora el plan entra a la misma fila de escrituras.
+- **La existencia podía regresar:** si se vendía un producto con su ficha de edición abierta, al guardar se regresaba la existencia vieja. Ahora el formulario parte del producto como está al momento de guardar.
+
+Verificación:
+- 13 pruebas pasan, entre ellas guardar, cerrar y reabrir sobre SQLite real: ventas, cambio, fiados, corte, inventario, folio y plan siguen ahí.
+- También pasan la de la bienvenida y la de borrar todo.
+
+### 3. Prueba en Android (emulador)
+- Se compiló la app para Android y se instaló en el emulador `almeida-manuel`. El primer intento se quedó "offline" y arrancó con un arranque limpio.
+- **Inicio, bienvenida y tiendita de ejemplo** se ven bien en el teléfono.
+- **Venta de 2 kg de huevo, 4 pagados con 00:** dio 6 de cambio.
+- **Cierre forzado y reapertura:** la app entró directo al negocio. El corte conservó las 6 ventas, 98 en efectivo y 68 esperados en caja.
+- **Reinstalación encima (actualización):** los datos siguieron ahí y el folio continuó en A-0044.
+- **Corregido:** en pantallas de teléfono el sello PAGADO tapaba los montos de Recibió y Cambio. Ahora cae en un espacio libre al pie del ticket.
+- **Visto y anotado en pendientes:** al abrir, Android muestra un instante la pantalla blanca con el logo de Flutter.

@@ -24,7 +24,9 @@ Las imágenes de revisión del inicio animado se regeneran con `flutter test --r
 |---|---|
 | `lib/theme` | Paleta Gavilán y tipografías (Archivo, Space Mono) |
 | `lib/domain` | Modelos (reflejan las tablas de Supabase) y planes con sus límites |
+| `lib/data` | Base SQLite local (Drift) y `StoreRepository`, que guarda y carga |
 | `lib/state` | Estado con Riverpod: almacén del negocio, carrito, plan, conexión y datos de ejemplo |
+| `lib/ui/onboarding` | Bienvenida del primer arranque |
 | `lib/ui/splash` | Inicio animado: gavilán articulado (hombro y muñeca), greca maya y bordado de hipil |
 | `lib/ui/cobrar` | Venta, búsqueda y código de barras, venta rápida, cobro con cambio, fiar y ticket |
 | `lib/ui/fiados` | Libreta de fiados, abonos, historial y recordatorio por WhatsApp |
@@ -43,11 +45,16 @@ El diseño es el mismo en todos; `lib/domain/plan.dart` define límites y módul
 
 Mientras no se cobren suscripciones, "Mi plan" permite cambiar de plan como vista previa.
 
+## Guardado
+
+En el teléfono todo se guarda en SQLite (Drift) al momento y se carga al abrir. En el navegador la app trabaja en memoria (solo vista previa).
+
+Si cambias las tablas de `lib/data/database.dart`, regenera el código:
+
+```bash
+dart run build_runner build
+```
+
 ## Pendiente
 
-- Guardar los datos en el teléfono (Drift) y sincronizar con Supabase (PowerSync). Hoy viven en memoria con datos de ejemplo.
-- Inicio de sesión y alta de negocio (`create_business`).
-- Cámara como escáner (`mobile_scanner`) y fotos de producto.
-- Ticket como imagen PNG para WhatsApp e impresora térmica.
-- Módulos: apartados, pacas y lotes, tandas, mesas y cocina, equipo.
-- Incluir las fuentes dentro de la app para que no dependan de internet la primera vez.
+La lista completa está en [docs/PENDIENTES.md](../docs/PENDIENTES.md).

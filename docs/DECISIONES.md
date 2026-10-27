@@ -22,3 +22,6 @@ Decisiones ya tomadas, con su razón. Antes de cambiar alguna, revisa por qué s
 | 16 | El gavilán se dibuja con código (`design-lab/hawk-build.js`) y se exporta por piezas | Permite articular el ala en Flutter y ajustar el dibujo sin herramientas de diseño | 20/10/2026 |
 | 17 | Las imágenes de referencia del usuario solo se usaron como guía; el dibujo es original | Las referencias tienen derechos de su autor | 20/10/2026 |
 | 18 | Mientras no haya cobro real, "Mi plan" permite **vista previa** de cada plan | Para revisar cómo se ve la app en cada plan | 20/10/2026 (temporal) |
+| 19 | Guardado local con **Drift** detrás de una interfaz `StoreRepository` | Las pantallas no saben dónde se guarda; cambiar a PowerSync después no toca la interfaz | 26/10/2026 |
+| 20 | La app arranca **vacía**; la tiendita de ejemplo es opcional | Un negocio real no debe empezar con datos falsos | 26/10/2026 |
+| 21 | En el navegador la app no guarda (memoria) | Es solo vista previa; evita descargar archivos extra para web | 26/10/2026 |

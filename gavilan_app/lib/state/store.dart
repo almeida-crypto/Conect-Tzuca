@@ -1,14 +1,18 @@
+import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:uuid/uuid.dart';
 
+import '../data/repository.dart';
 import '../domain/models.dart';
+import '../domain/plan.dart';
+import 'app_state.dart';
 import 'seed.dart';
 
 const _uuid = Uuid();
 String newId() => _uuid.v4();
 
-/// Estado local del negocio. Hoy vive en memoria con datos de ejemplo;
-/// el siguiente paso es guardarlo en Drift (offline) y sincronizar con Supabase.
+/// Estado del negocio en memoria. Cada cambio se guarda también en el teléfono
+/// (Drift) a través de [StoreRepository]; al abrir la app se vuelve a cargar.
 class StoreState {
   const StoreState({
     required this.businessName,
@@ -29,6 +33,20 @@ class StoreState {
   final List<CashSession> sessions;
   final List<CashMovement> movements;
   final int nextFolio;
+
+  /// Sin negocio todavía (primer arranque o después de borrar todo).
+  static const blank = StoreState(
+    businessName: '',
+    products: [],
+    sales: [],
+    customers: [],
+    credit: [],
+    sessions: [],
+    movements: [],
+    nextFolio: 1,
+  );
+
+  bool get hasBusiness => businessName.isNotEmpty;
 
   CashSession? get openSession {
     for (final s in sessions) {
@@ -129,6 +147,7 @@ class StoreState {
   }
 
   StoreState copyWith({
+    String? businessName,
     List<Product>? products,
     List<Sale>? sales,
     List<Customer>? customers,
@@ -137,7 +156,7 @@ class StoreState {
     List<CashMovement>? movements,
     int? nextFolio,
   }) => StoreState(
-    businessName: businessName,
+    businessName: businessName ?? this.businessName,
     products: products ?? this.products,
     sales: sales ?? this.sales,
     customers: customers ?? this.customers,
@@ -148,13 +167,65 @@ class StoreState {
   );
 }
 
+/// Dónde se guardan los cambios. main() lo cambia por Drift en el teléfono.
+final repositoryProvider = Provider<StoreRepository>((ref) => MemoryRepository());
+
+/// Lo que se cargó del teléfono al abrir la app (null = primer arranque).
+final initialDataProvider = Provider<LoadedData?>((ref) => null);
+
 class StoreNotifier extends Notifier<StoreState> {
   StoreNotifier({DateTime Function()? clock}) : _clock = clock ?? DateTime.now;
 
   final DateTime Function() _clock;
+  Future<void> _writes = Future.value();
 
   @override
-  StoreState build() => seedStore(_clock());
+  StoreState build() => ref.read(initialDataProvider)?.store ?? StoreState.blank;
+
+  /// Guarda en orden, una escritura tras otra. Si falla se reporta sin tumbar la app.
+  void _save(Future<void> Function(StoreRepository repo) write) {
+    final repo = ref.read(repositoryProvider);
+    _writes = _writes.then((_) => write(repo)).catchError((Object e, StackTrace st) {
+      FlutterError.reportError(
+        FlutterErrorDetails(
+          exception: e,
+          stack: st,
+          library: 'gavilan',
+          context: ErrorDescription('al guardar en el teléfono'),
+        ),
+      );
+    });
+  }
+
+  /// Espera a que todo quede guardado.
+  Future<void> flush() => _writes;
+
+  // ---------- Negocio ----------
+
+  /// Alta de un negocio nuevo, vacío.
+  void startBusiness(String name) {
+    final fresh = StoreState.blank.copyWith(businessName: name.trim());
+    state = fresh;
+    final plan = ref.read(planProvider);
+    _save((r) => r.replaceAll(fresh, plan));
+  }
+
+  /// Carga la tiendita de ejemplo para conocer la app.
+  void loadDemo() {
+    final demo = seedStore(_clock());
+    state = demo;
+    final plan = ref.read(planProvider);
+    _save((r) => r.replaceAll(demo, plan));
+  }
+
+  /// Guarda el plan en la misma fila de escrituras, para que no lo pise un alta posterior.
+  void savePlan(Plan plan) => _save((r) => r.setPlan(plan));
+
+  /// Borra todo lo guardado en este teléfono y vuelve al primer arranque.
+  void resetAll() {
+    state = StoreState.blank;
+    _save((r) => r.clear());
+  }
 
   // ---------- Productos ----------
 
@@ -165,12 +236,15 @@ class StoreNotifier extends Notifier<StoreState> {
           ? [for (final p in state.products) p.id == product.id ? product : p]
           : [...state.products, product],
     );
+    _save((r) => r.upsertProduct(product));
   }
 
   void addStock(String productId, double qty) {
-    state = state.copyWith(
-      products: [for (final p in state.products) p.id == productId ? p.copyWith(stock: p.stock + qty) : p],
-    );
+    final current = state.productById(productId);
+    if (current == null) return;
+    final updated = current.copyWith(stock: current.stock + qty);
+    state = state.copyWith(products: [for (final p in state.products) p.id == productId ? updated : p]);
+    _save((r) => r.upsertProduct(updated));
   }
 
   // ---------- Ventas ----------
@@ -201,27 +275,35 @@ class StoreNotifier extends Notifier<StoreState> {
     for (final l in lines) {
       if (l.productId != null) sold[l.productId!] = (sold[l.productId!] ?? 0) + l.qty;
     }
+    final changed = <Product>[];
+    final products = <Product>[];
+    for (final p in state.products) {
+      if (p.trackStock && sold.containsKey(p.id)) {
+        final updated = p.copyWith(stock: p.stock - sold[p.id]!);
+        changed.add(updated);
+        products.add(updated);
+      } else {
+        products.add(p);
+      }
+    }
+    final charge = kind == SaleKind.fiada
+        ? CreditEntry(
+            id: newId(),
+            customerId: customerId!,
+            type: CreditType.cargo,
+            amountCents: sale.totalCents,
+            createdAt: now,
+            saleId: sale.id,
+          )
+        : null;
+    final nextFolio = state.nextFolio + 1;
     state = state.copyWith(
       sales: [...state.sales, sale],
-      nextFolio: state.nextFolio + 1,
-      products: [
-        for (final p in state.products)
-          (p.trackStock && sold.containsKey(p.id)) ? p.copyWith(stock: p.stock - sold[p.id]!) : p,
-      ],
-      credit: kind == SaleKind.fiada
-          ? [
-              ...state.credit,
-              CreditEntry(
-                id: newId(),
-                customerId: customerId!,
-                type: CreditType.cargo,
-                amountCents: sale.totalCents,
-                createdAt: now,
-                saleId: sale.id,
-              ),
-            ]
-          : state.credit,
+      nextFolio: nextFolio,
+      products: products,
+      credit: charge == null ? state.credit : [...state.credit, charge],
     );
+    _save((r) => r.recordSale(sale: sale, changedProducts: changed, charge: charge, nextFolio: nextFolio));
     return sale;
   }
 
@@ -230,54 +312,46 @@ class StoreNotifier extends Notifier<StoreState> {
   Customer addCustomer(String name, {String? phone}) {
     final c = Customer(id: newId(), name: name.trim(), phone: (phone?.trim().isEmpty ?? true) ? null : phone!.trim());
     state = state.copyWith(customers: [...state.customers, c]);
+    _save((r) => r.upsertCustomer(c));
     return c;
   }
 
   void addAbono(String customerId, int amountCents, PayMethod method) {
-    state = state.copyWith(
-      credit: [
-        ...state.credit,
-        CreditEntry(
-          id: newId(),
-          customerId: customerId,
-          type: CreditType.abono,
-          amountCents: amountCents,
-          createdAt: _clock(),
-          method: method,
-          sessionId: state.openSession?.id,
-        ),
-      ],
+    final entry = CreditEntry(
+      id: newId(),
+      customerId: customerId,
+      type: CreditType.abono,
+      amountCents: amountCents,
+      createdAt: _clock(),
+      method: method,
+      sessionId: state.openSession?.id,
     );
+    state = state.copyWith(credit: [...state.credit, entry]);
+    _save((r) => r.insertCredit(entry));
   }
 
   // ---------- Caja ----------
 
   void openCash(int openingCents) {
     if (state.openSession != null) return;
-    state = state.copyWith(
-      sessions: [
-        ...state.sessions,
-        CashSession(id: newId(), openedAt: _clock(), openingCents: openingCents),
-      ],
-    );
+    final session = CashSession(id: newId(), openedAt: _clock(), openingCents: openingCents);
+    state = state.copyWith(sessions: [...state.sessions, session]);
+    _save((r) => r.upsertSession(session));
   }
 
   void addMovement(CashKind kind, int amountCents, String concept) {
     final session = state.openSession;
     if (session == null) return;
-    state = state.copyWith(
-      movements: [
-        ...state.movements,
-        CashMovement(
-          id: newId(),
-          sessionId: session.id,
-          kind: kind,
-          amountCents: amountCents,
-          concept: concept.trim(),
-          createdAt: _clock(),
-        ),
-      ],
+    final movement = CashMovement(
+      id: newId(),
+      sessionId: session.id,
+      kind: kind,
+      amountCents: amountCents,
+      concept: concept.trim(),
+      createdAt: _clock(),
     );
+    state = state.copyWith(movements: [...state.movements, movement]);
+    _save((r) => r.insertMovement(movement));
   }
 
   CashSession? closeCash(int countedCents) {
@@ -289,6 +363,7 @@ class StoreNotifier extends Notifier<StoreState> {
       counted: countedCents,
     );
     state = state.copyWith(sessions: [for (final s in state.sessions) s.id == session.id ? closed : s]);
+    _save((r) => r.upsertSession(closed));
     return closed;
   }
 }
