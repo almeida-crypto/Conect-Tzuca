@@ -4,8 +4,10 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../domain/plan.dart';
 import '../../state/app_state.dart';
 import '../../state/store.dart';
+import '../../state/sync.dart';
 import '../../theme/colors.dart';
 import '../../theme/theme.dart';
+import '../account/account_screen.dart';
 import '../widgets/common.dart';
 import 'plan_screen.dart';
 
@@ -118,6 +120,24 @@ class MasScreen extends ConsumerWidget {
         for (final m in _modules) _ModuleRow(module: m, unlocked: m.unlocked(limits), plan: plan),
         Padding(
           padding: const EdgeInsets.fromLTRB(16, 22, 16, 4),
+          child: Text('Respaldo en la nube', style: GText.sans(size: 15, weight: FontWeight.w800)),
+        ),
+        Builder(
+          builder: (context) {
+            final (label, dot) = syncLabel(ref.watch(syncProvider));
+            final sync = ref.watch(syncProvider);
+            return ListTile(
+              contentPadding: const EdgeInsets.symmetric(horizontal: 16),
+              leading: Icon(Icons.cloud_outlined, color: dot),
+              title: Text(sync.signedIn ? sync.email! : 'Entrar o crear cuenta', style: GText.sans(size: 14)),
+              subtitle: Text(label, style: GText.muted()),
+              trailing: const Icon(Icons.chevron_right),
+              onTap: () => Navigator.of(context).push(MaterialPageRoute(builder: (_) => const AccountScreen())),
+            );
+          },
+        ),
+        Padding(
+          padding: const EdgeInsets.fromLTRB(16, 22, 16, 4),
           child: Text('Datos de este teléfono', style: GText.sans(size: 15, weight: FontWeight.w800)),
         ),
         Padding(
@@ -131,7 +151,10 @@ class MasScreen extends ConsumerWidget {
           contentPadding: const EdgeInsets.symmetric(horizontal: 16),
           leading: const Icon(Icons.delete_outline, color: GColors.rojo),
           title: Text('Borrar todo y empezar de nuevo', style: GText.sans(size: 14, color: GColors.rojo)),
-          subtitle: Text('Útil para quitar la tiendita de ejemplo', style: GText.muted()),
+          subtitle: Text(
+            'Útil para quitar la tiendita de ejemplo. Lo que ya está en la nube no se borra.',
+            style: GText.muted(),
+          ),
           onTap: () => _confirmReset(context, ref),
         ),
       ],

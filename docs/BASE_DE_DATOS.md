@@ -8,6 +8,7 @@ Proyecto de Supabase **proyecto-Gavilan** (`jveklinfbptnxmtavnez`, región us-ea
 |---|---|---|
 | [0001_init.sql](../pos-backend/supabase/migrations/0001_init.sql) | `pos_init` | Tipos, 21 tablas, vista de saldos, funciones, triggers, RLS y Realtime |
 | [0002_lock_down_functions.sql](../pos-backend/supabase/migrations/0002_lock_down_functions.sql) | `pos_lock_down_functions` | Quita permisos de ejecución sin sesión a las funciones auxiliares |
+| [0003_sync.sql](../pos-backend/supabase/migrations/0003_sync.sql) | `pos_sync` | Columnas para la app, `synced_at` con la hora del servidor, `create_business` con id y candado del plan |
 
 Toda migración nueva va en `pos-backend/supabase/migrations/` con número consecutivo y se registra aquí.
 
@@ -37,7 +38,9 @@ Las existencias se calculan desde `inventory_movements`: un trigger actualiza `p
 
 | Función | Uso |
 |---|---|
-| `create_business(nombre, giro)` | Crea el negocio y deja al usuario como dueño. Es la única forma de crear negocios |
+| `create_business(nombre, giro, id)` | Crea el negocio y deja al usuario como dueño. Es la única forma de crear negocios. El id es opcional: la app manda el que ya tiene en el teléfono |
+| `set_synced_at()` | Trigger: pone la hora del servidor en `synced_at` en cada alta o cambio |
+| `protect_business_plan()` | Trigger: impide cambiar `businesses.plan` desde la app; solo el sistema de cobro puede |
 | `is_member(negocio)` | Usada por RLS: ¿el usuario pertenece al negocio? |
 | `has_role(negocio, roles)` | Usada por RLS: ¿tiene alguno de estos roles? |
 | `apply_stock_movement()` | Trigger que actualiza existencias. No se puede llamar por la API |
@@ -94,9 +97,31 @@ La app guarda todo en SQLite dentro del teléfono (`gavilan_app/lib/data/databas
 - Una venta se guarda completa en una transacción: la venta, sus renglones, las existencias, el cargo de fiado y el folio.
 - Si se cambian las tablas, hay que subir `schemaVersion` y escribir la migración. Después se regenera el código con `dart run build_runner build`, desde `gavilan_app/`.
 
-## Correspondencia con Supabase
+## Sincronización con Supabase
 
-Faltan tres cosas para sincronizar:
-- **Forma de pago:** la app la guarda en `sales.method`. En Supabase va en `sale_payments`, lo que permite pagos mixtos.
-- **Existencias:** la app las descuenta directo en `products.stock`. En Supabase se hace con `inventory_movements`.
-- **Negocio:** las tablas locales no llevan `business_id`, porque un teléfono es un solo negocio. Se agrega al sincronizar.
+No hay servicios externos: la app habla directo con Supabase (`gavilan_app/lib/state/sync.dart`).
+
+- **Fila de pendientes (`outbox`):** con sesión iniciada, cada cambio local se anota en la misma transacción, ya con la forma de las filas de Supabase. Sale de la fila solo cuando el servidor lo confirmó. Si un cambio se rechaza, la subida se detiene ahí: lo que sigue puede depender de él.
+- **Subida:** upsert por `id`, con `business_id`. Repetir una subida no duplica nada.
+- **Bajada:** por tabla, filas con `synced_at` mayor al último visto, menos 5 minutos de repaso. Solo se baja cuando ya no queda nada pendiente por subir.
+- **Cuándo corre:** al abrir, cada minuto, unos segundos después de cada cambio y al volver la red.
+- **Existencias:** el teléfono sube movimientos (`inventory_movements`) y el servidor suma con su trigger. Al dar de alta un producto se sube su existencia inicial; después, solo movimientos.
+- **Enlace del teléfono con la cuenta:**
+  - La cuenta no tiene negocio y el teléfono sí: se crea con el mismo id y se sube todo.
+  - El teléfono está vacío o tiene la tiendita de ejemplo: se baja el negocio de la cuenta.
+  - Hay dos negocios distintos: se pregunta antes de reemplazar.
+- **La tiendita de ejemplo nunca se sube.**
+
+### Cómo se traducen los datos
+
+| En la app | En Supabase |
+|---|---|
+| Centavos (enteros) | Pesos (`numeric(12,2)`) |
+| efectivo, tarjeta, transferencia | `cash`, `card`, `transfer` |
+| cargo, abono | `charge`, `payment` |
+| entrada, gasto | `in`, `out` |
+| venta pagada o fiada | `status` `paid` o `credit` |
+| renglón (venta + posición) | `sale_items.id` estable, generado de la venta y la posición |
+| folio (número) | `folio` (texto) |
+
+Pendiente: la app guarda la forma de pago en `sales.pay_method`; `sale_payments` (pagos mixtos) todavía no se usa.

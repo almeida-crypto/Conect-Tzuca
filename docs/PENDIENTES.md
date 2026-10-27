@@ -13,12 +13,18 @@ Prioridad: **Alta** = sin esto no se puede usar con un negocio real · **Media**
 
 ## Etapa 1 · Que la app guarde y sincronice
 - [x] **Alta** · Guardar los datos en el teléfono con Drift (SQLite): cada venta, abono, gasto y producto se guarda al momento y se carga al abrir. *26/10/2026*
-- [ ] **Alta** · Sincronizar con Supabase (proyecto-Gavilan) usando PowerSync. Hay que configurar sus reglas de sincronización por `business_id`.
-- [ ] **Alta** · Inicio de sesión (Supabase Auth) y alta del negocio con la función `create_business`.
+- [x] **Alta** · Sincronizar con Supabase sin servicios externos: fila de pendientes que sube sola y descarga de cambios por `synced_at`. *26/10/2026*
+- [x] **Alta** · Inicio de sesión con correo y contraseña (Supabase Auth) y enlace del negocio con `create_business`. *26/10/2026*
+- [ ] **Alta** · Primera prueba real: el usuario crea su cuenta desde la app, confirma el correo y revisamos en Supabase que suban las ventas.
+- [ ] **Alta** · Correo propio (SMTP con Resend o Brevo) para los correos de confirmación: el de Supabase solo manda unos cuantos por hora y puede caer en spam.
+- [ ] **Media** · En Supabase Auth, poner una página de "correo confirmado" como URL de redirección. Hoy el enlace del correo confirma la cuenta pero abre una página que no carga.
+- [ ] **Media** · "Olvidé mi contraseña".
+- [ ] **Media** · Decidir si el respaldo en la nube es solo de los planes de pago: el PDF lo pone en Emprendedor. Hoy está abierto para todos.
+- [ ] **Baja** · Pagos mixtos (`sale_payments`) y devoluciones en la sincronización.
 - [x] **Alta** · Primer arranque: bienvenida con el nombre del negocio, o probar con la tiendita de ejemplo. En Más se puede borrar todo y empezar de nuevo. *26/10/2026*
 - [ ] **Media** · Guía para dar de alta el primer producto cuando el negocio está vacío.
 - [ ] **Media** · En el navegador (vista previa) los datos no se guardan. Si hace falta, agregar `sqlite3.wasm` y `drift_worker.js` a `web/`.
-- [ ] **Alta** · Indicador de conexión real. Hoy el botón "En línea / Sin internet" es una simulación.
+- [x] **Alta** · Indicador real en el encabezado: Sin internet, Sin respaldo, Por subir, Respaldado o Revisar respaldo. *26/10/2026*
 - [ ] **Media** · Folios de venta que no choquen entre dos dispositivos sin internet (prefijo por dispositivo).
 - [ ] **Media** · Probar que un cajero del negocio A no vea nada del negocio B (RLS con usuarios reales).
 

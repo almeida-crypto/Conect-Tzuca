@@ -190,6 +190,8 @@ StoreState seedStore(DateTime now) {
   ];
 
   return StoreState(
+    businessId: 'demo',
+    isDemo: true,
     businessName: 'Abarrotes Doña Mary',
     products: products,
     sales: sales,

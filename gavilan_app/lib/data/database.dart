@@ -140,8 +140,23 @@ class MetaTable extends Table {
   Set<Column> get primaryKey => {key};
 }
 
+/// Fila de pendientes: cambios hechos en el teléfono que faltan por subir a Supabase.
+/// Cada renglón trae las filas ya con forma de Supabase (sin business_id).
+@DataClassName('OutboxRow')
+class OutboxTable extends Table {
+  @override
+  String get tableName => 'outbox';
+
+  IntColumn get id => integer().autoIncrement()();
+  TextColumn get payload => text()();
+  DateTimeColumn get createdAt => dateTime()();
+  IntColumn get attempts => integer().withDefault(const Constant(0))();
+  TextColumn get lastError => text().nullable()();
+}
+
 @DriftDatabase(
   tables: [
+    OutboxTable,
     ProductsTable,
     CustomersTable,
     SalesTable,
@@ -159,5 +174,13 @@ class GavilanDb extends _$GavilanDb {
   factory GavilanDb.onDevice() => GavilanDb(driftDatabase(name: 'gavilan'));
 
   @override
-  int get schemaVersion => 1;
+  int get schemaVersion => 2;
+
+  @override
+  MigrationStrategy get migration => MigrationStrategy(
+    onUpgrade: (m, from, to) async {
+      // v2: fila de pendientes para la sincronización.
+      if (from < 2) await m.createTable(outboxTable);
+    },
+  );
 }

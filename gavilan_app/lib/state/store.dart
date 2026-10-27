@@ -7,6 +7,7 @@ import '../domain/models.dart';
 import '../domain/plan.dart';
 import 'app_state.dart';
 import 'seed.dart';
+import 'sync.dart';
 
 const _uuid = Uuid();
 String newId() => _uuid.v4();
@@ -23,8 +24,15 @@ class StoreState {
     required this.sessions,
     required this.movements,
     required this.nextFolio,
+    this.businessId = '',
+    this.isDemo = false,
   });
 
+  /// Id del negocio; es el mismo en el teléfono y en Supabase.
+  final String businessId;
+
+  /// La tiendita de ejemplo nunca se sube a la nube.
+  final bool isDemo;
   final String businessName;
   final List<Product> products;
   final List<Sale> sales;
@@ -147,6 +155,8 @@ class StoreState {
   }
 
   StoreState copyWith({
+    String? businessId,
+    bool? isDemo,
     String? businessName,
     List<Product>? products,
     List<Sale>? sales,
@@ -156,6 +166,8 @@ class StoreState {
     List<CashMovement>? movements,
     int? nextFolio,
   }) => StoreState(
+    businessId: businessId ?? this.businessId,
+    isDemo: isDemo ?? this.isDemo,
     businessName: businessName ?? this.businessName,
     products: products ?? this.products,
     sales: sales ?? this.sales,
@@ -178,6 +190,7 @@ class StoreNotifier extends Notifier<StoreState> {
 
   final DateTime Function() _clock;
   Future<void> _writes = Future.value();
+  int _version = 0;
 
   @override
   StoreState build() => ref.read(initialDataProvider)?.store ?? StoreState.blank;
@@ -185,7 +198,11 @@ class StoreNotifier extends Notifier<StoreState> {
   /// Guarda en orden, una escritura tras otra. Si falla se reporta sin tumbar la app.
   void _save(Future<void> Function(StoreRepository repo) write) {
     final repo = ref.read(repositoryProvider);
-    _writes = _writes.then((_) => write(repo)).catchError((Object e, StackTrace st) {
+    _version++;
+    _writes = _writes.then((_) => write(repo)).then((_) => ref.read(syncProvider.notifier).nudge()).catchError((
+      Object e,
+      StackTrace st,
+    ) {
       FlutterError.reportError(
         FlutterErrorDetails(
           exception: e,
@@ -200,11 +217,25 @@ class StoreNotifier extends Notifier<StoreState> {
   /// Espera a que todo quede guardado.
   Future<void> flush() => _writes;
 
+  /// Vuelve a leer todo del teléfono (después de bajar cambios de la nube).
+  /// Si mientras tanto hubo un cambio local, lee otra vez para no perderlo.
+  Future<void> reloadFromStorage() async {
+    for (var attempt = 0; attempt < 3; attempt++) {
+      await flush();
+      final version = _version;
+      final loaded = await ref.read(repositoryProvider).load();
+      if (version == _version) {
+        state = loaded?.store ?? StoreState.blank;
+        return;
+      }
+    }
+  }
+
   // ---------- Negocio ----------
 
   /// Alta de un negocio nuevo, vacío.
   void startBusiness(String name) {
-    final fresh = StoreState.blank.copyWith(businessName: name.trim());
+    final fresh = StoreState.blank.copyWith(businessId: newId(), businessName: name.trim());
     state = fresh;
     final plan = ref.read(planProvider);
     _save((r) => r.replaceAll(fresh, plan));
@@ -230,13 +261,13 @@ class StoreNotifier extends Notifier<StoreState> {
   // ---------- Productos ----------
 
   void saveProduct(Product product) {
-    final exists = state.products.any((p) => p.id == product.id);
+    final isNew = !state.products.any((p) => p.id == product.id);
     state = state.copyWith(
-      products: exists
-          ? [for (final p in state.products) p.id == product.id ? product : p]
-          : [...state.products, product],
+      products: isNew
+          ? [...state.products, product]
+          : [for (final p in state.products) p.id == product.id ? product : p],
     );
-    _save((r) => r.upsertProduct(product));
+    _save((r) => r.upsertProduct(product, isNew: isNew));
   }
 
   void addStock(String productId, double qty) {
@@ -244,7 +275,7 @@ class StoreNotifier extends Notifier<StoreState> {
     if (current == null) return;
     final updated = current.copyWith(stock: current.stock + qty);
     state = state.copyWith(products: [for (final p in state.products) p.id == productId ? updated : p]);
-    _save((r) => r.upsertProduct(updated));
+    _save((r) => r.addStock(updated, qty));
   }
 
   // ---------- Ventas ----------

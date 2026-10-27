@@ -3,20 +3,31 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 
 import '../../domain/plan.dart';
-import '../../state/app_state.dart';
 import '../../state/store.dart';
+import '../../state/sync.dart';
 import '../../theme/colors.dart';
 import '../../theme/theme.dart';
+import '../account/account_screen.dart';
 import 'buttons.dart';
 
-/// Encabezado con el gavilán, nombre del negocio y estado de conexión.
+/// Texto y color del estado de respaldo para la pastilla del encabezado.
+(String, Color) syncLabel(SyncStatus s) {
+  if (!s.online) return ('Sin internet', GColors.ocre);
+  if (!s.configured || !s.signedIn || !s.linked) return ('Sin respaldo', GColors.tintaTenue);
+  if (s.problem != null) return ('Revisar respaldo', GColors.rojo);
+  if (s.pending > 0) return ('Por subir: ${s.pending}', GColors.ocre);
+  if (s.busy) return ('Respaldando…', GColors.ocre);
+  return ('Respaldado', GColors.monte);
+}
+
+/// Encabezado con el gavilán, nombre del negocio y estado del respaldo.
 class BusinessHeader extends ConsumerWidget {
   const BusinessHeader({super.key});
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final store = ref.watch(storeProvider);
-    final online = ref.watch(onlineProvider);
+    final (label, dot) = syncLabel(ref.watch(syncProvider));
     final open = store.openSession != null;
     return Padding(
       padding: const EdgeInsets.fromLTRB(14, 8, 14, 10),
@@ -44,9 +55,9 @@ class BusinessHeader extends ConsumerWidget {
           ),
           Semantics(
             button: true,
-            label: online ? 'En línea' : 'Sin internet',
+            label: 'Respaldo: $label',
             child: InkWell(
-              onTap: () => ref.read(onlineProvider.notifier).toggle(),
+              onTap: () => Navigator.of(context).push(MaterialPageRoute(builder: (_) => const AccountScreen())),
               borderRadius: BorderRadius.circular(99),
               child: Container(
                 padding: const EdgeInsets.symmetric(horizontal: 9, vertical: 4),
@@ -61,10 +72,10 @@ class BusinessHeader extends ConsumerWidget {
                     Container(
                       width: 7,
                       height: 7,
-                      decoration: BoxDecoration(shape: BoxShape.circle, color: online ? GColors.monte : GColors.ocre),
+                      decoration: BoxDecoration(shape: BoxShape.circle, color: dot),
                     ),
                     const SizedBox(width: 5),
-                    Text(online ? 'En línea' : 'Sin internet', style: GText.sans(size: 11)),
+                    Text(label, style: GText.sans(size: 11)),
                   ],
                 ),
               ),
@@ -82,14 +93,17 @@ class OfflineNote extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    if (ref.watch(onlineProvider)) return const SizedBox.shrink();
+    final sync = ref.watch(syncProvider);
+    if (sync.online) return const SizedBox.shrink();
     return Container(
       width: double.infinity,
       margin: const EdgeInsets.fromLTRB(14, 0, 14, 8),
       padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 7),
       decoration: BoxDecoration(color: GColors.ocre.withValues(alpha: 0.18), borderRadius: BorderRadius.circular(4)),
       child: Text(
-        'Sin internet. Todo se guarda aquí y se sube solo al volver la señal.',
+        sync.linked
+            ? 'Sin internet. Todo se guarda aquí y se sube solo al volver la señal.'
+            : 'Sin internet. Todo se guarda en este teléfono.',
         style: GText.sans(size: 12, color: GColors.pardo),
       ),
     );

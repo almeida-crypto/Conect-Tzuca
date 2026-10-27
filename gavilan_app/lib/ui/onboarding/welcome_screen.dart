@@ -1,10 +1,15 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 
+import '../../data/sync_remote.dart';
 import '../../state/store.dart';
+import '../../state/sync.dart';
 import '../../theme/colors.dart';
 import '../../theme/theme.dart';
+import '../account/account_screen.dart';
 import '../widgets/buttons.dart';
 
 /// Primer arranque: nombre del negocio, o probar con la tiendita de ejemplo.
@@ -31,6 +36,19 @@ class _WelcomeScreenState extends ConsumerState<WelcomeScreen> {
       return;
     }
     ref.read(storeProvider.notifier).startBusiness(_name.text);
+    // Con sesión iniciada, el negocio nuevo se da de alta también en la nube.
+    final sync = ref.read(syncProvider);
+    if (sync.configured && sync.signedIn) {
+      final messenger = ScaffoldMessenger.of(context);
+      final notifier = ref.read(syncProvider.notifier);
+      unawaited(() async {
+        try {
+          await notifier.ensureLinked();
+        } on SyncException catch (e) {
+          messenger.showSnackBar(SnackBar(content: Text('Todavía no se respaldó: ${e.message}')));
+        }
+      }());
+    }
   }
 
   @override
@@ -70,6 +88,19 @@ class _WelcomeScreenState extends ConsumerState<WelcomeScreen> {
                   ),
                   const SizedBox(height: 14),
                   GButton(label: 'Empezar', expand: true, big: true, onPressed: _start),
+                  if (ref.watch(syncProvider).configured) ...[
+                    const SizedBox(height: 6),
+                    TextButton(
+                      onPressed: () =>
+                          Navigator.of(context).push(MaterialPageRoute(builder: (_) => const AccountScreen())),
+                      child: Text(
+                        ref.watch(syncProvider).signedIn
+                            ? 'Ver mi cuenta'
+                            : '¿Ya tienes cuenta? Entra y baja tu negocio',
+                        style: GText.sans(size: 14, weight: FontWeight.w800, color: GColors.oxido),
+                      ),
+                    ),
+                  ],
                   const SizedBox(height: 22),
                   const Divider(color: GColors.linea),
                   const SizedBox(height: 10),

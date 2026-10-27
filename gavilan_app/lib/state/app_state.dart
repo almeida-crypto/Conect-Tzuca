@@ -17,16 +17,6 @@ class PlanNotifier extends Notifier<Plan> {
 
 final planProvider = NotifierProvider<PlanNotifier, Plan>(PlanNotifier.new);
 
-/// Indicador de conexión. Por ahora es una simulación; con PowerSync vendrá del estado real.
-class OnlineNotifier extends Notifier<bool> {
-  @override
-  bool build() => true;
-
-  void toggle() => state = !state;
-}
-
-final onlineProvider = NotifierProvider<OnlineNotifier, bool>(OnlineNotifier.new);
-
 /// Carrito de la venta en curso.
 class CartNotifier extends Notifier<List<SaleLine>> {
   @override

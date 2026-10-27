@@ -115,3 +115,35 @@ Verificación:
 - **Reinstalación encima (actualización):** los datos siguieron ahí y el folio continuó en A-0044.
 - **Corregido:** en pantallas de teléfono el sello PAGADO tapaba los montos de Recibió y Cambio. Ahora cae en un espacio libre al pie del ticket.
 - **Visto y anotado en pendientes:** al abrir, Android muestra un instante la pantalla blanca con el logo de Flutter.
+
+### 4. Sincronización con Supabase e inicio de sesión
+- **Decisión del usuario:** sincronización propia sobre Supabase, sin PowerSync. Así no hay cuenta nueva ni costo extra. El plan gratis de PowerSync se desactiva tras 7 días sin uso, y el de pago empieza en ~$49 USD al mes.
+- **Migración `0003_sync.sql`** (`pos_sync`), aplicada en proyecto-Gavilan cuando la base aún estaba vacía:
+  - Columnas para lo que guarda la app: forma de pago y cuánto se recibió en cada venta, orden de los renglones, y forma de pago y turno de cada abono.
+  - `synced_at` con la hora del servidor en cada fila.
+  - `create_business` acepta el id del teléfono.
+  - Candado: el plan solo lo cambia el sistema de cobro.
+  - El revisor de seguridad sigue con solo los 3 avisos intencionales.
+- **Fila de pendientes (`outbox`)** en el teléfono. La base local pasó a la versión 2, con migración automática.
+- **Motor de sincronización** (`lib/state/sync.dart`):
+  - Sube en orden y se detiene si algo falla.
+  - Baja solo cuando no queda nada por subir.
+  - Corre al abrir, cada minuto, después de cada cambio y al volver la red.
+- **Cuenta opcional** con correo y contraseña, en la pantalla "Cuenta y respaldo". Se abre desde la pastilla del encabezado, desde Más o desde la bienvenida ("¿Ya tienes cuenta?").
+- **Pastilla real** en el encabezado: Sin internet, Sin respaldo, Por subir, Respaldado o Revisar respaldo. Reemplaza la simulación anterior.
+
+Error encontrado por las pruebas y corregido:
+- **El motor dejaba de reintentar:** si no alcanzaba el servidor, se marcaba "sin internet" y esperaba un aviso de red que, con Wi-Fi conectado pero sin salida, nunca llega. Ahora solo deja de intentar cuando el sistema dice que no hay ninguna red.
+
+Verificación:
+- **21 pruebas pasan.** 8 son de sincronización, contra un servidor simulado que se comporta como Supabase:
+  - Subir un negocio existente.
+  - Otro teléfono lo baja y ve ventas nuevas.
+  - Dos teléfonos venden sin internet y la existencia cuadra (21 − 4 − 3 = 14 en ambos).
+  - El ejemplo no se sube.
+  - Alta de un negocio con sesión iniciada.
+  - Conflicto entre dos negocios.
+  - Un error del servidor no pierde nada.
+  - Sin sesión no se anota nada.
+- **Emulador:** la actualización conservó los datos (migración v1 → v2), y la pastilla y la pantalla de cuenta se ven bien.
+- **No probado todavía contra el Supabase real:** hace falta que el usuario cree su cuenta desde la app.
