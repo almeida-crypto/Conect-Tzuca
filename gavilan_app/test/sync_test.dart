@@ -248,6 +248,50 @@ void main() {
     expect(server.rows('cash_movements'), hasLength(2));
   });
 
+  test('pacas, apartados y tandas se suben y otro teléfono los baja', () async {
+    final a = await phone();
+    final lupe = await _setUpShop(a);
+    final lot = a.store.addLot('Paca americana', 350000);
+    a.store.addLotSale(lot.id, 50000);
+    final apartado = a.store.addLayaway(
+      customerId: lupe,
+      description: 'Vestido',
+      totalCents: 60000,
+      depositCents: 20000,
+      dueDate: DateTime(2026, 12, 1),
+    );
+    final tanda = a.store.addBatch('Cochinita', DateTime(2026, 11, 1));
+    a.store.addBatchOrder(batchId: tanda.id, customerName: 'Pedro', totalCents: 9000);
+    await a.store.flush();
+
+    expect((await a.login('mary@correo.mx')).result, LinkResult.uploaded);
+    await a.settle();
+    expect(a.status.pending, 0);
+    expect(server.rows('lots').single['investment'], 3500);
+    expect(server.rows('lot_sales').single['cash_session_id'], a.state.openSession!.id);
+    expect(server.rows('layaways').single['due_date'], '2026-12-01');
+    expect(server.rows('layaway_payments').single['amount'], 200);
+    expect(server.rows('batch_orders').single['pay_status'], 'unpaid');
+
+    final b = await phone();
+    await b.login('mary@correo.mx');
+    expect(b.state.recoveredOfLot(lot.id), 50000);
+    expect(b.state.pendingOfLayaway(apartado.id), 40000);
+    expect(b.state.layawayById(apartado.id)!.dueDate, DateTime(2026, 12, 1));
+    expect(b.state.ordersOfBatch(tanda.id).single.customerName, 'Pedro');
+    expect(b.expectedCash(), a.expectedCash());
+
+    // Un abono que liquida en A llega a B como liquidado.
+    a.store.addLayawayPayment(apartado.id, 40000, PayMethod.efectivo);
+    final order = b.state.ordersOfBatch(tanda.id).single;
+    b.store.updateBatchOrder(order.copyWith(paid: true));
+    await a.settle();
+    await b.settle();
+    await a.settle();
+    expect(b.state.layawayById(apartado.id)!.status, LayawayStatus.liquidado);
+    expect(a.state.ordersOfBatch(tanda.id).single.paid, isTrue);
+  });
+
   test('sin sesión no se anota nada para subir', () async {
     final a = await phone();
     await _setUpShop(a);

@@ -48,9 +48,11 @@ Prioridad: **Alta** = sin esto no se puede usar con un negocio real · **Media**
 - [ ] **Baja** · Descuentos por venta y devoluciones.
 
 ## Etapa 3 · Módulos por giro
-- [ ] **Media** · Apartados: foto, anticipo, fecha límite, abonos y comprobante por WhatsApp. Las tablas `layaways` y `layaway_payments` ya existen.
-- [ ] **Media** · Pacas y lotes: inversión, ventas y barra de recuperación. Las tablas `lots` y `lot_sales` ya existen. El plan gratis permite 1 lote.
-- [ ] **Media** · Pedidos por tanda: entrega y pago en dos toques, y ganancia restando insumos. Las tablas `batches` y `batch_orders` ya existen.
+- [x] **Media** · Apartados: anticipo, abonos, fecha límite con aviso de vencido, liquidación automática, cancelación y comprobante por WhatsApp. *31/10/2026*
+- [ ] **Media** · Foto del artículo apartado (cámara + Supabase Storage).
+- [x] **Media** · Pacas y lotes: inversión, ventas rápidas, barra de recuperación y ganancia; entra al corte. El plan gratis permite 1 paca activa. *31/10/2026*
+- [x] **Media** · Pedidos por tanda: entrega y pago en dos toques, insumos, ganancia y aviso por WhatsApp. *31/10/2026*
+- [ ] **Baja** · Decidir si lo cobrado de las tandas entra al corte de caja (hoy no entra: muchas tandas se cobran fuera del mostrador).
 - [ ] **Media** · Restaurante:
   - Mesas y comandera para meseros.
   - Pantalla de cocina en tiempo real.
@@ -73,6 +75,7 @@ Prioridad: **Alta** = sin esto no se puede usar con un negocio real · **Media**
 - [ ] **Baja** · Crear el proyecto conectado al mismo Supabase.
 
 ## Seguridad y ajustes de base de datos
+- [ ] **Media** · Activar en Supabase Auth la protección contra contraseñas filtradas (Authentication → Policies). Es un ajuste de seguridad del panel; lo hace el dueño del proyecto.
 - [ ] **Media** · Que los meseros no vean el costo de los productos (vista sin `cost`).
 - [ ] **Media** · Que el rol cocina solo pueda cambiar el estado de los pedidos, no otros campos.
 - [ ] **Baja** · Revisar los 3 avisos "WARN" de Supabase cuando cambie el esquema. Hoy son intencionales; ver [BASE_DE_DATOS.md](BASE_DE_DATOS.md).

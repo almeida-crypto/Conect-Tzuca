@@ -8,27 +8,34 @@ import '../../state/sync.dart';
 import '../../theme/colors.dart';
 import '../../theme/theme.dart';
 import '../account/account_screen.dart';
+import '../modules/layaways_screen.dart';
+import '../modules/lots_screen.dart';
+import '../modules/tandas_screen.dart';
 import '../widgets/common.dart';
 import 'plan_screen.dart';
 
 /// Módulo adicional del documento maestro y qué plan lo incluye.
 class _Module {
-  const _Module(this.icon, this.title, this.subtitle, this.needed, this.unlocked);
+  const _Module(this.icon, this.title, this.subtitle, this.needed, this.unlocked, {this.screen});
 
   final IconData icon;
   final String title;
   final String subtitle;
   final Plan needed;
   final bool Function(PlanLimits) unlocked;
+
+  /// Pantalla del módulo; null mientras no está construido.
+  final Widget Function()? screen;
 }
 
 final _modules = [
   _Module(
     Icons.shopping_bag_outlined,
     'Apartados',
-    'Foto del artículo, anticipo y fecha límite',
+    'Anticipo, abonos y fecha límite',
     Plan.emprendedor,
     (l) => l.layaways,
+    screen: () => const LayawaysScreen(),
   ),
   _Module(
     Icons.checkroom_outlined,
@@ -36,6 +43,7 @@ final _modules = [
     'Cuánto falta para recuperar lo invertido',
     Plan.semilla,
     (l) => true,
+    screen: () => const LotsScreen(),
   ),
   _Module(
     Icons.event_note_outlined,
@@ -43,6 +51,7 @@ final _modules = [
     'Cochinita del domingo, marquesitas, cenas',
     Plan.emprendedor,
     (l) => l.batches,
+    screen: () => const TandasScreen(),
   ),
   _Module(
     Icons.table_restaurant_outlined,
@@ -208,6 +217,8 @@ class _ModuleRow extends StatelessWidget {
             reason: '${module.title}: ${module.subtitle.toLowerCase()}.',
             needed: module.needed,
           );
+        } else if (module.screen != null) {
+          Navigator.of(context).push(MaterialPageRoute(builder: (_) => module.screen!()));
         } else {
           ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(content: Text('${module.title} está incluido en tu plan. Se construye en la siguiente etapa.')),
@@ -239,7 +250,9 @@ class _ModuleRow extends StatelessWidget {
                 ],
               ),
             ),
-            if (unlocked)
+            if (unlocked && module.screen != null)
+              const Icon(Icons.chevron_right, color: GColors.tintaSuave)
+            else if (unlocked)
               Text('Pronto', style: GText.sans(size: 11.5, color: GColors.tintaSuave))
             else ...[
               const Icon(Icons.lock_outline, size: 16, color: GColors.tintaSuave),

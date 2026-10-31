@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import 'state/store.dart';
@@ -26,6 +27,10 @@ class _GavilanAppState extends State<GavilanApp> {
       title: 'Gavilán',
       debugShowCheckedModeBanner: false,
       theme: buildGavilanTheme(),
+      // Español de México en fechas, diálogos y textos internos de Flutter.
+      locale: const Locale('es', 'MX'),
+      supportedLocales: const [Locale('es', 'MX'), Locale('es')],
+      localizationsDelegates: GlobalMaterialLocalizations.delegates,
       home: AnimatedSwitcher(
         duration: const Duration(milliseconds: 450),
         child: _splash

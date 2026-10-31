@@ -9,6 +9,7 @@ Proyecto de Supabase **proyecto-Gavilan** (`jveklinfbptnxmtavnez`, región us-ea
 | [0001_init.sql](../pos-backend/supabase/migrations/0001_init.sql) | `pos_init` | Tipos, 21 tablas, vista de saldos, funciones, triggers, RLS y Realtime |
 | [0002_lock_down_functions.sql](../pos-backend/supabase/migrations/0002_lock_down_functions.sql) | `pos_lock_down_functions` | Quita permisos de ejecución sin sesión a las funciones auxiliares |
 | [0003_sync.sql](../pos-backend/supabase/migrations/0003_sync.sql) | `pos_sync` | Columnas para la app, `synced_at` con la hora del servidor, `create_business` con id y candado del plan |
+| [0004_modules_sync.sql](../pos-backend/supabase/migrations/0004_modules_sync.sql) | `pos_modules_sync` | `synced_at` en pacas, apartados y tandas, y turno de caja en ventas de paca y abonos de apartado |
 
 Toda migración nueva va en `pos-backend/supabase/migrations/` con número consecutivo y se registra aquí.
 
@@ -91,6 +92,10 @@ La app guarda todo en SQLite dentro del teléfono (`gavilan_app/lib/data/databas
 | `credit_entries` | Cargos y abonos de fiado |
 | `cash_sessions` y `cash_movements` | Cortes, gastos y entradas |
 | `meta` | Nombre del negocio, siguiente folio y plan |
+| `lots` y `lot_sales` | Pacas y lotes, y lo cobrado de cada una (versión 3) |
+| `layaways` y `layaway_payments` | Apartados, anticipos y abonos (versión 3) |
+| `batches` y `batch_orders` | Tandas y sus pedidos (versión 3) |
+| `outbox` | Fila de pendientes por subir (versión 2) |
 
 - Las fechas se guardan como texto ISO, que conserva los milisegundos.
 - Cada operación de la app se escribe en orden, en una sola fila de escrituras.

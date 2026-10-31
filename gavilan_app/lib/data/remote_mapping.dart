@@ -231,3 +231,135 @@ MovementRow movementFromRemote(RemoteRow r) => MovementRow(
   concept: r['concept']! as String,
   createdAt: _date(r['created_at']),
 );
+
+// ---------- Pacas y lotes, apartados y tandas ----------
+
+String _day(DateTime d) =>
+    '${d.year.toString().padLeft(4, '0')}-${d.month.toString().padLeft(2, '0')}-${d.day.toString().padLeft(2, '0')}';
+String? _dayOrNull(DateTime? d) => d == null ? null : _day(d);
+
+const _layawayOut = {
+  LayawayStatus.activo: 'active',
+  LayawayStatus.liquidado: 'completed',
+  LayawayStatus.cancelado: 'cancelled',
+};
+final _layawayIn = {for (final e in _layawayOut.entries) e.value: e.key};
+
+const _deliveryOut = {
+  DeliveryStatus.pendiente: 'pending',
+  DeliveryStatus.listo: 'ready',
+  DeliveryStatus.entregado: 'delivered',
+};
+final _deliveryIn = {for (final e in _deliveryOut.entries) e.value: e.key};
+
+RemoteRow lotToRemote(Lot l) => {
+  'id': l.id,
+  'name': l.name,
+  'investment': _pesos(l.investmentCents),
+  'started_at': _day(l.startedAt),
+  'closed_at': _dayOrNull(l.closedAt),
+};
+
+RemoteRow lotSaleToRemote(LotSale s) => {
+  'id': s.id,
+  'lot_id': s.lotId,
+  'amount': _pesos(s.amountCents),
+  'note': s.note,
+  'cash_session_id': s.sessionId,
+  'created_at': _iso(s.createdAt),
+};
+
+RemoteRow layawayToRemote(Layaway l) => {
+  'id': l.id,
+  'customer_id': l.customerId,
+  'description': l.description,
+  'total': _pesos(l.totalCents),
+  'due_date': _dayOrNull(l.dueDate),
+  'status': _layawayOut[l.status],
+  'created_at': _iso(l.createdAt),
+};
+
+RemoteRow layawayPaymentToRemote(LayawayPayment p) => {
+  'id': p.id,
+  'layaway_id': p.layawayId,
+  'amount': _pesos(p.amountCents),
+  'method': _methodOut[p.method],
+  'cash_session_id': p.sessionId,
+  'created_at': _iso(p.createdAt),
+};
+
+RemoteRow batchToRemote(Tanda b) => {
+  'id': b.id,
+  'name': b.name,
+  'batch_date': _day(b.date),
+  'supplies_cost': _pesos(b.suppliesCents),
+  'created_at': _iso(b.createdAt),
+};
+
+RemoteRow batchOrderToRemote(BatchOrder o) => {
+  'id': o.id,
+  'batch_id': o.batchId,
+  'customer_name': o.customerName,
+  'phone': o.phone,
+  'detail': o.detail,
+  'total': _pesos(o.totalCents),
+  'delivery_status': _deliveryOut[o.delivery],
+  'pay_status': o.paid ? 'paid' : 'unpaid',
+  'created_at': _iso(o.createdAt),
+};
+
+LotRow lotFromRemote(RemoteRow r) => LotRow(
+  id: r['id']! as String,
+  name: r['name']! as String,
+  investmentCents: _cents(r['investment']),
+  startedAt: _date(r['started_at']),
+  closedAt: _dateOrNull(r['closed_at']),
+);
+
+LotSaleRow lotSaleFromRemote(RemoteRow r) => LotSaleRow(
+  id: r['id']! as String,
+  lotId: r['lot_id']! as String,
+  amountCents: _cents(r['amount']),
+  createdAt: _date(r['created_at']),
+  note: r['note'] as String?,
+  sessionId: r['cash_session_id'] as String?,
+);
+
+LayawayRow layawayFromRemote(RemoteRow r) => LayawayRow(
+  id: r['id']! as String,
+  customerId: r['customer_id']! as String,
+  description: r['description']! as String,
+  totalCents: _cents(r['total']),
+  createdAt: _date(r['created_at']),
+  dueDate: _dateOrNull(r['due_date']),
+  status: _layawayIn[r['status']] ?? LayawayStatus.activo,
+);
+
+LayawayPaymentRow layawayPaymentFromRemote(RemoteRow r) => LayawayPaymentRow(
+  id: r['id']! as String,
+  layawayId: r['layaway_id']! as String,
+  amountCents: _cents(r['amount']),
+  method: _method(r['method']) ?? PayMethod.efectivo,
+  createdAt: _date(r['created_at']),
+  sessionId: r['cash_session_id'] as String?,
+);
+
+BatchRow batchFromRemote(RemoteRow r) => BatchRow(
+  id: r['id']! as String,
+  name: r['name']! as String,
+  date: _date(r['batch_date']),
+  createdAt: _date(r['created_at']),
+  suppliesCents: _cents(r['supplies_cost']),
+);
+
+BatchOrderRow batchOrderFromRemote(RemoteRow r) => BatchOrderRow(
+  id: r['id']! as String,
+  batchId: r['batch_id']! as String,
+  customerName: r['customer_name']! as String,
+  phone: r['phone'] as String?,
+  detail: r['detail'] as String?,
+  totalCents: _cents(r['total']),
+  createdAt: _date(r['created_at']),
+  delivery: _deliveryIn[r['delivery_status']] ?? DeliveryStatus.pendiente,
+  paid: r['pay_status'] == 'paid',
+);

@@ -12,7 +12,7 @@ import '../widgets/common.dart';
 
 /// Elegir (o crear) a quién se le fía. Respeta el límite de deudores del plan.
 Future<Customer?> pickCustomerForCredit(BuildContext context, WidgetRef ref) async {
-  final picked = await showGSheet<Customer>(context, (_) => const _CustomerPicker());
+  final picked = await showGSheet<Customer>(context, (_) => const _CustomerPicker(forCredit: true));
   if (picked == null || !context.mounted) return null;
   final store = ref.read(storeProvider);
   final plan = ref.read(planProvider);
@@ -31,8 +31,15 @@ Future<Customer?> pickCustomerForCredit(BuildContext context, WidgetRef ref) asy
   return picked;
 }
 
+/// Elegir o crear un cliente, sin revisar límites de fiado (para apartados).
+Future<Customer?> pickCustomer(BuildContext context, {String title = '¿Para quién es?'}) =>
+    showGSheet<Customer>(context, (_) => _CustomerPicker(title: title));
+
 class _CustomerPicker extends ConsumerStatefulWidget {
-  const _CustomerPicker();
+  const _CustomerPicker({this.forCredit = false, this.title = '¿A quién se le fía?'});
+
+  final bool forCredit;
+  final String title;
 
   @override
   ConsumerState<_CustomerPicker> createState() => _CustomerPickerState();
@@ -86,7 +93,7 @@ class _CustomerPickerState extends ConsumerState<_CustomerPicker> {
             decoration: const InputDecoration(labelText: 'WhatsApp (opcional)', hintText: '997 123 4567'),
           ),
           const SizedBox(height: 14),
-          GButton(label: 'Guardar y fiar', expand: true, onPressed: _create),
+          GButton(label: widget.forCredit ? 'Guardar y fiar' : 'Guardar', expand: true, onPressed: _create),
         ],
       );
     }
@@ -94,7 +101,7 @@ class _CustomerPickerState extends ConsumerState<_CustomerPicker> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
-        const SheetHeader('¿A quién se le fía?'),
+        SheetHeader(widget.forCredit ? '¿A quién se le fía?' : widget.title),
         TextField(
           onChanged: (v) => setState(() => _q = v),
           decoration: const InputDecoration(hintText: 'Buscar cliente', prefixIcon: Icon(Icons.search, size: 20)),
@@ -123,7 +130,8 @@ class _CustomerPickerState extends ConsumerState<_CustomerPicker> {
           }),
         ),
         const SizedBox(height: 4),
-        Text('Se registra como cargo en su cuenta de fiado.', style: GText.muted(), textAlign: TextAlign.center),
+        if (widget.forCredit)
+          Text('Se registra como cargo en su cuenta de fiado.', style: GText.muted(), textAlign: TextAlign.center),
       ],
     );
   }

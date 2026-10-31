@@ -26,6 +26,12 @@ class StoreState {
     required this.nextFolio,
     this.businessId = '',
     this.isDemo = false,
+    this.lots = const [],
+    this.lotSales = const [],
+    this.layaways = const [],
+    this.layawayPayments = const [],
+    this.batches = const [],
+    this.batchOrders = const [],
   });
 
   /// Id del negocio; es el mismo en el teléfono y en Supabase.
@@ -40,6 +46,12 @@ class StoreState {
   final List<CreditEntry> credit;
   final List<CashSession> sessions;
   final List<CashMovement> movements;
+  final List<Lot> lots;
+  final List<LotSale> lotSales;
+  final List<Layaway> layaways;
+  final List<LayawayPayment> layawayPayments;
+  final List<Tanda> batches;
+  final List<BatchOrder> batchOrders;
   final int nextFolio;
 
   /// Sin negocio todavía (primer arranque o después de borrar todo).
@@ -112,6 +124,46 @@ class StoreState {
 
   int get totalOnCreditCents => debtors.fold(0, (a, d) => a + d.balanceCents);
 
+  // ---------- Pacas y lotes ----------
+
+  List<Lot> get openLots => lots.where((l) => l.isOpen).toList();
+
+  List<LotSale> salesOfLot(String lotId) =>
+      lotSales.where((s) => s.lotId == lotId).toList()..sort((a, b) => b.createdAt.compareTo(a.createdAt));
+
+  int recoveredOfLot(String lotId) => lotSales.where((s) => s.lotId == lotId).fold(0, (a, s) => a + s.amountCents);
+
+  // ---------- Apartados ----------
+
+  Layaway? layawayById(String id) {
+    for (final l in layaways) {
+      if (l.id == id) return l;
+    }
+    return null;
+  }
+
+  List<LayawayPayment> paymentsOfLayaway(String id) =>
+      layawayPayments.where((p) => p.layawayId == id).toList()..sort((a, b) => a.createdAt.compareTo(b.createdAt));
+
+  int paidOfLayaway(String id) => layawayPayments.where((p) => p.layawayId == id).fold(0, (a, p) => a + p.amountCents);
+
+  int pendingOfLayaway(String id) {
+    final l = layawayById(id);
+    return l == null ? 0 : (l.totalCents - paidOfLayaway(id)).clamp(0, l.totalCents);
+  }
+
+  // ---------- Pedidos por tanda ----------
+
+  Tanda? batchById(String id) {
+    for (final b in batches) {
+      if (b.id == id) return b;
+    }
+    return null;
+  }
+
+  List<BatchOrder> ordersOfBatch(String batchId) =>
+      batchOrders.where((o) => o.batchId == batchId).toList()..sort((a, b) => a.createdAt.compareTo(b.createdAt));
+
   CashSummary summaryFor(CashSession session) {
     final sessionSales = sales.where((s) => s.sessionId == session.id);
     var cash = 0, other = 0, onCredit = 0, count = 0;
@@ -141,7 +193,22 @@ class StoreState {
         gastos += m.amountCents;
       }
     }
+    var lotCash = 0;
+    for (final s in lotSales.where((s) => s.sessionId == session.id)) {
+      lotCash += s.amountCents;
+    }
+    var layawayCash = 0, layawayOther = 0;
+    for (final p in layawayPayments.where((p) => p.sessionId == session.id)) {
+      if (p.method == PayMethod.efectivo) {
+        layawayCash += p.amountCents;
+      } else {
+        layawayOther += p.amountCents;
+      }
+    }
     return CashSummary(
+      lotSalesCents: lotCash,
+      cashLayawayCents: layawayCash,
+      otherLayawayCents: layawayOther,
       openingCents: session.openingCents,
       cashSalesCents: cash,
       otherSalesCents: other,
@@ -164,6 +231,12 @@ class StoreState {
     List<CreditEntry>? credit,
     List<CashSession>? sessions,
     List<CashMovement>? movements,
+    List<Lot>? lots,
+    List<LotSale>? lotSales,
+    List<Layaway>? layaways,
+    List<LayawayPayment>? layawayPayments,
+    List<Tanda>? batches,
+    List<BatchOrder>? batchOrders,
     int? nextFolio,
   }) => StoreState(
     businessId: businessId ?? this.businessId,
@@ -175,6 +248,12 @@ class StoreState {
     credit: credit ?? this.credit,
     sessions: sessions ?? this.sessions,
     movements: movements ?? this.movements,
+    lots: lots ?? this.lots,
+    lotSales: lotSales ?? this.lotSales,
+    layaways: layaways ?? this.layaways,
+    layawayPayments: layawayPayments ?? this.layawayPayments,
+    batches: batches ?? this.batches,
+    batchOrders: batchOrders ?? this.batchOrders,
     nextFolio: nextFolio ?? this.nextFolio,
   );
 }
@@ -213,6 +292,8 @@ class StoreNotifier extends Notifier<StoreState> {
       );
     });
   }
+
+  DateTime _now() => _clock();
 
   /// Espera a que todo quede guardado.
   Future<void> flush() => _writes;
@@ -396,6 +477,137 @@ class StoreNotifier extends Notifier<StoreState> {
     state = state.copyWith(sessions: [for (final s in state.sessions) s.id == session.id ? closed : s]);
     _save((r) => r.upsertSession(closed));
     return closed;
+  }
+
+  // ===== Módulos: pacas y lotes, apartados y pedidos por tanda =====
+  // ---------- Pacas y lotes ----------
+
+  Lot addLot(String name, int investmentCents) {
+    final now = _now();
+    final lot = Lot(id: newId(), name: name.trim(), investmentCents: investmentCents, startedAt: now);
+    state = state.copyWith(lots: [...state.lots, lot]);
+    _save((r) => r.upsertLot(lot));
+    return lot;
+  }
+
+  /// Una venta de la paca. Entra en efectivo al turno de caja abierto.
+  void addLotSale(String lotId, int amountCents, {String? note}) {
+    final sale = LotSale(
+      id: newId(),
+      lotId: lotId,
+      amountCents: amountCents,
+      createdAt: _now(),
+      note: (note?.trim().isEmpty ?? true) ? null : note!.trim(),
+      sessionId: state.openSession?.id,
+    );
+    state = state.copyWith(lotSales: [...state.lotSales, sale]);
+    _save((r) => r.insertLotSale(sale));
+  }
+
+  void closeLot(String lotId) {
+    final lot = state.lots.where((l) => l.id == lotId).firstOrNull;
+    if (lot == null || !lot.isOpen) return;
+    final closed = lot.close(_now());
+    state = state.copyWith(lots: [for (final l in state.lots) l.id == lotId ? closed : l]);
+    _save((r) => r.upsertLot(closed));
+  }
+
+  // ---------- Apartados ----------
+
+  /// Nuevo apartado con su anticipo (puede ser 0).
+  Layaway addLayaway({
+    required String customerId,
+    required String description,
+    required int totalCents,
+    DateTime? dueDate,
+    int depositCents = 0,
+    PayMethod method = PayMethod.efectivo,
+  }) {
+    final layaway = Layaway(
+      id: newId(),
+      customerId: customerId,
+      description: description.trim(),
+      totalCents: totalCents,
+      createdAt: _now(),
+      dueDate: dueDate,
+    );
+    state = state.copyWith(layaways: [...state.layaways, layaway]);
+    _save((r) => r.upsertLayaway(layaway));
+    if (depositCents > 0) addLayawayPayment(layaway.id, depositCents, method, at: layaway.createdAt);
+    return state.layawayById(layaway.id)!;
+  }
+
+  /// Abono a un apartado. Al cubrir el total queda liquidado.
+  /// El anticipo lleva la misma hora que el apartado; así se reconoce.
+  void addLayawayPayment(String layawayId, int amountCents, PayMethod method, {DateTime? at}) {
+    final payment = LayawayPayment(
+      id: newId(),
+      layawayId: layawayId,
+      amountCents: amountCents,
+      method: method,
+      createdAt: at ?? _now(),
+      sessionId: state.openSession?.id,
+    );
+    state = state.copyWith(layawayPayments: [...state.layawayPayments, payment]);
+    _save((r) => r.insertLayawayPayment(payment));
+    final layaway = state.layawayById(layawayId);
+    if (layaway != null && layaway.status == LayawayStatus.activo && state.pendingOfLayaway(layawayId) == 0) {
+      _setLayaway(layaway.withStatus(LayawayStatus.liquidado));
+    }
+  }
+
+  void cancelLayaway(String layawayId) {
+    final layaway = state.layawayById(layawayId);
+    if (layaway == null) return;
+    _setLayaway(layaway.withStatus(LayawayStatus.cancelado));
+  }
+
+  void _setLayaway(Layaway updated) {
+    state = state.copyWith(layaways: [for (final l in state.layaways) l.id == updated.id ? updated : l]);
+    _save((r) => r.upsertLayaway(updated));
+  }
+
+  // ---------- Pedidos por tanda ----------
+
+  Tanda addBatch(String name, DateTime date) {
+    final batch = Tanda(id: newId(), name: name.trim(), date: date, createdAt: _now());
+    state = state.copyWith(batches: [...state.batches, batch]);
+    _save((r) => r.upsertBatch(batch));
+    return batch;
+  }
+
+  void setBatchSupplies(String batchId, int cents) {
+    final batch = state.batchById(batchId);
+    if (batch == null) return;
+    final updated = batch.withSupplies(cents);
+    state = state.copyWith(batches: [for (final b in state.batches) b.id == batchId ? updated : b]);
+    _save((r) => r.upsertBatch(updated));
+  }
+
+  BatchOrder addBatchOrder({
+    required String batchId,
+    required String customerName,
+    required int totalCents,
+    String? phone,
+    String? detail,
+  }) {
+    final order = BatchOrder(
+      id: newId(),
+      batchId: batchId,
+      customerName: customerName.trim(),
+      phone: (phone?.trim().isEmpty ?? true) ? null : phone!.trim(),
+      detail: (detail?.trim().isEmpty ?? true) ? null : detail!.trim(),
+      totalCents: totalCents,
+      createdAt: _now(),
+    );
+    state = state.copyWith(batchOrders: [...state.batchOrders, order]);
+    _save((r) => r.upsertBatchOrder(order));
+    return order;
+  }
+
+  void updateBatchOrder(BatchOrder order) {
+    state = state.copyWith(batchOrders: [for (final o in state.batchOrders) o.id == order.id ? order : o]);
+    _save((r) => r.upsertBatchOrder(order));
   }
 }
 

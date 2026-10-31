@@ -214,6 +214,9 @@ class CashSummary {
     required this.entradasCents,
     required this.gastosCents,
     required this.salesCount,
+    this.lotSalesCents = 0,
+    this.cashLayawayCents = 0,
+    this.otherLayawayCents = 0,
   });
 
   final int openingCents;
@@ -226,8 +229,16 @@ class CashSummary {
   final int gastosCents;
   final int salesCount;
 
-  int get expectedCashCents => openingCents + cashSalesCents + cashAbonosCents + entradasCents - gastosCents;
-  int get totalSoldCents => cashSalesCents + otherSalesCents + creditSalesCents;
+  /// Lo cobrado de pacas y lotes (siempre en efectivo).
+  final int lotSalesCents;
+
+  /// Anticipos y abonos de apartados.
+  final int cashLayawayCents;
+  final int otherLayawayCents;
+
+  int get expectedCashCents =>
+      openingCents + cashSalesCents + cashAbonosCents + lotSalesCents + cashLayawayCents + entradasCents - gastosCents;
+  int get totalSoldCents => cashSalesCents + otherSalesCents + creditSalesCents + lotSalesCents;
 }
 
 /// Cliente con su saldo, para la libreta de fiados.
@@ -240,4 +251,161 @@ class Debtor {
   /// Fecha del último abono o, si nunca ha pagado, del primer cargo.
   final DateTime since;
   final List<CreditEntry> entries;
+}
+
+// ---------- Pacas y lotes ----------
+
+/// Una paca o lote comprado de golpe: se registra lo invertido y lo que se va cobrando.
+class Lot {
+  const Lot({
+    required this.id,
+    required this.name,
+    required this.investmentCents,
+    required this.startedAt,
+    this.closedAt,
+  });
+
+  final String id;
+  final String name;
+  final int investmentCents;
+  final DateTime startedAt;
+  final DateTime? closedAt;
+
+  bool get isOpen => closedAt == null;
+
+  Lot close(DateTime at) =>
+      Lot(id: id, name: name, investmentCents: investmentCents, startedAt: startedAt, closedAt: at);
+}
+
+class LotSale {
+  const LotSale({
+    required this.id,
+    required this.lotId,
+    required this.amountCents,
+    required this.createdAt,
+    this.note,
+    this.sessionId,
+  });
+
+  final String id;
+  final String lotId;
+  final int amountCents;
+  final DateTime createdAt;
+  final String? note;
+
+  /// Turno de caja en que entró (se cobra en efectivo).
+  final String? sessionId;
+}
+
+// ---------- Apartados ----------
+
+enum LayawayStatus { activo, liquidado, cancelado }
+
+class Layaway {
+  const Layaway({
+    required this.id,
+    required this.customerId,
+    required this.description,
+    required this.totalCents,
+    required this.createdAt,
+    this.dueDate,
+    this.status = LayawayStatus.activo,
+  });
+
+  final String id;
+  final String customerId;
+  final String description;
+  final int totalCents;
+  final DateTime createdAt;
+  final DateTime? dueDate;
+  final LayawayStatus status;
+
+  Layaway withStatus(LayawayStatus s) => Layaway(
+    id: id,
+    customerId: customerId,
+    description: description,
+    totalCents: totalCents,
+    createdAt: createdAt,
+    dueDate: dueDate,
+    status: s,
+  );
+}
+
+class LayawayPayment {
+  const LayawayPayment({
+    required this.id,
+    required this.layawayId,
+    required this.amountCents,
+    required this.method,
+    required this.createdAt,
+    this.sessionId,
+  });
+
+  final String id;
+  final String layawayId;
+  final int amountCents;
+  final PayMethod method;
+  final DateTime createdAt;
+  final String? sessionId;
+}
+
+// ---------- Pedidos por tanda ----------
+
+enum DeliveryStatus { pendiente, listo, entregado }
+
+/// Una tanda: la cochinita del domingo, las marquesitas del viernes.
+class Tanda {
+  const Tanda({
+    required this.id,
+    required this.name,
+    required this.date,
+    required this.createdAt,
+    this.suppliesCents = 0,
+  });
+
+  final String id;
+  final String name;
+  final DateTime date;
+  final DateTime createdAt;
+
+  /// Lo que costaron los insumos, para sacar la ganancia real.
+  final int suppliesCents;
+
+  Tanda withSupplies(int cents) => Tanda(id: id, name: name, date: date, createdAt: createdAt, suppliesCents: cents);
+}
+
+class BatchOrder {
+  const BatchOrder({
+    required this.id,
+    required this.batchId,
+    required this.customerName,
+    required this.totalCents,
+    required this.createdAt,
+    this.phone,
+    this.detail,
+    this.delivery = DeliveryStatus.pendiente,
+    this.paid = false,
+  });
+
+  final String id;
+  final String batchId;
+  final String customerName;
+  final String? phone;
+  final String? detail;
+  final int totalCents;
+  final DateTime createdAt;
+  final DeliveryStatus delivery;
+  final bool paid;
+
+  BatchOrder copyWith({DeliveryStatus? delivery, bool? paid}) => BatchOrder(
+    id: id,
+    batchId: batchId,
+    customerName: customerName,
+    phone: phone,
+    detail: detail,
+    totalCents: totalCents,
+    createdAt: createdAt,
+    delivery: delivery ?? this.delivery,
+    paid: paid ?? this.paid,
+  );
 }

@@ -196,3 +196,45 @@ Supabase seguía sin cuentas ni datos: la prueba del respaldo espera a que el us
   - La venta con su renglón y el corte.
   - El movimiento de inventario, con la existencia ya restada por el servidor (9).
 - La cadena completa quedó probada de punta a punta: escanear, vender, guardar en el teléfono, subir a la nube y sumar existencias en el servidor.
+
+### 5. Módulos: pacas y lotes, apartados y pedidos por tanda
+Se abren desde **Más → Módulos** con el plan Emprendedor o superior. Los tres guardan en el teléfono y se respaldan en la nube como lo demás.
+
+- **Pacas y lotes:**
+  - Se registra la inversión.
+  - Cada venta se anota con botones rápidos ($20 a $200) o con un monto libre.
+  - Una barra muestra cuánto falta para recuperar lo invertido y, después, la ganancia.
+  - Lo cobrado entra en efectivo al corte de caja. El plan gratis permite 1 paca activa.
+- **Apartados:**
+  - Cliente, artículo, precio, anticipo, forma de pago y fecha límite (30 días de inicio).
+  - Abonos hasta liquidar; al cubrir el total queda "liquidado" solo.
+  - Aviso de vencido, cancelación sin borrar lo abonado y comprobante por WhatsApp.
+  - Al corte entra lo pagado en efectivo; tarjeta y transferencia van en su renglón.
+  - El anticipo se distingue de los abonos en la lista y en el comprobante.
+- **Pedidos por tanda** (cochinita del domingo, marquesitas, cenas):
+  - Pedidos con cliente, detalle, total y WhatsApp opcional.
+  - Entrega (pendiente, listo, entregado) y pago en un toque cada uno.
+  - Resumen de vendido, cobrado, por cobrar, insumos y ganancia.
+  - Aviso por WhatsApp cuando el pedido está listo.
+  - No entra al corte de caja; queda anotado decidirlo.
+- **Base de datos:**
+  - Migración `0004_modules_sync`: `synced_at` en las seis tablas de módulos y turno de caja en las ventas de paca y los abonos de apartado.
+  - En el teléfono, la base pasa a la versión 3. La actualización conserva los datos que ya había.
+- **Otros cambios:**
+  - Los calendarios ahora salen en español (es_MX).
+  - El selector de clientes acepta un título ("¿Quién aparta?").
+
+### Verificación
+- 38 pruebas pasan. Las nuevas cubren:
+  - Cada módulo y su efecto en el corte.
+  - Que se guarden y vuelvan al abrir la app.
+  - Que se suban y otro teléfono los baje, incluido un apartado que se liquida en un teléfono y llega liquidado al otro.
+- **En el emulador:**
+  - La app pasó de la base versión 2 a la 3 sin perder ventas.
+  - Pacas: una paca de $3,500 con ventas.
+  - Apartados: vestido de $600, $200 de anticipo y $400 de abono; quedó liquidado.
+  - Tandas: cochinita con un pedido de $180, marcado listo y pagado.
+  - El corte cuadró: $954 antes de los módulos, más $350 de pacas y $600 de apartados, da $1,554.
+- **Arreglado en la revisión:**
+  - "1 pedidos" ahora dice "1 pedido".
+  - El anticipo aparecía como "Abono".

@@ -140,6 +140,110 @@ class MetaTable extends Table {
   Set<Column> get primaryKey => {key};
 }
 
+// ---------- Pacas y lotes ----------
+
+@DataClassName('LotRow')
+class LotsTable extends Table {
+  @override
+  String get tableName => 'lots';
+
+  TextColumn get id => text()();
+  TextColumn get name => text()();
+  IntColumn get investmentCents => integer()();
+  DateTimeColumn get startedAt => dateTime()();
+  DateTimeColumn get closedAt => dateTime().nullable()();
+
+  @override
+  Set<Column> get primaryKey => {id};
+}
+
+@DataClassName('LotSaleRow')
+class LotSalesTable extends Table {
+  @override
+  String get tableName => 'lot_sales';
+
+  TextColumn get id => text()();
+  TextColumn get lotId => text()();
+  IntColumn get amountCents => integer()();
+  DateTimeColumn get createdAt => dateTime()();
+  TextColumn get note => text().nullable()();
+  TextColumn get sessionId => text().nullable()();
+
+  @override
+  Set<Column> get primaryKey => {id};
+}
+
+// ---------- Apartados ----------
+
+@DataClassName('LayawayRow')
+class LayawaysTable extends Table {
+  @override
+  String get tableName => 'layaways';
+
+  TextColumn get id => text()();
+  TextColumn get customerId => text()();
+  TextColumn get description => text()();
+  IntColumn get totalCents => integer()();
+  DateTimeColumn get createdAt => dateTime()();
+  DateTimeColumn get dueDate => dateTime().nullable()();
+  TextColumn get status => textEnum<LayawayStatus>()();
+
+  @override
+  Set<Column> get primaryKey => {id};
+}
+
+@DataClassName('LayawayPaymentRow')
+class LayawayPaymentsTable extends Table {
+  @override
+  String get tableName => 'layaway_payments';
+
+  TextColumn get id => text()();
+  TextColumn get layawayId => text()();
+  IntColumn get amountCents => integer()();
+  TextColumn get method => textEnum<PayMethod>()();
+  DateTimeColumn get createdAt => dateTime()();
+  TextColumn get sessionId => text().nullable()();
+
+  @override
+  Set<Column> get primaryKey => {id};
+}
+
+// ---------- Pedidos por tanda ----------
+
+@DataClassName('BatchRow')
+class BatchesTable extends Table {
+  @override
+  String get tableName => 'batches';
+
+  TextColumn get id => text()();
+  TextColumn get name => text()();
+  DateTimeColumn get date => dateTime()();
+  DateTimeColumn get createdAt => dateTime()();
+  IntColumn get suppliesCents => integer().withDefault(const Constant(0))();
+
+  @override
+  Set<Column> get primaryKey => {id};
+}
+
+@DataClassName('BatchOrderRow')
+class BatchOrdersTable extends Table {
+  @override
+  String get tableName => 'batch_orders';
+
+  TextColumn get id => text()();
+  TextColumn get batchId => text()();
+  TextColumn get customerName => text()();
+  TextColumn get phone => text().nullable()();
+  TextColumn get detail => text().nullable()();
+  IntColumn get totalCents => integer()();
+  DateTimeColumn get createdAt => dateTime()();
+  TextColumn get delivery => textEnum<DeliveryStatus>()();
+  BoolColumn get paid => boolean().withDefault(const Constant(false))();
+
+  @override
+  Set<Column> get primaryKey => {id};
+}
+
 /// Fila de pendientes: cambios hechos en el teléfono que faltan por subir a Supabase.
 /// Cada renglón trae las filas ya con forma de Supabase (sin business_id).
 @DataClassName('OutboxRow')
@@ -157,6 +261,12 @@ class OutboxTable extends Table {
 @DriftDatabase(
   tables: [
     OutboxTable,
+    LotsTable,
+    LotSalesTable,
+    LayawaysTable,
+    LayawayPaymentsTable,
+    BatchesTable,
+    BatchOrdersTable,
     ProductsTable,
     CustomersTable,
     SalesTable,
@@ -174,13 +284,26 @@ class GavilanDb extends _$GavilanDb {
   factory GavilanDb.onDevice() => GavilanDb(driftDatabase(name: 'gavilan'));
 
   @override
-  int get schemaVersion => 2;
+  int get schemaVersion => 3;
 
   @override
   MigrationStrategy get migration => MigrationStrategy(
     onUpgrade: (m, from, to) async {
       // v2: fila de pendientes para la sincronización.
       if (from < 2) await m.createTable(outboxTable);
+      // v3: pacas y lotes, apartados y pedidos por tanda.
+      if (from < 3) {
+        for (final table in <TableInfo>[
+          lotsTable,
+          lotSalesTable,
+          layawaysTable,
+          layawayPaymentsTable,
+          batchesTable,
+          batchOrdersTable,
+        ]) {
+          await m.createTable(table);
+        }
+      }
     },
   );
 }

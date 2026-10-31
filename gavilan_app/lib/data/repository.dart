@@ -39,6 +39,13 @@ abstract class StoreRepository {
   Future<void> insertMovement(CashMovement movement);
   Future<void> setPlan(Plan plan);
 
+  Future<void> upsertLot(Lot lot);
+  Future<void> insertLotSale(LotSale sale);
+  Future<void> upsertLayaway(Layaway layaway);
+  Future<void> insertLayawayPayment(LayawayPayment payment);
+  Future<void> upsertBatch(Tanda batch);
+  Future<void> upsertBatchOrder(BatchOrder order);
+
   /// Operaciones de sincronización; null si este almacenamiento no sincroniza.
   SyncStore? get sync;
 }
@@ -96,6 +103,18 @@ class MemoryRepository implements StoreRepository {
   @override
   Future<void> setPlan(Plan plan) async {}
   @override
+  Future<void> upsertLot(Lot lot) async {}
+  @override
+  Future<void> insertLotSale(LotSale sale) async {}
+  @override
+  Future<void> upsertLayaway(Layaway layaway) async {}
+  @override
+  Future<void> insertLayawayPayment(LayawayPayment payment) async {}
+  @override
+  Future<void> upsertBatch(Tanda batch) async {}
+  @override
+  Future<void> upsertBatchOrder(BatchOrder order) async {}
+  @override
   SyncStore? get sync => null;
 }
 
@@ -117,6 +136,12 @@ const pullTables = [
   'sale_items',
   'credit_entries',
   'cash_movements',
+  'lots',
+  'lot_sales',
+  'layaways',
+  'layaway_payments',
+  'batches',
+  'batch_orders',
 ];
 
 class DriftRepository implements StoreRepository, SyncStore {
@@ -211,8 +236,16 @@ class DriftRepository implements StoreRepository, SyncStore {
           ),
       ],
     );
+    final withModules = store.copyWith(
+      lots: [for (final r in await db.select(db.lotsTable).get()) _lot(r)],
+      lotSales: [for (final r in await db.select(db.lotSalesTable).get()) _lotSale(r)],
+      layaways: [for (final r in await db.select(db.layawaysTable).get()) _layaway(r)],
+      layawayPayments: [for (final r in await db.select(db.layawayPaymentsTable).get()) _layawayPayment(r)],
+      batches: [for (final r in await db.select(db.batchesTable).get()) _batch(r)],
+      batchOrders: [for (final r in await db.select(db.batchOrdersTable).get()) _batchOrder(r)],
+    );
     final plan = Plan.values.asNameMap()[meta[_kPlan]] ?? Plan.semilla;
-    return LoadedData(store: store, plan: plan);
+    return LoadedData(store: withModules, plan: plan);
   }
 
   static Product _product(ProductRow p) => Product(
@@ -235,6 +268,92 @@ class DriftRepository implements StoreRepository, SyncStore {
     closedAt: s.closedAt,
     expectedCents: s.expectedCents,
     countedCents: s.countedCents,
+  );
+
+  static Lot _lot(LotRow r) =>
+      Lot(id: r.id, name: r.name, investmentCents: r.investmentCents, startedAt: r.startedAt, closedAt: r.closedAt);
+  static LotRow _lotRow(Lot l) =>
+      LotRow(id: l.id, name: l.name, investmentCents: l.investmentCents, startedAt: l.startedAt, closedAt: l.closedAt);
+
+  static LotSale _lotSale(LotSaleRow r) => LotSale(
+    id: r.id,
+    lotId: r.lotId,
+    amountCents: r.amountCents,
+    createdAt: r.createdAt,
+    note: r.note,
+    sessionId: r.sessionId,
+  );
+  static LotSaleRow _lotSaleRow(LotSale s) => LotSaleRow(
+    id: s.id,
+    lotId: s.lotId,
+    amountCents: s.amountCents,
+    createdAt: s.createdAt,
+    note: s.note,
+    sessionId: s.sessionId,
+  );
+
+  static Layaway _layaway(LayawayRow r) => Layaway(
+    id: r.id,
+    customerId: r.customerId,
+    description: r.description,
+    totalCents: r.totalCents,
+    createdAt: r.createdAt,
+    dueDate: r.dueDate,
+    status: r.status,
+  );
+  static LayawayRow _layawayRow(Layaway l) => LayawayRow(
+    id: l.id,
+    customerId: l.customerId,
+    description: l.description,
+    totalCents: l.totalCents,
+    createdAt: l.createdAt,
+    dueDate: l.dueDate,
+    status: l.status,
+  );
+
+  static LayawayPayment _layawayPayment(LayawayPaymentRow r) => LayawayPayment(
+    id: r.id,
+    layawayId: r.layawayId,
+    amountCents: r.amountCents,
+    method: r.method,
+    createdAt: r.createdAt,
+    sessionId: r.sessionId,
+  );
+  static LayawayPaymentRow _layawayPaymentRow(LayawayPayment p) => LayawayPaymentRow(
+    id: p.id,
+    layawayId: p.layawayId,
+    amountCents: p.amountCents,
+    method: p.method,
+    createdAt: p.createdAt,
+    sessionId: p.sessionId,
+  );
+
+  static Tanda _batch(BatchRow r) =>
+      Tanda(id: r.id, name: r.name, date: r.date, createdAt: r.createdAt, suppliesCents: r.suppliesCents);
+  static BatchRow _batchRow(Tanda b) =>
+      BatchRow(id: b.id, name: b.name, date: b.date, createdAt: b.createdAt, suppliesCents: b.suppliesCents);
+
+  static BatchOrder _batchOrder(BatchOrderRow r) => BatchOrder(
+    id: r.id,
+    batchId: r.batchId,
+    customerName: r.customerName,
+    phone: r.phone,
+    detail: r.detail,
+    totalCents: r.totalCents,
+    createdAt: r.createdAt,
+    delivery: r.delivery,
+    paid: r.paid,
+  );
+  static BatchOrderRow _batchOrderRow(BatchOrder o) => BatchOrderRow(
+    id: o.id,
+    batchId: o.batchId,
+    customerName: o.customerName,
+    phone: o.phone,
+    detail: o.detail,
+    totalCents: o.totalCents,
+    createdAt: o.createdAt,
+    delivery: o.delivery,
+    paid: o.paid,
   );
 
   // ---------- Conversión a renglones locales ----------
@@ -344,6 +463,12 @@ class DriftRepository implements StoreRepository, SyncStore {
       b.insertAll(db.creditEntriesTable, state.credit.map(_creditRow));
       b.insertAll(db.cashSessionsTable, state.sessions.map(_sessionRow));
       b.insertAll(db.cashMovementsTable, state.movements.map(_movementRow));
+      b.insertAll(db.lotsTable, state.lots.map(_lotRow));
+      b.insertAll(db.lotSalesTable, state.lotSales.map(_lotSaleRow));
+      b.insertAll(db.layawaysTable, state.layaways.map(_layawayRow));
+      b.insertAll(db.layawayPaymentsTable, state.layawayPayments.map(_layawayPaymentRow));
+      b.insertAll(db.batchesTable, state.batches.map(_batchRow));
+      b.insertAll(db.batchOrdersTable, state.batchOrders.map(_batchOrderRow));
     });
     for (final s in state.sales) {
       await _insertSale(s);
@@ -449,6 +574,54 @@ class DriftRepository implements StoreRepository, SyncStore {
   @override
   Future<void> setPlan(Plan plan) => _setMeta(_kPlan, plan.name);
 
+  @override
+  Future<void> upsertLot(Lot lot) => db.transaction(() async {
+    await db.into(db.lotsTable).insertOnConflictUpdate(_lotRow(lot));
+    await _enqueue([
+      (table: 'lots', rows: [lotToRemote(lot)]),
+    ]);
+  });
+
+  @override
+  Future<void> insertLotSale(LotSale sale) => db.transaction(() async {
+    await db.into(db.lotSalesTable).insertOnConflictUpdate(_lotSaleRow(sale));
+    await _enqueue([
+      (table: 'lot_sales', rows: [lotSaleToRemote(sale)]),
+    ]);
+  });
+
+  @override
+  Future<void> upsertLayaway(Layaway layaway) => db.transaction(() async {
+    await db.into(db.layawaysTable).insertOnConflictUpdate(_layawayRow(layaway));
+    await _enqueue([
+      (table: 'layaways', rows: [layawayToRemote(layaway)]),
+    ]);
+  });
+
+  @override
+  Future<void> insertLayawayPayment(LayawayPayment payment) => db.transaction(() async {
+    await db.into(db.layawayPaymentsTable).insertOnConflictUpdate(_layawayPaymentRow(payment));
+    await _enqueue([
+      (table: 'layaway_payments', rows: [layawayPaymentToRemote(payment)]),
+    ]);
+  });
+
+  @override
+  Future<void> upsertBatch(Tanda batch) => db.transaction(() async {
+    await db.into(db.batchesTable).insertOnConflictUpdate(_batchRow(batch));
+    await _enqueue([
+      (table: 'batches', rows: [batchToRemote(batch)]),
+    ]);
+  });
+
+  @override
+  Future<void> upsertBatchOrder(BatchOrder order) => db.transaction(() async {
+    await db.into(db.batchOrdersTable).insertOnConflictUpdate(_batchOrderRow(order));
+    await _enqueue([
+      (table: 'batch_orders', rows: [batchOrderToRemote(order)]),
+    ]);
+  });
+
   // ---------- Sincronización ----------
 
   @override
@@ -479,6 +652,18 @@ class DriftRepository implements StoreRepository, SyncStore {
     }
     if (s.movements.isNotEmpty) {
       await _enqueue([(table: 'cash_movements', rows: s.movements.map(movementToRemote).toList())]);
+    }
+    final modules = <RemoteChange>[
+      if (s.lots.isNotEmpty) (table: 'lots', rows: s.lots.map(lotToRemote).toList()),
+      if (s.lotSales.isNotEmpty) (table: 'lot_sales', rows: s.lotSales.map(lotSaleToRemote).toList()),
+      if (s.layaways.isNotEmpty) (table: 'layaways', rows: s.layaways.map(layawayToRemote).toList()),
+      if (s.layawayPayments.isNotEmpty)
+        (table: 'layaway_payments', rows: s.layawayPayments.map(layawayPaymentToRemote).toList()),
+      if (s.batches.isNotEmpty) (table: 'batches', rows: s.batches.map(batchToRemote).toList()),
+      if (s.batchOrders.isNotEmpty) (table: 'batch_orders', rows: s.batchOrders.map(batchOrderToRemote).toList()),
+    ];
+    for (final change in modules) {
+      await _enqueue([change]);
     }
   });
 
@@ -550,6 +735,18 @@ class DriftRepository implements StoreRepository, SyncStore {
           await db.into(db.creditEntriesTable).insertOnConflictUpdate(creditFromRemote(r));
         case 'cash_movements':
           await db.into(db.cashMovementsTable).insertOnConflictUpdate(movementFromRemote(r));
+        case 'lots':
+          await db.into(db.lotsTable).insertOnConflictUpdate(lotFromRemote(r));
+        case 'lot_sales':
+          await db.into(db.lotSalesTable).insertOnConflictUpdate(lotSaleFromRemote(r));
+        case 'layaways':
+          await db.into(db.layawaysTable).insertOnConflictUpdate(layawayFromRemote(r));
+        case 'layaway_payments':
+          await db.into(db.layawayPaymentsTable).insertOnConflictUpdate(layawayPaymentFromRemote(r));
+        case 'batches':
+          await db.into(db.batchesTable).insertOnConflictUpdate(batchFromRemote(r));
+        case 'batch_orders':
+          await db.into(db.batchOrdersTable).insertOnConflictUpdate(batchOrderFromRemote(r));
       }
     }
   });
