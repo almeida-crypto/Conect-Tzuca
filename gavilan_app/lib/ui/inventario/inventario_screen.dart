@@ -25,20 +25,7 @@ class _InventarioScreenState extends ConsumerState<InventarioScreen> {
   bool _onlyLow = false;
 
   Future<void> _add() async {
-    final store = ref.read(storeProvider);
-    final plan = ref.read(planProvider);
-    final max = plan.limits.maxProducts;
-    if (max != null && store.activeProducts.length >= max) {
-      await showUpgradeSheet(
-        context,
-        reason:
-            'Tu plan ${plan.label} permite hasta $max productos. '
-            'Puedes desactivar los que ya no vendes o cambiar de plan.',
-        needed: plan == Plan.semilla ? Plan.emprendedor : Plan.negocio,
-      );
-      return;
-    }
-    if (!mounted) return;
+    if (!await ensureRoomForProduct(context, ref) || !mounted) return;
     await showProductForm(context);
   }
 

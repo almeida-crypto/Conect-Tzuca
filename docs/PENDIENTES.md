@@ -29,11 +29,15 @@ Prioridad: **Alta** = sin esto no se puede usar con un negocio real · **Media**
 - [ ] **Media** · Probar que un cajero del negocio A no vea nada del negocio B (RLS con usuarios reales).
 
 ## Etapa 2 · Completar el mostrador
-- [ ] **Alta** · Cámara como escáner de códigos (`mobile_scanner`) y modo "¿Cuánto cuesta?".
+- [x] **Alta** · Cámara como escáner de códigos (`mobile_scanner`), modo "¿Cuánto cuesta?", alta de producto desde un código desconocido y lector en la ficha de producto. *31/10/2026*
+- [ ] **Alta** · Probar el escáner con un código real en un celular: el emulador no tiene cámara que pueda leer códigos.
+- [ ] **Media** · Error de Flutter 3.47 en el emulador al cargar su efecto de estiramiento de listas (`shaders/stretch_effect.frag ... manifest could not be decoded`). No es código de la app y no la detiene; revisar en un celular real y, si sigue, actualizar Flutter.
+- [x] **Alta** · Permiso de internet en la versión final de Android: faltaba y la app compilada para entregar no habría podido respaldar. *31/10/2026*
 - [x] **Alta** · Probar la app en Android: probada en el emulador; guarda, cierra a la fuerza, reabre y actualiza sin perder datos. *26/10/2026*
 - [ ] **Alta** · Probarla en un celular Android real de gama baja.
 - [ ] **Media** · Pantalla de carga de Android con los colores de Gavilán: hoy sale un instante blanca con el logo de Flutter.
-- [ ] **Media** · Ticket como imagen PNG para WhatsApp (`RepaintBoundary` + `share_plus`), con logo en planes de pago.
+- [x] **Media** · Ticket como imagen PNG para WhatsApp (`RepaintBoundary` + `share_plus`), con la opción de mandarlo como texto. *31/10/2026*
+- [ ] **Media** · Logo del negocio en el ticket para los planes de pago.
 - [ ] **Media** · Tarjeta para Estados de WhatsApp: foto del producto, precio y sello "Disponible".
 - [ ] **Media** · Fotos de producto en planes de pago: reducir a 600×600 WebP en el teléfono y subir a Supabase Storage.
 - [ ] **Media** · Políticas de Supabase Storage para fotos de productos y apartados.

@@ -147,3 +147,41 @@ Verificación:
   - Sin sesión no se anota nada.
 - **Emulador:** la actualización conservó los datos (migración v1 → v2), y la pastilla y la pantalla de cuenta se ven bien.
 - **No probado todavía contra el Supabase real:** hace falta que el usuario cree su cuenta desde la app.
+
+---
+
+## 31 de octubre de 2026 · Sesión 3
+
+Supabase seguía sin cuentas ni datos: la prueba del respaldo espera a que el usuario cree su cuenta desde la app. Mientras, se completó el mostrador.
+
+### 1. Escáner con la cámara (`mobile_scanner` 7.4)
+- Pantalla nueva `lib/ui/scan/`, que se abre desde el botón de cámara de Cobrar. Tiene dos modos:
+  - **Cobrar:** cada código suma el producto a la cuenta, con vibración y "+1 Coca · $18".
+  - **¿Cuánto cuesta?:** muestra el precio en grande y la existencia, sin tocar la cuenta.
+- **Código desconocido:** ofrece "Darlo de alta". Abre la ficha con el código ya puesto, respeta el límite del plan y, al guardar, suma el producto a la cuenta.
+- **Ficha de producto:** botón para leer el código con la cámara.
+- La lógica está en `ScanSession`, en Dart puro. Si el mismo código se queda frente a la cámara, cuenta una vez; vuelve a contar si se retira y se acerca otra vez.
+- Linterna y mensajes claros si no hay permiso de cámara.
+
+### 2. Ticket como imagen
+- "Mandar por WhatsApp" convierte el ticket en PNG (`RepaintBoundary`) y abre el menú de compartir. Se genera en el teléfono y no se guarda en ningún servidor.
+- Si algo falla, se manda como texto. También hay un botón "Mandar como texto".
+
+### 3. Arreglos encontrados en el camino
+- **Faltaba el permiso de internet** en la versión final de Android. En depuración Flutter lo agrega solo, por eso no se notaba, pero la app compilada para entregar no habría podido respaldar. Ya está en el manifiesto.
+- **El nombre de la app** en el teléfono era "gavilan"; ahora es "Gavilán" en Android e iPhone. También se agregó el texto que pide permiso de cámara en iPhone.
+- **Pantalla del escáner, dos errores de diseño vistos en el emulador:**
+  - El panel de abajo salía pegado arriba.
+  - Después, la barra de arriba quedó a media pantalla.
+
+  Los dos ya están corregidos.
+
+### Verificación
+- 29 pruebas pasan, 8 nuevas del escáner.
+- En el emulador:
+  - El permiso de cámara se pide con el nombre "Gavilán".
+  - La cámara abre con su marco de lectura.
+  - El cambio de modo funciona.
+  - Una venta de $18 abre el menú de compartir con el ticket como imagen, con sello y marca de agua.
+- **No probado:** leer un código real (el emulador no tiene cámara que apunte a uno) y WhatsApp (no está instalado en el emulador).
+- **Visto y anotado:** un error interno de Flutter 3.47 con su efecto de estiramiento de listas. Sigue igual después de una compilación limpia y no detiene la app.

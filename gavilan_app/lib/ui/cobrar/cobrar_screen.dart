@@ -10,6 +10,7 @@ import '../../theme/theme.dart';
 import '../caja/cash_dialogs.dart';
 import '../widgets/buttons.dart';
 import '../widgets/common.dart';
+import '../scan/scan_screen.dart';
 import '../widgets/product_icons.dart';
 import 'cart_sheet.dart';
 import 'pay_sheet.dart';
@@ -106,13 +107,7 @@ class _CobrarScreenState extends ConsumerState<CobrarScreen> {
                   _SquareButton(
                     icon: Icons.qr_code_scanner,
                     tooltip: 'Escanear con la cámara',
-                    onTap: () => ScaffoldMessenger.of(context).showSnackBar(
-                      const SnackBar(
-                        content: Text(
-                          'La cámara como escáner llega en el siguiente paso. Mientras, escribe el código y da Enter.',
-                        ),
-                      ),
-                    ),
+                    onTap: () => Navigator.of(context).push(MaterialPageRoute(builder: (_) => const ScanScreen())),
                   ),
                   const SizedBox(width: 8),
                   _SquareButton(

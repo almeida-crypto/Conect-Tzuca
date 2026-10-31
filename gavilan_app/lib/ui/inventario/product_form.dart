@@ -10,15 +10,34 @@ import '../../theme/colors.dart';
 import '../../theme/theme.dart';
 import '../widgets/buttons.dart';
 import '../widgets/common.dart';
+import '../scan/scan_screen.dart';
 import '../widgets/product_icons.dart';
 
-Future<void> showProductForm(BuildContext context, {Product? product}) =>
-    showGSheet(context, (_) => _ProductForm(product: product));
+/// Abre la ficha de producto. Devuelve el producto guardado (null si se canceló).
+Future<Product?> showProductForm(BuildContext context, {Product? product, String? initialBarcode}) =>
+    showGSheet<Product>(context, (_) => _ProductForm(product: product, initialBarcode: initialBarcode));
+
+/// Revisa el límite de productos del plan antes de dar de alta uno nuevo.
+Future<bool> ensureRoomForProduct(BuildContext context, WidgetRef ref) async {
+  final store = ref.read(storeProvider);
+  final plan = ref.read(planProvider);
+  final max = plan.limits.maxProducts;
+  if (max == null || store.activeProducts.length < max) return true;
+  await showUpgradeSheet(
+    context,
+    reason:
+        'Tu plan ${plan.label} permite hasta $max productos. '
+        'Puedes ocultar los que ya no vendes o cambiar de plan.',
+    needed: plan == Plan.semilla ? Plan.emprendedor : Plan.negocio,
+  );
+  return false;
+}
 
 class _ProductForm extends ConsumerStatefulWidget {
-  const _ProductForm({this.product});
+  const _ProductForm({this.product, this.initialBarcode});
 
   final Product? product;
+  final String? initialBarcode;
 
   @override
   ConsumerState<_ProductForm> createState() => _ProductFormState();
@@ -28,7 +47,7 @@ class _ProductFormState extends ConsumerState<_ProductForm> {
   late final _name = TextEditingController(text: widget.product?.name ?? '');
   late final _price = TextEditingController(text: _cents(widget.product?.priceCents));
   late final _cost = TextEditingController(text: _cents(widget.product?.costCents));
-  late final _barcode = TextEditingController(text: widget.product?.barcode ?? '');
+  late final _barcode = TextEditingController(text: widget.product?.barcode ?? widget.initialBarcode ?? '');
   late final _stock = TextEditingController(text: widget.product == null ? '' : qtyLabel(widget.product!.stock));
   late final _min = TextEditingController(
     text: widget.product?.minStock == null ? '' : qtyLabel(widget.product!.minStock!),
@@ -74,23 +93,20 @@ class _ProductFormState extends ConsumerState<_ProductForm> {
     final base =
         (widget.product == null ? null : store.productById(widget.product!.id)) ??
         Product(id: newId(), name: '', priceCents: 0);
-    ref
-        .read(storeProvider.notifier)
-        .saveProduct(
-          base.copyWith(
-            name: _name.text.trim(),
-            priceCents: price,
-            costCents: cost,
-            barcode: code.isEmpty ? null : code,
-            clearBarcode: code.isEmpty,
-            iconId: _icon,
-            trackStock: _track,
-            stock: _editing ? null : (stock ?? 0),
-            minStock: min,
-            clearMinStock: min == null,
-          ),
-        );
-    Navigator.of(context).pop();
+    final saved = base.copyWith(
+      name: _name.text.trim(),
+      priceCents: price,
+      costCents: cost,
+      barcode: code.isEmpty ? null : code,
+      clearBarcode: code.isEmpty,
+      iconId: _icon,
+      trackStock: _track,
+      stock: _editing ? null : (stock ?? 0),
+      minStock: min,
+      clearMinStock: min == null,
+    );
+    ref.read(storeProvider.notifier).saveProduct(saved);
+    Navigator.of(context).pop(saved);
   }
 
   void _addStock() {
@@ -156,6 +172,18 @@ class _ProductFormState extends ConsumerState<_ProductForm> {
           decoration: InputDecoration(
             labelText: 'Código de barras (opcional)',
             prefixIcon: const Icon(Icons.qr_code_2, size: 20),
+            suffixIcon: IconButton(
+              tooltip: 'Leer con la cámara',
+              icon: const Icon(Icons.qr_code_scanner),
+              onPressed: () async {
+                final code = await scanOneCode(context);
+                if (code == null || !mounted) return;
+                setState(() {
+                  _barcode.text = code;
+                  _errors.remove('barcode');
+                });
+              },
+            ),
             errorText: _errors['barcode'],
           ),
         ),

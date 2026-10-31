@@ -1,6 +1,8 @@
 <manifest xmlns:android="http://schemas.android.com/apk/res/android">
+    <!-- Respaldo en la nube (Supabase). En depuración Flutter lo agrega solo; la versión final lo necesita aquí. -->
+    <uses-permission android:name="android.permission.INTERNET" />
     <application
-        android:label="gavilan"
+        android:label="Gavilán"
         android:name="${applicationName}"
         android:icon="@mipmap/ic_launcher">
         <activity
