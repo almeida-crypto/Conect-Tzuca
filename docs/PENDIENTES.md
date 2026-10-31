@@ -15,7 +15,7 @@ Prioridad: **Alta** = sin esto no se puede usar con un negocio real · **Media**
 - [x] **Alta** · Guardar los datos en el teléfono con Drift (SQLite): cada venta, abono, gasto y producto se guarda al momento y se carga al abrir. *26/10/2026*
 - [x] **Alta** · Sincronizar con Supabase sin servicios externos: fila de pendientes que sube sola y descarga de cambios por `synced_at`. *26/10/2026*
 - [x] **Alta** · Inicio de sesión con correo y contraseña (Supabase Auth) y enlace del negocio con `create_business`. *26/10/2026*
-- [ ] **Alta** · Primera prueba real: el usuario crea su cuenta desde la app, confirma el correo y revisamos en Supabase que suban las ventas.
+- [x] **Alta** · Primera prueba real: cuenta creada y confirmada desde el celular; negocio, producto, venta, corte y existencia llegaron a Supabase. *31/10/2026*
 - [ ] **Alta** · Correo propio (SMTP con Resend o Brevo) para los correos de confirmación: el de Supabase solo manda unos cuantos por hora y puede caer en spam.
 - [ ] **Media** · En Supabase Auth, poner una página de "correo confirmado" como URL de redirección. Hoy el enlace del correo confirma la cuenta pero abre una página que no carga.
 - [ ] **Media** · "Olvidé mi contraseña".
@@ -30,11 +30,12 @@ Prioridad: **Alta** = sin esto no se puede usar con un negocio real · **Media**
 
 ## Etapa 2 · Completar el mostrador
 - [x] **Alta** · Cámara como escáner de códigos (`mobile_scanner`), modo "¿Cuánto cuesta?", alta de producto desde un código desconocido y lector en la ficha de producto. *31/10/2026*
-- [ ] **Alta** · Probar el escáner con un código real en un celular: el emulador no tiene cámara que pueda leer códigos.
+- [x] **Alta** · Escáner probado en el celular del usuario con un código real: alta, cobro y "¿Cuánto cuesta?" funcionan. *31/10/2026*
 - [ ] **Media** · Error de Flutter 3.47 en el emulador al cargar su efecto de estiramiento de listas (`shaders/stretch_effect.frag ... manifest could not be decoded`). No es código de la app y no la detiene; revisar en un celular real y, si sigue, actualizar Flutter.
 - [x] **Alta** · Permiso de internet en la versión final de Android: faltaba y la app compilada para entregar no habría podido respaldar. *31/10/2026*
 - [x] **Alta** · Probar la app en Android: probada en el emulador; guarda, cierra a la fuerza, reabre y actualiza sin perder datos. *26/10/2026*
-- [ ] **Alta** · Probarla en un celular Android real de gama baja.
+- [x] **Alta** · Probada en el celular Android del usuario: fluida, conserva los datos al salir y el ticket llega bien por WhatsApp. *31/10/2026*
+- [ ] **Media** · Probarla en un celular de gama baja (2 o 3 GB de RAM), como los de muchos comerciantes.
 - [ ] **Media** · Pantalla de carga de Android con los colores de Gavilán: hoy sale un instante blanca con el logo de Flutter.
 - [x] **Media** · Ticket como imagen PNG para WhatsApp (`RepaintBoundary` + `share_plus`), con la opción de mandarlo como texto. *31/10/2026*
 - [ ] **Media** · Logo del negocio en el ticket para los planes de pago.

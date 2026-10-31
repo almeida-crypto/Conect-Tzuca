@@ -185,3 +185,14 @@ Supabase seguía sin cuentas ni datos: la prueba del respaldo espera a que el us
   - Una venta de $18 abre el menú de compartir con el ticket como imagen, con sello y marca de agua.
 - **No probado:** leer un código real (el emulador no tiene cámara que apunte a uno) y WhatsApp (no está instalado en el emulador).
 - **Visto y anotado:** un error interno de Flutter 3.47 con su efecto de estiramiento de listas. Sigue igual después de una compilación limpia y no detiene la app.
+
+### 4. Primera prueba en el celular del usuario
+- Se entregó la app como APK de versión final, en dos variantes de menos de 30 MB: `Gavilan-celular-moderno.apk` (arm64) y `Gavilan-celular-antiguo.apk` (armeabi-v7a). Se compilan con `flutter build apk --release --split-per-abi`.
+- **El usuario probó** el escáner con un producto real (alta, cobro y "¿Cuánto cuesta?"), el inventario, una venta, salir y volver a entrar sin perder nada, y el ticket como imagen por WhatsApp. También creó su cuenta y confirmó el correo. Comentó que la app se siente muy fluida.
+- **En Supabase llegó todo:**
+  - 1 usuario confirmado.
+  - El negocio "Don Buky", con el usuario como dueño.
+  - El producto con su código de barras.
+  - La venta con su renglón y el corte.
+  - El movimiento de inventario, con la existencia ya restada por el servidor (9).
+- La cadena completa quedó probada de punta a punta: escanear, vender, guardar en el teléfono, subir a la nube y sumar existencias en el servidor.
