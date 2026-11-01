@@ -4,6 +4,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import 'state/store.dart';
 import 'theme/theme.dart';
+import 'ui/account/auth_link_listener.dart';
 import 'ui/onboarding/welcome_screen.dart';
 import 'ui/shell/home_shell.dart';
 import 'ui/splash/splash_screen.dart';
@@ -20,22 +21,27 @@ class GavilanApp extends StatefulWidget {
 
 class _GavilanAppState extends State<GavilanApp> {
   late bool _splash = widget.showSplash;
+  final _navigator = GlobalKey<NavigatorState>();
 
   @override
   Widget build(BuildContext context) {
-    return MaterialApp(
-      title: 'Gavilán',
-      debugShowCheckedModeBanner: false,
-      theme: buildGavilanTheme(),
-      // Español de México en fechas, diálogos y textos internos de Flutter.
-      locale: const Locale('es', 'MX'),
-      supportedLocales: const [Locale('es', 'MX'), Locale('es')],
-      localizationsDelegates: GlobalMaterialLocalizations.delegates,
-      home: AnimatedSwitcher(
-        duration: const Duration(milliseconds: 450),
-        child: _splash
-            ? SplashScreen(key: const ValueKey('splash'), onDone: () => setState(() => _splash = false))
-            : const _Root(key: ValueKey('root')),
+    return AuthLinkListener(
+      navigatorKey: _navigator,
+      child: MaterialApp(
+        navigatorKey: _navigator,
+        title: 'Gavilán',
+        debugShowCheckedModeBanner: false,
+        theme: buildGavilanTheme(),
+        // Español de México en fechas, diálogos y textos internos de Flutter.
+        locale: const Locale('es', 'MX'),
+        supportedLocales: const [Locale('es', 'MX'), Locale('es')],
+        localizationsDelegates: GlobalMaterialLocalizations.delegates,
+        home: AnimatedSwitcher(
+          duration: const Duration(milliseconds: 450),
+          child: _splash
+              ? SplashScreen(key: const ValueKey('splash'), onDone: () => setState(() => _splash = false))
+              : const _Root(key: ValueKey('root')),
+        ),
       ),
     );
   }

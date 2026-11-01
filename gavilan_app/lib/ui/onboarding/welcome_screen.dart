@@ -2,7 +2,6 @@ import 'dart:async';
 
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:flutter_svg/flutter_svg.dart';
 
 import '../../data/sync_remote.dart';
 import '../../state/store.dart';
@@ -63,7 +62,7 @@ class _WelcomeScreenState extends ConsumerState<WelcomeScreen> {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.stretch,
                 children: [
-                  Center(child: SvgPicture.asset('assets/hawk/gavilan.svg', width: 150, semanticsLabel: 'Gavilán')),
+                  Center(child: Image.asset('assets/hawk/gavilan.png', width: 180, semanticLabel: 'Gavilán')),
                   const SizedBox(height: 18),
                   Semantics(header: true, child: Text('Bienvenido a Gavilán', style: GText.title())),
                   const SizedBox(height: 6),

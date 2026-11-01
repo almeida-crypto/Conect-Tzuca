@@ -46,7 +46,14 @@ Es un **gavilán caminero**, el gavilán común de Yucatán. El del inicio es un
   - `python design-lab/hawk_cut.py gavilan-flow.jpg recorte.png` quita el fondo blanco y recorta.
   - `python design-lab/hawk_layers.py recorte.png gavilan_app/assets/hawk/flight 0.72` separa las capas `far`, `body` y `near`. En el cuerpo pinta el lomo que tapaba el ala, para que no quede hueco al aletear.
 - **Articulación:** el hombro está en (1190, 560) y el del ala lejana en (1250, 470), sobre el recorte de 1710×977. La punta de la cola está a 60 px del borde izquierdo.
-- La bienvenida y el encabezado todavía usan el dibujo anterior, `assets/hawk/gavilan.svg`, generado por `design-lab/hawk-build.js`.
+- La bienvenida y el encabezado usan el ave completa quieta: `assets/hawk/gavilan.png` (640 px de ancho, sacada del mismo recorte).
+- El dibujo anterior hecho con código (`design-lab/hawk-build.js`) ya no se usa en la app.
+
+## Icono y pantalla de carga
+
+- **Icono:** la cabeza del gavilán sobre óxido (#B5471B). Se genera con `python design-lab/app_icon.py <body.png a escala 1>`, que escribe los `mipmap` de Android (icono adaptable con capa de frente) y el `AppIcon` de iPhone.
+- **Pantalla de carga:** fondo papel (#F4ECDD) en Android (`launch_background.xml`, `values-v31`) e iPhone (`LaunchScreen.storyboard`). Así no hay destello blanco antes del inicio animado. Android 12 o más muestra el icono en el centro.
+- **Fuentes:** Archivo (400, 500, 600, 700 y 800) y Space Mono (400 y 700) van en `assets/google_fonts/` con su licencia OFL. La app no las descarga.
 
 ## Inicio animado
 

@@ -252,3 +252,25 @@ Se abren desde **Más → Módulos** con el plan Emprendedor o superior. Los tre
   - Las 38 pruebas pasan.
   - Los cuadros de prueba del inicio están regenerados.
   - Se grabó el inicio en el emulador y el usuario lo aprobó.
+
+### Pulido para entregar
+- **Icono:** la cabeza del gavilán nuevo sobre óxido, en Android (adaptable, se ve bien en círculo o cuadro) e iPhone. Reemplaza el logo de Flutter.
+- **Pantalla de carga:** fondo papel en Android e iPhone, sin destello blanco. En Android 12 o más aparece el icono en el centro y luego entra el inicio animado.
+- **Fuentes dentro de la app:** Archivo y Space Mono con su licencia OFL. Ya no necesitan internet la primera vez.
+- **Gavilán nuevo en la bienvenida y el encabezado.** Se quitó `flutter_svg`, que ya no se usaba.
+- **Enlaces de los correos de la cuenta:**
+  - Confirmar cuenta: el enlace abre la app, abre la sesión y enlaza el teléfono solo.
+  - "Olvidé mi contraseña": manda un correo cuyo enlace abre la app en "Contraseña nueva".
+  - Enlace vencido o ya usado: avisa en español.
+  - Si el enlace se abre en otro celular, explica qué hacer.
+- **Pendiente del usuario:** agregar `mx.gavilan.gavilan://**` en Supabase → Authentication → URL Configuration → Redirect URLs. Sin eso, Supabase sigue mandando a la página que no carga.
+
+### Verificación
+- 39 pruebas pasan. La nueva cubre los enlaces de confirmación, la contraseña nueva y el caso de otro celular.
+- **En el emulador, sin internet y con la app recién instalada:**
+  - Icono en el cajón de apps.
+  - Pantalla de carga papel con el icono.
+  - Bienvenida con el gavilán nuevo y las fuentes correctas.
+  - Encabezado con el gavilán.
+  - Un enlace vencido abierto con `adb` muestra "El enlace ya venció o ya se usó".
+- **No probado:** el correo real de confirmación y el de contraseña nueva, porque falta el ajuste de Redirect URLs en Supabase.

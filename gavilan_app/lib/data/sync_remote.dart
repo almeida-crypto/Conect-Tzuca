@@ -2,6 +2,7 @@ import 'dart:async';
 
 import 'package:supabase_flutter/supabase_flutter.dart';
 
+import '../config.dart';
 import 'remote_mapping.dart';
 
 enum SyncFailure { network, auth, rejected }
@@ -28,6 +29,14 @@ abstract class SyncRemote {
   /// true si la cuenta quedó con sesión; false si falta confirmar el correo.
   Future<bool> signUp(String email, String password);
   Future<void> signOut();
+
+  /// Manda el correo para elegir una contraseña nueva.
+  Future<void> sendPasswordReset(String email);
+  Future<void> updatePassword(String password);
+
+  /// Abre la sesión que trae un enlace de los correos de la cuenta. false si el enlace sirvió
+  /// pero se abrió en otro celular: el correo queda confirmado y solo falta entrar.
+  Future<bool> openAuthLink(Uri uri);
 
   /// El negocio al que pertenece el usuario, si tiene.
   Future<({String id, String name})?> myBusiness();
@@ -87,6 +96,9 @@ class SupabaseRemote implements SyncRemote {
     if (m.contains('already registered')) return 'Ese correo ya tiene cuenta. Entra con tu contraseña';
     if (m.contains('password') && m.contains('6')) return 'La contraseña debe tener al menos 6 caracteres';
     if (m.contains('rate limit')) return 'Demasiados intentos. Espera unos minutos';
+    if (m.contains('expired') || m.contains('invalid flow state')) return 'El enlace ya venció o ya se usó. Pide otro';
+    if (m.contains('different from the old')) return 'La contraseña nueva debe ser distinta a la anterior';
+    if (m.contains('no code detected')) return 'Ese enlace no está completo. Pide otro correo';
     if (m.contains('socket') || m.contains('network') || m.contains('host lookup')) {
       return 'Sin conexión con el servidor';
     }
@@ -98,11 +110,33 @@ class SupabaseRemote implements SyncRemote {
       _guard(() => client.auth.signInWithPassword(email: email.trim(), password: password));
 
   @override
-  Future<bool> signUp(String email, String password) =>
-      _guard(() async => (await client.auth.signUp(email: email.trim(), password: password)).session != null);
+  Future<bool> signUp(String email, String password) => _guard(() async {
+    final res = await client.auth.signUp(email: email.trim(), password: password, emailRedirectTo: AuthLinks.confirmed);
+    return res.session != null;
+  });
 
   @override
   Future<void> signOut() => _guard(() => client.auth.signOut());
+
+  @override
+  Future<void> sendPasswordReset(String email) =>
+      _guard(() => client.auth.resetPasswordForEmail(email.trim(), redirectTo: AuthLinks.newPassword));
+
+  @override
+  Future<void> updatePassword(String password) =>
+      _guard(() => client.auth.updateUser(UserAttributes(password: password)));
+
+  @override
+  Future<bool> openAuthLink(Uri uri) => _guard(() async {
+    try {
+      await client.auth.getSessionFromUrl(uri);
+      return true;
+    } on AuthException catch (e) {
+      // La clave para abrir la sesión se guarda en el celular que pidió el correo.
+      if (e.message.toLowerCase().contains('code verifier')) return false;
+      rethrow;
+    }
+  });
 
   @override
   Future<({String id, String name})?> myBusiness() => _guard(() async {

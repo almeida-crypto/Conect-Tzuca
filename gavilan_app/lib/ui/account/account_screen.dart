@@ -11,7 +11,13 @@ import '../widgets/buttons.dart';
 
 /// Cuenta y respaldo en la nube. Entrar es opcional: sin cuenta todo funciona en el teléfono.
 class AccountScreen extends ConsumerStatefulWidget {
-  const AccountScreen({super.key});
+  const AccountScreen({super.key, this.notice, this.autoLink = false});
+
+  /// Aviso al abrir, por ejemplo al volver del correo de confirmación.
+  final String? notice;
+
+  /// Enlaza el teléfono en cuanto abre, si ya hay sesión.
+  final bool autoLink;
 
   @override
   ConsumerState<AccountScreen> createState() => _AccountScreenState();
@@ -24,6 +30,18 @@ class _AccountScreenState extends ConsumerState<AccountScreen> {
   bool _working = false;
   String? _error;
   String? _info;
+
+  @override
+  void initState() {
+    super.initState();
+    _info = widget.notice;
+    if (widget.autoLink) {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        final sync = ref.read(syncProvider);
+        if (mounted && sync.signedIn && !sync.linked) _link();
+      });
+    }
+  }
 
   @override
   void dispose() {
@@ -55,7 +73,7 @@ class _AccountScreenState extends ConsumerState<AccountScreen> {
         if (!signedIn) {
           setState(
             () => _info =
-                'Te mandamos un correo a $email. Ábrelo para confirmar tu cuenta y luego entra aquí con tu contraseña.',
+                'Te mandamos un correo a $email. Ábrelo en este celular y toca el enlace: la app se abre con tu cuenta lista.',
           );
           _creating = false;
           return;
@@ -65,6 +83,29 @@ class _AccountScreenState extends ConsumerState<AccountScreen> {
       }
       _password.clear();
       await _link();
+    } on SyncException catch (e) {
+      setState(() => _error = e.message);
+    } finally {
+      if (mounted) setState(() => _working = false);
+    }
+  }
+
+  Future<void> _forgot() async {
+    final email = _email.text.trim();
+    if (!email.contains('@') || email.length < 5) {
+      setState(() => _error = 'Escribe tu correo y vuelve a tocar "Olvidé mi contraseña"');
+      return;
+    }
+    setState(() {
+      _working = true;
+      _error = null;
+      _info = null;
+    });
+    try {
+      await _sync.sendPasswordReset(email);
+      setState(
+        () => _info = 'Te mandamos un correo a $email. Ábrelo en este celular para elegir una contraseña nueva.',
+      );
     } on SyncException catch (e) {
       setState(() => _error = e.message);
     } finally {
@@ -249,6 +290,11 @@ class _AccountScreenState extends ConsumerState<AccountScreen> {
         style: GText.sans(size: 14, weight: FontWeight.w800, color: GColors.oxido),
       ),
     ),
+    if (!_creating)
+      TextButton(
+        onPressed: _working ? null : _forgot,
+        child: Text('Olvidé mi contraseña', style: GText.sans(size: 14, color: GColors.tintaSuave)),
+      ),
   ];
 
   List<Widget> _accountView(SyncStatus sync) {

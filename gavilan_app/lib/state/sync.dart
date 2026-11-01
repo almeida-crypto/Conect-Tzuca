@@ -4,6 +4,7 @@ import 'dart:convert';
 import 'package:connectivity_plus/connectivity_plus.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../config.dart';
 import '../data/repository.dart';
 import '../data/sync_remote.dart';
 import 'store.dart';
@@ -77,6 +78,21 @@ enum LinkResult {
 
   /// La cuenta tiene otro negocio distinto al de este teléfono.
   conflict,
+}
+
+/// Qué traía un enlace de los correos de la cuenta.
+enum AuthLink {
+  /// Correo confirmado y sesión abierta.
+  confirmed,
+
+  /// Correo confirmado, pero el enlace se abrió en otro celular: falta entrar con la contraseña.
+  confirmedSignIn,
+
+  /// Sesión abierta para elegir una contraseña nueva.
+  newPassword,
+
+  /// El enlace para cambiar la contraseña se abrió en otro celular.
+  otherDevice,
 }
 
 class LinkOutcome {
@@ -264,6 +280,21 @@ class SyncController extends Notifier<SyncStatus> {
     if (signedIn) state = state.copyWith(email: remote.email, clearProblem: true);
     return signedIn;
   }
+
+  /// Abre un enlace de los correos de la cuenta. null si el enlace no es de la cuenta.
+  Future<AuthLink?> openLink(Uri uri) async {
+    final remote = _remote;
+    if (remote == null || uri.scheme != AuthLinks.scheme || uri.host != AuthLinks.host) return null;
+    final recovery = uri.path.contains('nueva-clave');
+    final opened = await remote.openAuthLink(uri);
+    if (!opened) return recovery ? AuthLink.otherDevice : AuthLink.confirmedSignIn;
+    state = state.copyWith(email: remote.email, clearProblem: true);
+    return recovery ? AuthLink.newPassword : AuthLink.confirmed;
+  }
+
+  Future<void> sendPasswordReset(String email) => _remote!.sendPasswordReset(email);
+
+  Future<void> updatePassword(String password) => _remote!.updatePassword(password);
 
   /// Cierra la sesión. Los datos se quedan en el teléfono y lo pendiente sube al volver a entrar.
   Future<void> signOut() async {

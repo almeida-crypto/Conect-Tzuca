@@ -32,3 +32,5 @@ Decisiones ya tomadas, con su razón. Antes de cambiar alguna, revisa por qué s
 | 26 | El **plan solo lo cambia el sistema de cobro** (candado en la base) | Que nadie se suba de plan editando desde la app | 26/10/2026 |
 | 27 | La llave publicable de Supabase va dentro de la app (`lib/config.dart`) | Está hecha para eso: solo permite lo que RLS deja; las llaves secretas nunca van al repositorio | 26/10/2026 |
 | 28 | El gavilán del inicio es la ilustración de Flow, recortada en capas PNG | Se ve mucho mejor que el dibujo hecho con código. Flow no exporta animación (Lottie o Rive) y un video taparía el nombre; las capas conservan la animación de siempre | 01/11/2026 |
+| 29 | Las fuentes van dentro de la app y no se descargan | Muchos negocios abren la app por primera vez sin buena señal; sin las fuentes la interfaz se veía distinta | 01/11/2026 |
+| 30 | Los correos de la cuenta abren la app con un enlace propio (`mx.gavilan.gavilan://auth/...`) en lugar de una página web | No hace falta hospedar páginas; la app abre la sesión y enlaza el teléfono sola. Se abre en el mismo celular donde se pidió el correo | 01/11/2026 |

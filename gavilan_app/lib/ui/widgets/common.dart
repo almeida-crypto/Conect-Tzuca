@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:flutter_svg/flutter_svg.dart';
 
 import '../../domain/plan.dart';
 import '../../state/store.dart';
@@ -33,7 +32,7 @@ class BusinessHeader extends ConsumerWidget {
       padding: const EdgeInsets.fromLTRB(14, 8, 14, 10),
       child: Row(
         children: [
-          SvgPicture.asset('assets/hawk/gavilan.svg', width: 54, semanticsLabel: 'Gavilán'),
+          Image.asset('assets/hawk/gavilan.png', width: 56, semanticLabel: 'Gavilán'),
           const SizedBox(width: 8),
           Expanded(
             child: Column(

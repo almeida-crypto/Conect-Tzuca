@@ -292,6 +292,31 @@ void main() {
     expect(a.state.ordersOfBatch(tanda.id).single.paid, isTrue);
   });
 
+  test('los enlaces del correo abren la sesión en la app', () async {
+    final a = await phone();
+    await _setUpShop(a);
+
+    expect(await a.sync.openLink(Uri.parse('https://gavilan.mx/otra-cosa')), isNull);
+
+    final confirmed = await a.sync.openLink(Uri.parse('mx.gavilan.gavilan://auth/confirmado?code=mary@correo.mx'));
+    expect(confirmed, AuthLink.confirmed);
+    expect(a.status.email, 'mary@correo.mx');
+    expect((await a.sync.ensureLinked()).result, LinkResult.uploaded);
+
+    await a.sync.signOut();
+    await a.sync.sendPasswordReset('mary@correo.mx');
+    expect(a.remote.resets, ['mary@correo.mx']);
+    final recovery = await a.sync.openLink(Uri.parse('mx.gavilan.gavilan://auth/nueva-clave?code=mary@correo.mx'));
+    expect(recovery, AuthLink.newPassword);
+    await a.sync.updatePassword('nueva123');
+    expect(a.remote.password, 'nueva123');
+
+    // Abierto en otro celular: el correo se confirma, pero hay que entrar con la contraseña.
+    await a.sync.signOut();
+    expect(await a.sync.openLink(Uri.parse('mx.gavilan.gavilan://auth/confirmado')), AuthLink.confirmedSignIn);
+    expect(a.status.signedIn, isFalse);
+  });
+
   test('sin sesión no se anota nada para subir', () async {
     final a = await phone();
     await _setUpShop(a);

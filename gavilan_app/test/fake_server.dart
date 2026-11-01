@@ -81,6 +81,31 @@ class FakeRemote implements SyncRemote {
     _auth.add(null);
   }
 
+  final resets = <String>[];
+  String? password;
+
+  @override
+  Future<void> sendPasswordReset(String email) async {
+    _check();
+    resets.add(email);
+  }
+
+  @override
+  Future<void> updatePassword(String password) async {
+    _check();
+    this.password = password;
+  }
+
+  /// El enlace de prueba trae el correo en `code`; sin `code` simula otro celular.
+  @override
+  Future<bool> openAuthLink(Uri uri) async {
+    _check();
+    final code = uri.queryParameters['code'];
+    if (code == null) return false;
+    await signIn(code, '');
+    return true;
+  }
+
   @override
   Future<({String id, String name})?> myBusiness() async {
     _check();

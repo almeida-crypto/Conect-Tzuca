@@ -1,0 +1,6 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- Colores de Gavilán (lib/theme/colors.dart). -->
+    <color name="gavilan_papel">#F4ECDD</color>
+    <color name="ic_launcher_background">#B5471B</color>
+</resources>

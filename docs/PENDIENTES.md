@@ -17,8 +17,10 @@ Prioridad: **Alta** = sin esto no se puede usar con un negocio real · **Media**
 - [x] **Alta** · Inicio de sesión con correo y contraseña (Supabase Auth) y enlace del negocio con `create_business`. *26/10/2026*
 - [x] **Alta** · Primera prueba real: cuenta creada y confirmada desde el celular; negocio, producto, venta, corte y existencia llegaron a Supabase. *31/10/2026*
 - [ ] **Alta** · Correo propio (SMTP con Resend o Brevo) para los correos de confirmación: el de Supabase solo manda unos cuantos por hora y puede caer en spam.
-- [ ] **Media** · En Supabase Auth, poner una página de "correo confirmado" como URL de redirección. Hoy el enlace del correo confirma la cuenta pero abre una página que no carga.
-- [ ] **Media** · "Olvidé mi contraseña".
+- [x] **Media** · El enlace del correo de confirmación abre la app con la cuenta lista y enlaza el teléfono (`mx.gavilan.gavilan://auth/confirmado`). *01/11/2026*
+- [x] **Media** · "Olvidé mi contraseña": correo con enlace que abre la app para elegir la contraseña nueva. *01/11/2026*
+- [ ] **Alta** · En Supabase → Authentication → URL Configuration, agregar `mx.gavilan.gavilan://**` en Redirect URLs. Sin esto los enlaces del correo siguen abriendo la página que no carga. Lo hace el dueño del proyecto.
+- [ ] **Baja** · Traducir al español las plantillas de correo de Supabase (Authentication → Emails).
 - [ ] **Media** · Decidir si el respaldo en la nube es solo de los planes de pago: el PDF lo pone en Emprendedor. Hoy está abierto para todos.
 - [ ] **Baja** · Pagos mixtos (`sale_payments`) y devoluciones en la sincronización.
 - [x] **Alta** · Primer arranque: bienvenida con el nombre del negocio, o probar con la tiendita de ejemplo. En Más se puede borrar todo y empezar de nuevo. *26/10/2026*
@@ -36,13 +38,13 @@ Prioridad: **Alta** = sin esto no se puede usar con un negocio real · **Media**
 - [x] **Alta** · Probar la app en Android: probada en el emulador; guarda, cierra a la fuerza, reabre y actualiza sin perder datos. *26/10/2026*
 - [x] **Alta** · Probada en el celular Android del usuario: fluida, conserva los datos al salir y el ticket llega bien por WhatsApp. *31/10/2026*
 - [ ] **Media** · Probarla en un celular de gama baja (2 o 3 GB de RAM), como los de muchos comerciantes.
-- [ ] **Media** · Pantalla de carga de Android con los colores de Gavilán: hoy sale un instante blanca con el logo de Flutter.
+- [x] **Media** · Pantalla de carga en color papel en Android e iPhone; en Android 12 o más sale el icono de Gavilán. *01/11/2026*
 - [x] **Media** · Ticket como imagen PNG para WhatsApp (`RepaintBoundary` + `share_plus`), con la opción de mandarlo como texto. *31/10/2026*
 - [ ] **Media** · Logo del negocio en el ticket para los planes de pago.
 - [ ] **Media** · Tarjeta para Estados de WhatsApp: foto del producto, precio y sello "Disponible".
 - [ ] **Media** · Fotos de producto en planes de pago: reducir a 600×600 WebP en el teléfono y subir a Supabase Storage.
 - [ ] **Media** · Políticas de Supabase Storage para fotos de productos y apartados.
-- [ ] **Media** · Incluir las fuentes Archivo y Space Mono dentro de la app. Hoy se descargan la primera vez y necesitan internet.
+- [x] **Media** · Fuentes Archivo y Space Mono dentro de la app (`assets/google_fonts/`, licencia OFL): se ven bien sin internet desde el primer arranque. *01/11/2026*
 - [ ] **Baja** · Celular como escáner inalámbrico de la laptop (Supabase Realtime).
 - [ ] **Baja** · Generador de etiquetas con código de barras en PDF.
 - [ ] **Baja** · Descuentos por venta y devoluciones.
@@ -81,8 +83,8 @@ Prioridad: **Alta** = sin esto no se puede usar con un negocio real · **Media**
 - [ ] **Baja** · Revisar los 3 avisos "WARN" de Supabase cuando cambie el esquema. Hoy son intencionales; ver [BASE_DE_DATOS.md](BASE_DE_DATOS.md).
 
 ## Diseño
-- [ ] **Baja** · Ajustes futuros del gavilán, si el usuario los pide. Por ejemplo, acercar el pecho al de la foto: barrado café y blanco en lugar del crema con óxido.
-- [ ] **Baja** · Icono de la app (launcher) a partir del gavilán.
+- [x] **Baja** · Gavilán nuevo (ilustración de Flow) en el inicio, la bienvenida y el encabezado. *01/11/2026*
+- [x] **Baja** · Icono de la app: la cabeza del gavilán sobre óxido, en Android (adaptable) e iPhone. *01/11/2026*
 - [ ] **Baja** · Tema oscuro.
 - [ ] **Baja** · Diseñar comandera y pantalla de cocina.
 
