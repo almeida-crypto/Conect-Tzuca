@@ -74,6 +74,7 @@ flutter:
 
   assets:
     - assets/hawk/
+    - assets/hawk/flight/
 
   # To add assets to your application, add an assets section, like this:
   # assets:

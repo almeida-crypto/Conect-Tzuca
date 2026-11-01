@@ -31,3 +31,4 @@ Decisiones ya tomadas, con su razón. Antes de cambiar alguna, revisa por qué s
 | 25 | La cuenta es **opcional**: sin cuenta todo funciona en el teléfono | El PDF pone el respaldo en la nube como ventaja de los planes de pago; nadie debe necesitar internet para cobrar | 26/10/2026 |
 | 26 | El **plan solo lo cambia el sistema de cobro** (candado en la base) | Que nadie se suba de plan editando desde la app | 26/10/2026 |
 | 27 | La llave publicable de Supabase va dentro de la app (`lib/config.dart`) | Está hecha para eso: solo permite lo que RLS deja; las llaves secretas nunca van al repositorio | 26/10/2026 |
+| 28 | El gavilán del inicio es la ilustración de Flow, recortada en capas PNG | Se ve mucho mejor que el dibujo hecho con código. Flow no exporta animación (Lottie o Rive) y un video taparía el nombre; las capas conservan la animación de siempre | 01/11/2026 |

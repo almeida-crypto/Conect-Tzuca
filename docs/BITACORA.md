@@ -238,3 +238,17 @@ Se abren desde **Más → Módulos** con el plan Emprendedor o superior. Los tre
 - **Arreglado en la revisión:**
   - "1 pedidos" ahora dice "1 pedido".
   - El anticipo aparecía como "Abono".
+
+## 1 de noviembre de 2026 · Sesión 4
+
+### Gavilán nuevo en el inicio
+- El usuario quería un gavilán mejor dibujado, sin cambiar nada más del inicio.
+- Se descartó pedir la animación a un editor externo: Flow (Google) solo genera imágenes y video. Un video no tiene fondo transparente, así que taparía el nombre y la greca.
+- Con un prompt nuestro, el usuario generó en Flow una ilustración plana con grecas mayas y la paleta de la app.
+- Se le quitó el fondo y se separó en tres capas PNG: ala lejana, cuerpo y ala cercana. El lomo que tapaba el ala se pintó en el cuerpo, para que no quede hueco al aletear.
+- La animación es la misma de antes: dos aleteos, planeo, el nombre que se revela detrás de la cola y los mismos tiempos. El ave quedó un poco más grande (250 en lugar de 240 de ancho de diseño).
+- Se borraron las piezas SVG viejas del vuelo. `gavilan.svg` se queda porque lo usan la bienvenida y el encabezado.
+- **Verificación:**
+  - Las 38 pruebas pasan.
+  - Los cuadros de prueba del inicio están regenerados.
+  - Se grabó el inicio en el emulador y el usuario lo aprobó.

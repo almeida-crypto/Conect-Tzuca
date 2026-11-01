@@ -35,6 +35,15 @@ class _SplashScreenState extends State<SplashScreen> with SingleTickerProviderSt
     _c.forward();
   }
 
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    // El ave entra a los 0.3 s: para entonces sus capas ya están listas.
+    for (final name in Hawk.layers) {
+      precacheImage(AssetImage('assets/hawk/flight/$name.png'), context);
+    }
+  }
+
   void _finish() {
     if (_done) return;
     _done = true;
@@ -82,8 +91,9 @@ class _SplashScreenState extends State<SplashScreen> with SingleTickerProviderSt
 
     // Vuelo: entra por la izquierda y sale 28 px después del borde derecho.
     final s = _span(t, 0.3, 2.7);
-    final hawkW = 240 * k;
-    final x = -250 * k + (size.width + 28 * k + 250 * k) * s;
+    final hawkW = 250 * k;
+    final hawkH = Hawk.heightFor(hawkW);
+    final x = -hawkW + (size.width + 28 * k + hawkW) * s;
     final b = const Cubic(.3, .1, .5, 1).transform(s);
     final (dy, rot) = b < .5
         ? (_lerp(150, 0, b / .5) * k, _lerp(-10, -2, b / .5))
@@ -91,7 +101,7 @@ class _SplashScreenState extends State<SplashScreen> with SingleTickerProviderSt
     final flapping = t >= 0.3 && t < 1.4;
     final pose = flapping ? WingPose.flap(((t - 0.3) / 0.55) % 1) : WingPose.glide;
 
-    // Nombre revelado justo detrás de la cola (la punta de la cola está a 58/240 del ancho del ave).
+    // Nombre revelado justo detrás de la cola.
     final wordStyle = GText.sans(size: 36 * k, weight: FontWeight.w800).copyWith(letterSpacing: 36 * k * .14);
     final painter = TextPainter(
       text: TextSpan(text: 'GAVILÁN', style: wordStyle),
@@ -99,7 +109,7 @@ class _SplashScreenState extends State<SplashScreen> with SingleTickerProviderSt
     )..layout();
     final wordW = painter.width + 36 * k * .14;
     painter.dispose();
-    final tailX = x + 58 * k + 6 * k;
+    final tailX = x + hawkW * Hawk.tailTip + 6 * k;
     final reveal = ((tailX - (cx - wordW / 2)) / wordW).clamp(0.0, 1.0);
     final grecaW = 220 * k;
 
@@ -155,7 +165,7 @@ class _SplashScreenState extends State<SplashScreen> with SingleTickerProviderSt
         ),
         Positioned(
           left: x,
-          top: cy - 152 * k + dy,
+          top: cy + 4 * k - hawkH + dy,
           child: Transform.rotate(
             angle: rot * math.pi / 180,
             alignment: const Alignment(0, .2),

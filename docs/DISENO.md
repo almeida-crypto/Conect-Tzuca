@@ -36,17 +36,17 @@ Definida en `gavilan_app/lib/theme/colors.dart`.
 
 ## El gavilán
 
-Es un **gavilán caminero**, el gavilán común de Yucatán, en ilustración plana con contorno de tinta.
+Es un **gavilán caminero**, el gavilán común de Yucatán. El del inicio es una ilustración plana geométrica que el usuario generó con Flow (Google) a partir de un prompt nuestro, con grecas en las coberteras como relieve maya.
 
-- **Cara:** cabeza redonda gris, ojo amarillo grande, cera amarilla ancha que corre bajo el ojo, pico corto en gancho. Se ajustó con una foto de referencia del usuario.
-- **Cuerpo:** capucha gris que baja al pecho, pecho crema con barrado óxido, cola con bandas, patas amarillas.
-- **Alas:** coberteras cafés con motitas claras y plumas con barras y puntas oscuras. El ala lejana es una silueta oscura detrás.
+- **Cara:** coronilla plana y ceja marcada sobre el ojo amarillo pálido, cera amarilla y pico oscuro en gancho.
+- **Cuerpo:** pecho barrado en crema, pardo y óxido; cola con bandas; patas amarillas recogidas.
+- **Alas:** el ala cercana, en alto, tiene primarias barradas, una mancha rojiza y coberteras con grecas. El ala lejana es una silueta oscura detrás de la cabeza.
 - **Archivos:**
-  - `design-lab/hawk-build.js` genera el dibujo.
-  - `node design-lab/export-hawk.js` escribe `design-lab/gavilan-vuelo.svg` y las piezas de la app en `gavilan_app/assets/hawk/`.
-  - Las piezas son `far`, `body`, `arm` y `hand`, más `gavilan.svg` completo.
-- **Articulación:** el hombro está en (288, 154) y la muñeca en (238, 60), en el `viewBox` de 400×260.
-- `design-lab/gavilan.svg` es una versión vieja descartada; se puede borrar.
+  - Original: `design-lab/gavilan-flow.jpg`.
+  - `python design-lab/hawk_cut.py gavilan-flow.jpg recorte.png` quita el fondo blanco y recorta.
+  - `python design-lab/hawk_layers.py recorte.png gavilan_app/assets/hawk/flight 0.72` separa las capas `far`, `body` y `near`. En el cuerpo pinta el lomo que tapaba el ala, para que no quede hueco al aletear.
+- **Articulación:** el hombro está en (1190, 560) y el del ala lejana en (1250, 470), sobre el recorte de 1710×977. La punta de la cola está a 60 px del borde izquierdo.
+- La bienvenida y el encabezado todavía usan el dibujo anterior, `assets/hawk/gavilan.svg`, generado por `design-lab/hawk-build.js`.
 
 ## Inicio animado
 
@@ -56,7 +56,7 @@ Dura 4.8 segundos y un toque lo salta. Línea de tiempo:
 |---|---|
 | 0 – 0.9 | Aparece el sol óxido arriba a la derecha |
 | 0.3 – 2.7 | El gavilán cruza de abajo a la izquierda hacia arriba a la derecha |
-| 0.3 – 1.4 | Dos aleteos: el ala baja en escorzo por delante del pecho y la mano se atrasa al subir |
+| 0.3 – 1.4 | Dos aleteos: el ala baja en escorzo por delante del pecho |
 | 1.4 – 2.7 | Planeo con las alas en alto |
 | Durante el vuelo | "GAVILÁN" se revela justo detrás de la cola |
 | 2.3 – 3.2 | Se dibuja la greca maya bajo el nombre |

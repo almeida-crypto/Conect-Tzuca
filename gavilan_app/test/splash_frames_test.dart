@@ -14,8 +14,8 @@ import 'package:google_fonts/google_fonts.dart';
 void main() {
   setUpAll(() => GoogleFonts.config.allowRuntimeFetching = false);
 
-  Future<void> loadSvgs(WidgetTester tester) async {
-    // flutter_svg decodifica fuera del ciclo de prueba: le damos tiempo real.
+  Future<void> loadImages(WidgetTester tester) async {
+    // Las imágenes se decodifican fuera del ciclo de prueba: les damos tiempo real.
     for (var i = 0; i < 5; i++) {
       await tester.runAsync(() => Future<void>.delayed(const Duration(milliseconds: 60)));
       await tester.pump();
@@ -33,7 +33,7 @@ void main() {
         home: SplashScreen(onDone: () {}),
       ),
     );
-    await loadSvgs(tester);
+    await loadImages(tester);
 
     var elapsed = 0;
     for (final ms in [700, 1150, 1700, 2200, 4000]) {
@@ -65,7 +65,7 @@ void main() {
         ),
       ),
     );
-    await loadSvgs(tester);
+    await loadImages(tester);
     await expectLater(find.byType(Row), matchesGoldenFile('goldens/poses_ala.png'));
   });
 }
