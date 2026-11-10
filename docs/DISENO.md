@@ -3,36 +3,54 @@
 ## Principios
 - **Cobrar en dos toques.** La pantalla de inicio es el cobro.
 - **Botones grandes y mucho contraste**, para usarse de pie, con una mano y a veces al sol.
-- **Natural, no genérico:** nada de degradados, vidrio esmerilado ni esquinas muy redondeadas. Fichas con borde inferior grueso, como teclas.
+- **Limpio y con color, no "de papel":** fondo claro, tarjetas blancas con sombra suave, esquinas redondeadas (14 px) y tres colores de Yucatán, cada uno con un solo trabajo. Así se ve profesional y no genérico.
+- **Que todo responda:** botones y fichas se encogen un poco al tocarlos, los totales se deslizan al cambiar, las listas entran escalonadas y las pantallas se desvanecen al cambiar de pestaña.
 - **Que se note cuando no hay internet**, sin asustar: "todo se guarda aquí".
 - **Solo se ven los módulos que el negocio usa.**
 
-## Paleta
+## Paleta (diseño 2, 09/11/2026)
 
-Definida en `gavilan_app/lib/theme/colors.dart`.
+Definida en `gavilan_app/lib/theme/colors.dart`. El inicio animado conserva su paleta original (`IntroColors`, en `lib/ui/splash/yucatan_painters.dart`) porque esa sí convenció.
 
-| Nombre | Color | Uso |
+| Nombre | Color | Trabajo |
 |---|---|---|
-| Papel | `#F4ECDD` | Fondo general |
-| Papel 2 | `#E9DEC8` | Fichas de producto |
-| Papel claro | `#FBF6EC` | Ticket, talonario y campos |
-| Tinta | `#221C17` | Texto y bordes |
-| Pardo | `#6B4226` | Iconos y barras de inventario |
-| Óxido | `#B5471B` | Acción principal (Cobrar), pestaña activa, greca |
-| Ocre | `#D8A02A` | Avisos suaves, sin internet |
-| Monte | `#2E5E3E` | Dinero que entra, PAGADO, WhatsApp |
-| Rojo | `#A12D1E` | Deudas, faltantes, FIADO |
-| Rosa mexicano | `#C2416F` | Solo en el bordado de hipil |
+| Fondo | `#F5F4F1` | Fondo general, claro y neutro |
+| Superficie | `#FFFFFF` | Tarjetas, hojas, campos |
+| Hundido | `#EDEBE7` | Botones de cerrar, fondos secundarios |
+| Línea | `#E3E0DA` | Bordes y divisiones |
+| Tinta | `#1B1A19` | Texto; botones oscuros y selección de fichas |
+| **Achiote** | `#E2582B` | La marca: acciones principales, pestaña activa, lo que va en la cuenta, comanda nueva |
+| **Cenote** | `#0E7A70` | Dinero: Cobrar, abonar, PAGADO, respaldado, platillo listo |
+| **Izamal** | `#F2AE1C` | Avisos: por acabarse, sin internet, para llevar |
+| Café | `#7A5236` | Detalles cálidos |
+| Rojo | `#CC2F2F` | Deudas, faltantes, borrar |
+
+Cada color tiene su versión suave (`marcaSuave`, `cenoteSuave`, `izamalSuave`, `rojoSuave`) para fondos de pastillas e iconos. Los productos llevan un color según su tipo (`productTint`), así el catálogo se lee de un vistazo.
 
 ## Tipografía
-- **Archivo** para la interfaz y los montos, con números de ancho fijo para que no "bailen".
-- **Space Mono** para tickets, cuentas y la libreta del corte.
+- **Archivo** para toda la interfaz y los montos, con números de ancho fijo (`GText.figures`, `GText.amount`) para que las columnas cuadren y los totales no "bailen".
+- **Space Mono** solo en el ticket, que imita uno impreso.
+
+## Piezas
+- `GButton`: achiote (principal), cenote (dinero), tinta (fuerte), blanco con borde (secundario). Se encoge al apretarlo y regresa con rebote.
+- `Pressable`: el mismo efecto para fichas y tarjetas tocables.
+- `GCard`, `StatCard` (cifra grande que cuenta hacia arriba al aparecer), `Avatar` (inicial con color), `SoftButton` (pastilla de color suave, como "Abonar"), `SectionTitle`, `EnterAnimation` (listas que entran escalonadas).
+- Barra de pestañas blanca: el icono activo se asienta en una pastilla achiote suave.
+- Hojas inferiores con esquinas de 24 px y asa para arrastrar.
+
+## Animaciones
+- Cambio de pestaña: desvanecido y leve deslizamiento (240 ms).
+- Pantallas nuevas: transición de Android moderno (`FadeForwardsPageTransitionsBuilder`).
+- Ficha de producto: se encoge al tocarla; el número de piezas aparece con un salto.
+- Total de la cuenta: el monto nuevo sube deslizándose.
+- Cifras grandes (en la calle, debe haber en caja): cuentan desde cero.
+- Barras de inventario: se llenan al aparecer.
+- Mesas: se pintan de achiote al abrir la cuenta; "2 listos" late suavemente.
+- Cocina: la comanda nueva entra desde la derecha con la etiqueta "Nueva" y un brillo achiote que late tres veces y se apaga (solo lo mandado en los últimos 20 segundos). También suena y vibra.
 
 ## Elementos propios
-- **Talonario:** la cuenta en curso va bajo una línea punteada con tijera.
 - **Sellos:** PAGADO en verde y FIADO en rojo, inclinados, que "caen" sobre el ticket.
-- **Libreta:** el corte de caja se lee como renglones con puntos (`Fondo inicial ........ $500.00`).
-- **Raya de color en fiados:** ocre si la deuda es reciente, roja si pasa de 2 semanas.
+- **Fiados:** el texto de cuándo debe se pone rojo si pasa de 2 semanas.
 
 ## El gavilán
 

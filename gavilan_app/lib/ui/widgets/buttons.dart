@@ -1,12 +1,69 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 
 import '../../theme/colors.dart';
 import '../../theme/theme.dart';
 
-enum GButtonKind { primary, money, outline, dark }
+enum GButtonKind {
+  /// Achiote: la acción principal de la pantalla.
+  primary,
 
-/// Botón con borde inferior grueso, como una tecla que se aprieta.
-class GButton extends StatefulWidget {
+  /// Cenote: cobrar, abonar, todo lo que mueve dinero.
+  money,
+
+  /// Blanco con borde: acciones secundarias.
+  outline,
+
+  /// Tinta: acciones fuertes sobre fondos claros (escáner, "darlo de alta").
+  dark,
+}
+
+/// Se encoge un poco al apretarlo y regresa con rebote: se siente que respondió.
+class Pressable extends StatefulWidget {
+  const Pressable({super.key, required this.child, this.onTap, this.onLongPress, this.scale = 0.96});
+
+  final Widget child;
+  final VoidCallback? onTap;
+  final VoidCallback? onLongPress;
+  final double scale;
+
+  @override
+  State<Pressable> createState() => _PressableState();
+}
+
+class _PressableState extends State<Pressable> {
+  bool _down = false;
+
+  void _set(bool down) {
+    if (_down != down) setState(() => _down = down);
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final enabled = widget.onTap != null || widget.onLongPress != null;
+    return GestureDetector(
+      behavior: HitTestBehavior.opaque,
+      onTapDown: enabled ? (_) => _set(true) : null,
+      onTapUp: enabled ? (_) => _set(false) : null,
+      onTapCancel: () => _set(false),
+      onTap: widget.onTap == null
+          ? null
+          : () {
+              HapticFeedback.selectionClick();
+              widget.onTap!();
+            },
+      onLongPress: widget.onLongPress,
+      child: AnimatedScale(
+        scale: _down ? widget.scale : 1,
+        duration: Duration(milliseconds: _down ? 90 : 260),
+        curve: _down ? Curves.easeOut : Curves.elasticOut,
+        child: widget.child,
+      ),
+    );
+  }
+}
+
+class GButton extends StatelessWidget {
   const GButton({
     super.key,
     required this.label,
@@ -25,61 +82,49 @@ class GButton extends StatefulWidget {
   final bool big;
 
   @override
-  State<GButton> createState() => _GButtonState();
-}
-
-class _GButtonState extends State<GButton> {
-  bool _down = false;
-
-  @override
   Widget build(BuildContext context) {
-    final (bg, fg, edge) = switch (widget.kind) {
-      GButtonKind.primary => (GColors.oxido, GColors.papel, GColors.oxidoOscuro),
-      GButtonKind.money => (GColors.monte, GColors.papel, GColors.monteOscuro),
-      GButtonKind.dark => (GColors.tinta, GColors.papel, Colors.black),
-      GButtonKind.outline => (GColors.papel, GColors.tinta, GColors.tinta),
+    final (bg, fg) = switch (kind) {
+      GButtonKind.primary => (GColors.marca, Colors.white),
+      GButtonKind.money => (GColors.cenote, Colors.white),
+      GButtonKind.dark => (GColors.tinta, Colors.white),
+      GButtonKind.outline => (GColors.superficie, GColors.tinta),
     };
-    final outline = widget.kind == GButtonKind.outline;
-    final edgeWidth = _down ? 1.0 : 3.0;
-    final disabled = widget.onPressed == null;
-    final child = Row(
-      mainAxisSize: widget.expand ? MainAxisSize.max : MainAxisSize.min,
-      mainAxisAlignment: MainAxisAlignment.center,
-      children: [
-        if (widget.icon != null) ...[Icon(widget.icon, size: 19, color: fg), const SizedBox(width: 8)],
-        Flexible(
-          child: Text(
-            widget.label,
-            overflow: TextOverflow.ellipsis,
-            style: GText.sans(size: widget.big ? 17 : 15, weight: FontWeight.w800, color: fg),
-          ),
-        ),
-      ],
-    );
+    final outline = kind == GButtonKind.outline;
+    final disabled = onPressed == null;
     return Semantics(
       button: true,
-      enabled: widget.onPressed != null,
-      child: GestureDetector(
-        onTapDown: widget.onPressed == null ? null : (_) => setState(() => _down = true),
-        onTapCancel: () => setState(() => _down = false),
-        onTapUp: (_) => setState(() => _down = false),
-        onTap: widget.onPressed,
-        // Dos capas: la de abajo es el borde grueso de "tecla"; al apretar, la de arriba baja.
-        child: Opacity(
+      enabled: !disabled,
+      child: Pressable(
+        onTap: onPressed,
+        scale: 0.97,
+        child: AnimatedOpacity(
+          duration: const Duration(milliseconds: 200),
           opacity: disabled ? 0.45 : 1,
           child: AnimatedContainer(
-            duration: const Duration(milliseconds: 70),
-            margin: EdgeInsets.only(top: 3 - edgeWidth),
-            padding: EdgeInsets.only(bottom: edgeWidth),
-            decoration: BoxDecoration(color: edge, borderRadius: BorderRadius.circular(4)),
-            child: Container(
-              padding: EdgeInsets.symmetric(horizontal: widget.big ? 22 : 16, vertical: widget.big ? 13 : 11),
-              decoration: BoxDecoration(
-                color: outline ? GColors.papel : bg,
-                borderRadius: BorderRadius.circular(4),
-                border: outline ? Border.all(color: GColors.tinta, width: 1.5) : null,
-              ),
-              child: child,
+            duration: const Duration(milliseconds: 220),
+            curve: Curves.easeOut,
+            padding: EdgeInsets.symmetric(horizontal: big ? 22 : 16, vertical: big ? 16 : 13),
+            decoration: BoxDecoration(
+              color: bg,
+              borderRadius: BorderRadius.circular(GShape.radius),
+              border: outline ? Border.all(color: GColors.linea, width: 1.5) : null,
+              boxShadow: outline || disabled
+                  ? null
+                  : [BoxShadow(color: bg.withValues(alpha: 0.28), blurRadius: 14, offset: const Offset(0, 5))],
+            ),
+            child: Row(
+              mainAxisSize: expand ? MainAxisSize.max : MainAxisSize.min,
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                if (icon != null) ...[Icon(icon, size: big ? 21 : 19, color: fg), const SizedBox(width: 8)],
+                Flexible(
+                  child: Text(
+                    label,
+                    overflow: TextOverflow.ellipsis,
+                    style: GText.sans(size: big ? 17 : 15, weight: FontWeight.w700, color: fg),
+                  ),
+                ),
+              ],
             ),
           ),
         ),
@@ -88,7 +133,7 @@ class _GButtonState extends State<GButton> {
   }
 }
 
-/// Opción tipo "ficha" seleccionable (montos rápidos, métodos de pago).
+/// Opción seleccionable (montos rápidos, métodos de pago, filtros).
 class GChip extends StatelessWidget {
   const GChip({super.key, required this.label, required this.selected, required this.onTap});
 
@@ -101,22 +146,23 @@ class GChip extends StatelessWidget {
     return Semantics(
       button: true,
       selected: selected,
-      child: InkWell(
+      child: Pressable(
         onTap: onTap,
-        borderRadius: BorderRadius.circular(4),
-        child: Container(
-          padding: const EdgeInsets.symmetric(vertical: 10, horizontal: 6),
+        scale: 0.95,
+        child: AnimatedContainer(
+          duration: const Duration(milliseconds: 200),
+          curve: Curves.easeOut,
+          padding: const EdgeInsets.symmetric(vertical: 11, horizontal: 8),
           alignment: Alignment.center,
           decoration: BoxDecoration(
-            color: selected ? GColors.tinta : Colors.transparent,
-            border: Border.all(color: GColors.tinta),
-            borderRadius: BorderRadius.circular(4),
+            color: selected ? GColors.tinta : GColors.superficie,
+            border: Border.all(color: selected ? GColors.tinta : GColors.linea, width: 1.5),
+            borderRadius: BorderRadius.circular(GShape.radiusSmall),
           ),
-          child: Text(
-            label,
-            maxLines: 1,
-            overflow: TextOverflow.ellipsis,
-            style: GText.sans(size: 14, weight: FontWeight.w800, color: selected ? GColors.papel : GColors.tinta),
+          child: AnimatedDefaultTextStyle(
+            duration: const Duration(milliseconds: 200),
+            style: GText.sans(size: 14, weight: FontWeight.w700, color: selected ? Colors.white : GColors.tinta),
+            child: Text(label, maxLines: 1, overflow: TextOverflow.ellipsis),
           ),
         ),
       ),

@@ -96,7 +96,7 @@ class _WelcomeScreenState extends ConsumerState<WelcomeScreen> {
                         ref.watch(syncProvider).signedIn
                             ? 'Ver mi cuenta'
                             : '¿Ya tienes cuenta? Entra y baja tu negocio',
-                        style: GText.sans(size: 14, weight: FontWeight.w800, color: GColors.oxido),
+                        style: GText.sans(size: 14, weight: FontWeight.w800, color: GColors.marca),
                       ),
                     ),
                     TextButton(
@@ -105,7 +105,7 @@ class _WelcomeScreenState extends ConsumerState<WelcomeScreen> {
                               .push(MaterialPageRoute(builder: (_) => const AccountScreen(join: true))),
                       child: Text(
                         'Me invitaron a un negocio',
-                        style: GText.sans(size: 14, weight: FontWeight.w800, color: GColors.monte),
+                        style: GText.sans(size: 14, weight: FontWeight.w800, color: GColors.cenote),
                       ),
                     ),
                   ],

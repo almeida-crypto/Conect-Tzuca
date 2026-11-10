@@ -78,7 +78,7 @@ class _CobrarScreenState extends ConsumerState<CobrarScreen> {
             const OfflineNote(),
             if (store.openSession == null) _ClosedCashBanner(onOpen: () => showOpenCashDialog(context, ref)),
             Padding(
-              padding: const EdgeInsets.fromLTRB(14, 0, 14, 10),
+              padding: const EdgeInsets.fromLTRB(16, 0, 16, 12),
               child: Row(
                 children: [
                   Expanded(
@@ -89,7 +89,7 @@ class _CobrarScreenState extends ConsumerState<CobrarScreen> {
                       textInputAction: TextInputAction.search,
                       decoration: InputDecoration(
                         hintText: 'Buscar o escribir código',
-                        prefixIcon: const Icon(Icons.search, size: 20),
+                        prefixIcon: const Icon(Icons.search_rounded, size: 22),
                         suffixIcon: _query.isEmpty
                             ? null
                             : IconButton(
@@ -124,14 +124,14 @@ class _CobrarScreenState extends ConsumerState<CobrarScreen> {
                   ? _EmptyCatalog(searching: q.isNotEmpty)
                   : LayoutBuilder(
                       builder: (context, box) {
-                        final cols = (box.maxWidth / 170).floor().clamp(2, 6);
+                        final cols = (box.maxWidth / 180).floor().clamp(2, 6);
                         return GridView.builder(
-                          padding: const EdgeInsets.fromLTRB(14, 0, 14, 190),
+                          padding: const EdgeInsets.fromLTRB(16, 2, 16, 200),
                           gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
                             crossAxisCount: cols,
-                            mainAxisSpacing: 8,
-                            crossAxisSpacing: 8,
-                            mainAxisExtent: 78,
+                            mainAxisSpacing: 10,
+                            crossAxisSpacing: 10,
+                            mainAxisExtent: 80,
                           ),
                           itemCount: products.length,
                           itemBuilder: (context, i) {
@@ -167,20 +167,18 @@ class _SquareButton extends StatelessWidget {
   Widget build(BuildContext context) {
     return Tooltip(
       message: tooltip,
-      child: Material(
-        color: light ? GColors.papel2 : GColors.tinta,
-        shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(4),
-          side: light ? const BorderSide(color: GColors.linea) : BorderSide.none,
-        ),
-        child: InkWell(
-          onTap: onTap,
-          borderRadius: BorderRadius.circular(4),
-          child: SizedBox(
-            width: 46,
-            height: 46,
-            child: Icon(icon, size: 21, color: light ? GColors.tinta : GColors.papel, semanticLabel: tooltip),
+      child: Pressable(
+        onTap: onTap,
+        scale: 0.92,
+        child: Container(
+          width: 50,
+          height: 50,
+          decoration: BoxDecoration(
+            color: light ? GColors.superficie : GColors.tinta,
+            borderRadius: BorderRadius.circular(GShape.radius),
+            border: light ? Border.all(color: GColors.linea, width: 1.5) : null,
           ),
+          child: Icon(icon, size: 22, color: light ? GColors.tinta : Colors.white, semanticLabel: tooltip),
         ),
       ),
     );
@@ -197,62 +195,71 @@ class _ProductTile extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final out = product.trackStock && product.stock <= 0;
+    final picked = qty > 0;
     return Semantics(
       button: true,
-      label: '${product.name}, ${money(product.priceCents)}${qty > 0 ? ', ${qtyLabel(qty)} en la cuenta' : ''}',
+      label: '${product.name}, ${money(product.priceCents)}${picked ? ', ${qtyLabel(qty)} en la cuenta' : ''}',
       excludeSemantics: true,
-      // Capa de abajo = borde grueso de "tecla"; encima, la ficha.
-      child: Container(
-        padding: const EdgeInsets.only(bottom: 3),
-        decoration: BoxDecoration(color: const Color(0xFFB9AE99), borderRadius: BorderRadius.circular(4)),
-        child: Material(
-          color: GColors.papel2,
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(4),
-            side: const BorderSide(color: GColors.linea),
+      child: Pressable(
+        onTap: onTap,
+        scale: 0.94,
+        child: AnimatedContainer(
+          duration: const Duration(milliseconds: 220),
+          padding: const EdgeInsets.fromLTRB(10, 10, 10, 10),
+          decoration: BoxDecoration(
+            color: GColors.superficie,
+            borderRadius: BorderRadius.circular(GShape.radius),
+            border: Border.all(color: picked ? GColors.marca : Colors.transparent, width: 2),
+            boxShadow: GShape.shadow,
           ),
-          child: InkWell(
-            onTap: onTap,
-            borderRadius: BorderRadius.circular(4),
-            child: Padding(
-              padding: const EdgeInsets.fromLTRB(10, 8, 10, 6),
-              child: Stack(
-                children: [
-                  Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Icon(productIcon(product.iconId), size: 18, color: GColors.pardo),
-                      const Spacer(),
-                      Text(product.name, maxLines: 1, overflow: TextOverflow.ellipsis, style: GText.sans(size: 12.5)),
-                      const SizedBox(height: 2),
-                      Text(money(product.priceCents, hideZeroCents: true), style: GText.amount(size: 18)),
-                    ],
-                  ),
-                  if (qty > 0)
-                    Positioned(
-                      top: 0,
-                      right: 0,
-                      child: Container(
-                        constraints: const BoxConstraints(minWidth: 22),
-                        height: 22,
-                        padding: const EdgeInsets.symmetric(horizontal: 5),
+          child: Row(
+            children: [
+              ProductBadge(product.iconId),
+              const SizedBox(width: 10),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    Text(
+                      product.name,
+                      maxLines: 2,
+                      overflow: TextOverflow.ellipsis,
+                      style: GText.sans(size: 13, weight: FontWeight.w600).copyWith(height: 1.15),
+                    ),
+                    const SizedBox(height: 3),
+                    Text(
+                      out ? 'Agotado' : money(product.priceCents, hideZeroCents: true),
+                      style: out
+                          ? GText.sans(size: 13, weight: FontWeight.w700, color: GColors.rojo)
+                          : GText.amount(size: 17),
+                    ),
+                  ],
+                ),
+              ),
+              // Cuántos van en la cuenta: aparece con un pequeño salto.
+              AnimatedSwitcher(
+                duration: const Duration(milliseconds: 260),
+                transitionBuilder: (child, anim) => ScaleTransition(
+                  scale: CurvedAnimation(parent: anim, curve: Curves.easeOutBack),
+                  child: child,
+                ),
+                child: picked
+                    ? Container(
+                        key: ValueKey(qty),
+                        constraints: const BoxConstraints(minWidth: 26),
+                        height: 26,
+                        padding: const EdgeInsets.symmetric(horizontal: 7),
                         alignment: Alignment.center,
-                        decoration: BoxDecoration(color: GColors.oxido, borderRadius: BorderRadius.circular(2)),
+                        decoration: BoxDecoration(color: GColors.marca, borderRadius: BorderRadius.circular(13)),
                         child: Text(
                           qtyLabel(qty),
-                          style: GText.sans(size: 12, weight: FontWeight.w800, color: GColors.papel),
+                          style: GText.sans(size: 12.5, weight: FontWeight.w800, color: Colors.white),
                         ),
-                      ),
-                    )
-                  else if (out)
-                    Positioned(
-                      top: 0,
-                      right: 0,
-                      child: Text('Agotado', style: GText.sans(size: 11, color: GColors.rojo)),
-                    ),
-                ],
+                      )
+                    : const SizedBox.shrink(key: ValueKey('vacío')),
               ),
-            ),
+            ],
           ),
         ),
       ),
@@ -260,7 +267,7 @@ class _ProductTile extends StatelessWidget {
   }
 }
 
-/// La cuenta en curso, como talonario con línea de corte.
+/// La cuenta en curso: panel blanco que sube desde abajo con el total animado.
 class _CartStrip extends ConsumerWidget {
   const _CartStrip({required this.onPay});
 
@@ -270,116 +277,125 @@ class _CartStrip extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final cart = ref.watch(cartProvider);
     final total = ref.watch(cartTotalProvider);
+    final count = cart.fold(0.0, (a, l) => a + l.qty);
     return Container(
-      decoration: const BoxDecoration(color: GColors.papelClaro),
+      decoration: const BoxDecoration(
+        color: GColors.superficie,
+        borderRadius: BorderRadius.vertical(top: Radius.circular(GShape.radiusSheet)),
+        boxShadow: [BoxShadow(color: Color(0x1A1B1A19), blurRadius: 24, offset: Offset(0, -4))],
+      ),
+      padding: const EdgeInsets.fromLTRB(18, 10, 18, 14),
       child: Column(
         mainAxisSize: MainAxisSize.min,
         children: [
-          const _CutLine(),
-          InkWell(
-            onTap: cart.isEmpty ? null : () => showCartSheet(context),
-            child: Padding(
-              padding: const EdgeInsets.fromLTRB(14, 6, 14, 0),
-              child: cart.isEmpty
-                  ? Align(
-                      alignment: Alignment.centerLeft,
-                      child: Padding(
-                        padding: const EdgeInsets.symmetric(vertical: 6),
-                        child: Text('Toca un producto para empezar la cuenta.', style: GText.muted()),
-                      ),
-                    )
-                  : Column(
+          Container(
+            width: 36,
+            height: 4,
+            decoration: BoxDecoration(color: GColors.linea, borderRadius: BorderRadius.circular(99)),
+          ),
+          const SizedBox(height: 10),
+          AnimatedSize(
+            duration: const Duration(milliseconds: 260),
+            curve: Curves.easeOutCubic,
+            alignment: Alignment.topCenter,
+            child: cart.isEmpty
+                ? Padding(
+                    padding: const EdgeInsets.only(bottom: 8),
+                    child: Row(
                       children: [
-                        for (final l in cart.take(2))
-                          Row(
-                            children: [
-                              Expanded(
-                                child: Text(
-                                  '${qtyLabel(l.qty)} x ${l.name}',
-                                  maxLines: 1,
-                                  overflow: TextOverflow.ellipsis,
-                                  style: GText.mono(size: 11.5),
-                                ),
-                              ),
-                              Text(money(l.totalCents), style: GText.mono(size: 11.5)),
-                            ],
-                          ),
-                        Row(
-                          children: [
-                            Text(cart.length > 2 ? '+ ${cart.length - 2} más' : '', style: GText.mono(size: 11.5)),
-                            const Spacer(),
-                            Text('Editar cuenta', style: GText.sans(size: 11.5, color: GColors.oxido)),
-                          ],
-                        ),
+                        const Icon(Icons.touch_app_rounded, size: 18, color: GColors.tintaTenue),
+                        const SizedBox(width: 8),
+                        Expanded(child: Text('Toca un producto para empezar la cuenta.', style: GText.muted(size: 13))),
                       ],
                     ),
-            ),
+                  )
+                : InkWell(
+                    onTap: () => showCartSheet(context),
+                    borderRadius: BorderRadius.circular(GShape.radiusSmall),
+                    child: Padding(
+                      padding: const EdgeInsets.only(bottom: 8),
+                      child: Column(
+                        children: [
+                          for (final l in cart.reversed.take(2))
+                            Padding(
+                              padding: const EdgeInsets.only(bottom: 3),
+                              child: Row(
+                                children: [
+                                  Expanded(
+                                    child: Text(
+                                      '${qtyLabel(l.qty)} × ${l.name}',
+                                      maxLines: 1,
+                                      overflow: TextOverflow.ellipsis,
+                                      style: GText.sans(size: 13, color: GColors.tintaSuave),
+                                    ),
+                                  ),
+                                  Text(money(l.totalCents), style: GText.figures(size: 13)),
+                                ],
+                              ),
+                            ),
+                          Row(
+                            children: [
+                              Text(cart.length > 2 ? '+ ${cart.length - 2} más' : '', style: GText.muted(size: 12.5)),
+                              const Spacer(),
+                              Text(
+                                'Ver cuenta',
+                                style: GText.sans(size: 13, weight: FontWeight.w700, color: GColors.marca),
+                              ),
+                              const Icon(Icons.chevron_right_rounded, size: 18, color: GColors.marca),
+                            ],
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
           ),
-          Padding(
-            padding: const EdgeInsets.fromLTRB(14, 6, 14, 12),
-            child: Row(
-              crossAxisAlignment: CrossAxisAlignment.end,
-              children: [
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text('TOTAL', style: GText.label()),
-                      const SizedBox(height: 2),
-                      FittedBox(
+          Row(
+            crossAxisAlignment: CrossAxisAlignment.center,
+            children: [
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      count == 0 ? 'TOTAL' : 'TOTAL · ${qtyLabel(count)} ${count == 1 ? 'artículo' : 'artículos'}',
+                      style: GText.label(),
+                    ),
+                    const SizedBox(height: 2),
+                    // El total sube o baja deslizándose cuando cambia.
+                    AnimatedSwitcher(
+                      duration: const Duration(milliseconds: 240),
+                      transitionBuilder: (child, anim) => FadeTransition(
+                        opacity: anim,
+                        child: SlideTransition(
+                          position: Tween(begin: const Offset(0, 0.35), end: Offset.zero).animate(anim),
+                          child: child,
+                        ),
+                      ),
+                      layoutBuilder: (current, previous) =>
+                          Stack(alignment: Alignment.centerLeft, children: [...previous, ?current]),
+                      child: FittedBox(
+                        key: ValueKey(total),
                         fit: BoxFit.scaleDown,
                         alignment: Alignment.centerLeft,
-                        child: Text(money(total), style: GText.amount(size: 30)),
+                        child: Text(money(total), style: GText.amount(size: 32)),
                       ),
-                    ],
-                  ),
+                    ),
+                  ],
                 ),
-                GButton(label: 'Cobrar', big: true, onPressed: onPay),
-              ],
-            ),
+              ),
+              GButton(
+                label: 'Cobrar',
+                icon: Icons.arrow_forward_rounded,
+                kind: GButtonKind.money,
+                big: true,
+                onPressed: onPay,
+              ),
+            ],
           ),
         ],
       ),
     );
   }
-}
-
-class _CutLine extends StatelessWidget {
-  const _CutLine();
-
-  @override
-  Widget build(BuildContext context) {
-    return SizedBox(
-      height: 14,
-      child: Stack(
-        alignment: Alignment.centerLeft,
-        children: [
-          CustomPaint(size: const Size(double.infinity, 2), painter: _DashPainter()),
-          Container(
-            margin: const EdgeInsets.only(left: 12),
-            color: GColors.papelClaro,
-            padding: const EdgeInsets.symmetric(horizontal: 4),
-            child: const Icon(Icons.content_cut, size: 14, color: GColors.tintaSuave),
-          ),
-        ],
-      ),
-    );
-  }
-}
-
-class _DashPainter extends CustomPainter {
-  @override
-  void paint(Canvas canvas, Size size) {
-    final paint = Paint()
-      ..color = const Color(0x73221C17)
-      ..strokeWidth = 2;
-    for (var x = 0.0; x < size.width; x += 9) {
-      canvas.drawLine(Offset(x, size.height / 2), Offset(x + 5, size.height / 2), paint);
-    }
-  }
-
-  @override
-  bool shouldRepaint(_DashPainter old) => false;
 }
 
 class _ClosedCashBanner extends StatelessWidget {
@@ -390,20 +406,24 @@ class _ClosedCashBanner extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Container(
-      margin: const EdgeInsets.fromLTRB(14, 0, 14, 10),
-      padding: const EdgeInsets.fromLTRB(12, 8, 8, 8),
-      decoration: BoxDecoration(
-        border: Border.all(color: GColors.rojo),
-        borderRadius: BorderRadius.circular(4),
-      ),
+      margin: const EdgeInsets.fromLTRB(16, 0, 16, 10),
+      padding: const EdgeInsets.fromLTRB(12, 6, 6, 6),
+      decoration: BoxDecoration(color: GColors.rojoSuave, borderRadius: BorderRadius.circular(GShape.radiusSmall)),
       child: Row(
         children: [
-          Expanded(child: Text('La caja está cerrada. Ábrela para cobrar.', style: GText.sans(size: 13))),
+          const Icon(Icons.lock_outline_rounded, size: 18, color: GColors.rojo),
+          const SizedBox(width: 8),
+          Expanded(
+            child: Text(
+              'La caja está cerrada. Ábrela para cobrar.',
+              style: GText.sans(size: 13, weight: FontWeight.w600),
+            ),
+          ),
           TextButton(
             onPressed: onOpen,
             child: Text(
               'Abrir caja',
-              style: GText.sans(size: 13, weight: FontWeight.w800, color: GColors.oxido),
+              style: GText.sans(size: 13, weight: FontWeight.w800, color: GColors.marca),
             ),
           ),
         ],

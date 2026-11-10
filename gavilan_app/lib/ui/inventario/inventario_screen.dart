@@ -64,7 +64,7 @@ class _InventarioScreenState extends ConsumerState<InventarioScreen> {
             onChanged: (v) => setState(() => _q = v),
             decoration: const InputDecoration(
               hintText: 'Buscar por nombre o código',
-              prefixIcon: Icon(Icons.search, size: 20),
+              prefixIcon: Icon(Icons.search_rounded, size: 22),
             ),
           ),
         ),
@@ -72,20 +72,29 @@ class _InventarioScreenState extends ConsumerState<InventarioScreen> {
           padding: const EdgeInsets.symmetric(horizontal: 16),
           child: Row(
             children: [
-              FilterChip(
-                label: Text('Solo por acabarse ($low)', style: GText.sans(size: 12.5)),
-                selected: _onlyLow,
-                onSelected: (v) => setState(() => _onlyLow = v),
-                selectedColor: GColors.ocre.withValues(alpha: 0.35),
-                backgroundColor: GColors.papel2,
-                side: const BorderSide(color: GColors.linea),
-                showCheckmark: false,
+              SoftButton(
+                label: _onlyLow ? 'Ver todos' : 'Solo por acabarse ($low)',
+                icon: _onlyLow ? Icons.close_rounded : Icons.warning_amber_rounded,
+                color: _onlyLow ? GColors.tinta : const Color(0xFFB27C00),
+                onTap: () => setState(() => _onlyLow = !_onlyLow),
               ),
             ],
           ),
         ),
-        const SizedBox(height: 4),
-        for (final p in list) _StockRow(product: p),
+        const SizedBox(height: 12),
+        if (list.isNotEmpty)
+          GCard(
+            margin: const EdgeInsets.symmetric(horizontal: 16),
+            padding: EdgeInsets.zero,
+            child: Column(
+              children: [
+                for (final (i, p) in list.indexed) ...[
+                  if (i > 0) const Divider(height: 1, indent: 70, color: GColors.linea),
+                  _StockRow(product: p),
+                ],
+              ],
+            ),
+          ),
         if (list.isEmpty)
           Padding(
             padding: const EdgeInsets.all(24),
@@ -107,17 +116,15 @@ class _StockRow extends StatelessWidget {
     // La barra se llena respecto a 4 veces el mínimo (o 20 piezas si no hay mínimo).
     final ref = (p.minStock ?? 5) * 4;
     final fill = p.trackStock ? (p.stock / ref).clamp(0.0, 1.0) : 0.0;
+    final barColor = p.isLow ? GColors.rojo : (fill < 0.5 ? GColors.izamal : GColors.cenote);
     return InkWell(
       onTap: () => showProductForm(context, product: p),
-      child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
-        decoration: const BoxDecoration(
-          border: Border(bottom: BorderSide(color: GColors.linea)),
-        ),
+      child: Padding(
+        padding: const EdgeInsets.fromLTRB(14, 12, 16, 12),
         child: Row(
           children: [
-            Icon(productIcon(p.iconId), size: 20, color: GColors.pardo),
-            const SizedBox(width: 10),
+            ProductBadge(p.iconId, size: 42),
+            const SizedBox(width: 14),
             Expanded(
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
@@ -125,28 +132,43 @@ class _StockRow extends StatelessWidget {
                   Row(
                     children: [
                       Flexible(
-                        child: Text(p.name, overflow: TextOverflow.ellipsis, style: GText.sans(size: 13.5)),
+                        child: Text(
+                          p.name,
+                          overflow: TextOverflow.ellipsis,
+                          style: GText.sans(size: 14.5, weight: FontWeight.w600),
+                        ),
                       ),
                       const SizedBox(width: 6),
                       Text(
                         money(p.priceCents, hideZeroCents: true),
-                        style: GText.mono(size: 11, color: GColors.tintaSuave),
+                        style: GText.figures(size: 12, color: GColors.tintaTenue),
                       ),
                     ],
                   ),
-                  const SizedBox(height: 5),
+                  const SizedBox(height: 7),
                   if (p.trackStock)
-                    Container(
-                      height: 6,
-                      color: GColors.papel2,
-                      alignment: Alignment.centerLeft,
-                      child: FractionallySizedBox(
-                        widthFactor: fill,
-                        child: Container(color: p.isLow ? GColors.rojo : GColors.pardo),
+                    // La barra se llena al aparecer.
+                    ClipRRect(
+                      borderRadius: BorderRadius.circular(99),
+                      child: Container(
+                        height: 6,
+                        color: GColors.hundido,
+                        alignment: Alignment.centerLeft,
+                        child: TweenAnimationBuilder<double>(
+                          tween: Tween(begin: 0, end: fill),
+                          duration: const Duration(milliseconds: 600),
+                          curve: Curves.easeOutCubic,
+                          builder: (context, v, _) => FractionallySizedBox(
+                            widthFactor: v,
+                            child: Container(
+                              decoration: BoxDecoration(color: barColor, borderRadius: BorderRadius.circular(99)),
+                            ),
+                          ),
+                        ),
                       ),
                     )
                   else
-                    Text('Sin control de existencia', style: GText.muted(size: 11)),
+                    Text('Sin control de existencia', style: GText.muted(size: 12)),
                 ],
               ),
             ),

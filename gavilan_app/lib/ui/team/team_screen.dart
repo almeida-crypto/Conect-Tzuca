@@ -82,13 +82,14 @@ class _TeamScreenState extends ConsumerState<TeamScreen> {
           Container(
             padding: const EdgeInsets.symmetric(vertical: 18),
             decoration: BoxDecoration(
-              color: GColors.papelClaro,
-              border: Border.all(color: GColors.tinta, width: 1.5),
+              color: GColors.superficie,
+              border: Border.all(color: GColors.linea, width: 1.5),
+              borderRadius: BorderRadius.circular(GShape.radiusSmall),
             ),
             child: SelectableText(
               pretty,
               textAlign: TextAlign.center,
-              style: GText.mono(size: 30, weight: FontWeight.w700).copyWith(letterSpacing: 3),
+              style: GText.figures(size: 30, weight: FontWeight.w700).copyWith(letterSpacing: 3),
             ),
           ),
           const SizedBox(height: 8),
@@ -164,7 +165,7 @@ class _TeamScreenState extends ConsumerState<TeamScreen> {
     final me = _sync.myUserId;
     return Scaffold(
       appBar: AppBar(
-        backgroundColor: GColors.papel,
+        backgroundColor: GColors.fondo,
         surfaceTintColor: Colors.transparent,
         title: Text('Equipo y roles', style: GText.sans(size: 17, weight: FontWeight.w800)),
       ),
@@ -203,7 +204,7 @@ class _TeamScreenState extends ConsumerState<TeamScreen> {
                     if (_members == null)
                       const Padding(
                         padding: EdgeInsets.all(24),
-                        child: Center(child: CircularProgressIndicator(color: GColors.oxido)),
+                        child: Center(child: CircularProgressIndicator(color: GColors.marca)),
                       )
                     else
                       for (final m in _members!)
@@ -219,8 +220,8 @@ class _TeamScreenState extends ConsumerState<TeamScreen> {
                       for (final i in _invites)
                         ListTile(
                           contentPadding: const EdgeInsets.symmetric(horizontal: 16),
-                          leading: const Icon(Icons.vpn_key_outlined, color: GColors.pardo),
-                          title: Text(i.prettyCode, style: GText.mono(size: 15, weight: FontWeight.w700)),
+                          leading: const Icon(Icons.vpn_key_outlined, color: GColors.cafe),
+                          title: Text(i.prettyCode, style: GText.figures(size: 15, weight: FontWeight.w700)),
                           subtitle: Text(
                             '${i.name ?? i.role.label} · ${i.role.label} · vence ${dayLabel(i.expiresAt)}',
                             style: GText.muted(),
@@ -264,18 +265,18 @@ class _MemberTile extends StatelessWidget {
   Widget build(BuildContext context) {
     final name = isMe ? 'Tú' : (member.name ?? (member.role == MemberRole.owner ? 'Dueño' : 'Sin nombre'));
     final color = switch (member.role) {
-      MemberRole.owner => GColors.oxido,
-      MemberRole.admin => GColors.monte,
-      _ => GColors.pardo,
+      MemberRole.owner => GColors.marca,
+      MemberRole.admin => GColors.cenote,
+      _ => GColors.cafe,
     };
     return ListTile(
       contentPadding: const EdgeInsets.symmetric(horizontal: 16),
       leading: CircleAvatar(
         backgroundColor: color,
-        foregroundColor: GColors.papel,
+        foregroundColor: GColors.fondo,
         child: Text(
           name.characters.first.toUpperCase(),
-          style: GText.sans(weight: FontWeight.w800, color: GColors.papel),
+          style: GText.sans(weight: FontWeight.w800, color: GColors.fondo),
         ),
       ),
       title: Text(name, style: GText.sans(size: 15, weight: FontWeight.w800)),

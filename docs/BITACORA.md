@@ -348,3 +348,31 @@ Se abren desde **Más → Módulos** con el plan Emprendedor o superior. Los tre
   - "Servido" se confundía con un estado: ahora el botón dice "Servir".
   - El botón "Agregar" se cortaba.
 - **No probado:** Realtime con dos celulares reales; en las pruebas se simula el aviso.
+
+### Diseño 2: colores, tarjetas y animaciones
+- **Por qué:** el usuario enseñó la app a conocidos. El inicio les gustó, pero por dentro la vieron rara, poco llamativa y "muy de IA": todo beige, botones con borde grueso de tecla, montos en letra de máquina y colores terrosos apagados.
+- **Paleta nueva:**
+  - Fondo claro neutro y tarjetas blancas.
+  - Achiote (`#E2582B`) para la marca y las acciones.
+  - Cenote (`#0E7A70`) para el dinero.
+  - Izamal (`#F2AE1C`) para los avisos.
+  - Los nombres de los colores en el código ahora dicen su trabajo (`fondo`, `superficie`, `marca`, `cenote`, `izamal`).
+- **El inicio no cambió:** sus colores quedaron aparte en `IntroColors`.
+- **Componentes:**
+  - Botones redondeados con sombra de su color.
+  - Fichas de producto blancas, con icono en un cuadro del color de su tipo.
+  - Barra de pestañas con pastilla animada.
+  - Hojas inferiores redondeadas con asa.
+  - Campos que se iluminan en achiote.
+  - El estado del respaldo pasó a un icono de nube en el encabezado, para que no corte el nombre del negocio.
+- **Pantallas:**
+  - Cobrar: panel de la cuenta flotante, con total animado y botón Cobrar en cenote.
+  - Fiados: tarjeta "En la calle" y clientes en tarjetas con inicial y "Abonar".
+  - Inventario: lista en tarjeta, con barras de existencia de color según cuánto queda.
+  - Caja: cifra "Debe haber en caja", cuenta limpia sin puntos, gastos con flechas y "¿cuadra?" en pastilla.
+  - Más: tarjeta del plan en degradado achiote y módulos con iconos de color.
+  - Mesas, comanda y cocina: también pasaron a tarjetas.
+- **Animaciones:** se describen en [DISENO.md](DISENO.md#animaciones). La más visible es la comanda nueva en cocina: entra deslizándose con "Nueva" y un brillo que late.
+- **Verificación:**
+  - 46 pruebas pasan. Se arreglaron dos desbordes que encontraron: la ficha con nombre de dos renglones y el aviso de cuenta vacía.
+  - En el emulador se revisaron las cinco pestañas, cobrar, el ticket, Más, mesas, comanda, cocina (grabada para ver la animación) y apartados.

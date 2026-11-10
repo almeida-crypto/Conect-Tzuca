@@ -39,7 +39,7 @@ class _LayawaysScreenState extends ConsumerState<LayawaysScreen> {
 
     return Scaffold(
       appBar: AppBar(
-        backgroundColor: GColors.papel,
+        backgroundColor: GColors.fondo,
         surfaceTintColor: Colors.transparent,
         title: Text('Apartados', style: GText.sans(size: 17, weight: FontWeight.w800)),
       ),
@@ -117,7 +117,7 @@ class _LayawayRow extends ConsumerWidget {
         padding: const EdgeInsets.fromLTRB(13, 10, 16, 10),
         decoration: BoxDecoration(
           border: Border(
-            left: BorderSide(color: overdue ? GColors.rojo : GColors.ocre, width: 3),
+            left: BorderSide(color: overdue ? GColors.rojo : GColors.izamal, width: 3),
             bottom: const BorderSide(color: GColors.linea),
           ),
         ),
@@ -213,7 +213,7 @@ class _NewLayawaySheetState extends ConsumerState<_NewLayawaySheet> {
           style: OutlinedButton.styleFrom(
             foregroundColor: GColors.tinta,
             side: BorderSide(color: _errors['customer'] == null ? GColors.linea : GColors.rojo),
-            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(4)),
+            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(GShape.radiusSmall)),
             padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 14),
             alignment: Alignment.centerLeft,
           ),
@@ -405,7 +405,7 @@ class _LayawayDetailState extends ConsumerState<_LayawayDetail> {
                   ),
                   Text(
                     money(active ? pending : paid),
-                    style: GText.amount(size: 30, color: active ? GColors.oxido : GColors.monte),
+                    style: GText.amount(size: 30, color: active ? GColors.marca : GColors.cenote),
                   ),
                 ],
               ),
@@ -428,7 +428,7 @@ class _LayawayDetailState extends ConsumerState<_LayawayDetail> {
             ),
             child: Row(
               children: [
-                Text(dateTimeLabel(p.createdAt), style: GText.mono(size: 11, color: GColors.tintaSuave)),
+                Text(dateTimeLabel(p.createdAt), style: GText.figures(size: 11, color: GColors.tintaSuave)),
                 const SizedBox(width: 10),
                 Expanded(
                   child: Text(
@@ -436,7 +436,7 @@ class _LayawayDetailState extends ConsumerState<_LayawayDetail> {
                     style: GText.sans(size: 13, weight: FontWeight.w400),
                   ),
                 ),
-                Text(money(p.amountCents), style: GText.mono(size: 12, color: GColors.monte)),
+                Text(money(p.amountCents), style: GText.figures(size: 12, color: GColors.cenote)),
               ],
             ),
           ),

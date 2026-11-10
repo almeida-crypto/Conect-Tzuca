@@ -222,7 +222,7 @@ class _AccountScreenState extends ConsumerState<AccountScreen> {
     final sync = ref.watch(syncProvider);
     return Scaffold(
       appBar: AppBar(
-        backgroundColor: GColors.papel,
+        backgroundColor: GColors.fondo,
         surfaceTintColor: Colors.transparent,
         title: Text(
           widget.join && !sync.signedIn ? 'Unirme a un negocio' : 'Cuenta y respaldo',
@@ -251,8 +251,9 @@ class _AccountScreenState extends ConsumerState<AccountScreen> {
               Container(
                 padding: const EdgeInsets.all(12),
                 decoration: BoxDecoration(
-                  color: GColors.papelClaro,
+                  color: GColors.superficie,
                   border: Border.all(color: GColors.linea),
+                  borderRadius: BorderRadius.circular(GShape.radiusSmall),
                 ),
                 child: Text(_info!, style: GText.sans(size: 13.5, weight: FontWeight.w400)),
               ),
@@ -268,7 +269,7 @@ class _AccountScreenState extends ConsumerState<AccountScreen> {
     textCapitalization: TextCapitalization.characters,
     autocorrect: false,
     onChanged: (_) => setState(() => _error = null),
-    style: GText.mono(size: 16, weight: FontWeight.w700),
+    style: GText.figures(size: 16, weight: FontWeight.w700),
     decoration: const InputDecoration(labelText: 'Código de invitación', hintText: 'ABCD-EFGH'),
   );
 
@@ -318,7 +319,7 @@ class _AccountScreenState extends ConsumerState<AccountScreen> {
             }),
       child: Text(
         _creating ? 'Ya tengo cuenta: entrar' : 'No tengo cuenta: crear una',
-        style: GText.sans(size: 14, weight: FontWeight.w800, color: GColors.oxido),
+        style: GText.sans(size: 14, weight: FontWeight.w800, color: GColors.marca),
       ),
     ),
     if (!_creating)
@@ -331,10 +332,10 @@ class _AccountScreenState extends ConsumerState<AccountScreen> {
   List<Widget> _accountView(SyncStatus sync) {
     final (state, color) = switch (sync) {
       SyncStatus(linked: false) => ('Este teléfono todavía no está enlazado', GColors.tintaSuave),
-      SyncStatus(online: false) => ('Sin internet: se sube al volver la señal', GColors.ocre),
+      SyncStatus(online: false) => ('Sin internet: se sube al volver la señal', GColors.izamal),
       SyncStatus(problem: final p?) => (p, GColors.rojo),
-      SyncStatus(pending: final n) when n > 0 => ('Faltan $n cambios por subir', GColors.ocre),
-      _ => ('Todo respaldado', GColors.monte),
+      SyncStatus(pending: final n) when n > 0 => ('Faltan $n cambios por subir', GColors.izamal),
+      _ => ('Todo respaldado', GColors.cenote),
     };
     return [
       Text('Entraste como', style: GText.muted(size: 13)),
@@ -343,8 +344,9 @@ class _AccountScreenState extends ConsumerState<AccountScreen> {
       Container(
         padding: const EdgeInsets.all(14),
         decoration: BoxDecoration(
-          color: GColors.papelClaro,
+          color: GColors.superficie,
           border: Border.all(color: GColors.linea),
+          borderRadius: BorderRadius.circular(GShape.radiusSmall),
         ),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,

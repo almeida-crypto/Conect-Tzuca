@@ -21,7 +21,7 @@ class TandasScreen extends ConsumerWidget {
     final tandas = [...store.batches]..sort((a, b) => b.date.compareTo(a.date));
     return Scaffold(
       appBar: AppBar(
-        backgroundColor: GColors.papel,
+        backgroundColor: GColors.fondo,
         surfaceTintColor: Colors.transparent,
         title: Text('Pedidos por tanda', style: GText.sans(size: 17, weight: FontWeight.w800)),
       ),
@@ -97,7 +97,7 @@ class _TandaRow extends StatelessWidget {
                 Text(money(total, hideZeroCents: true), style: GText.amount(size: 16)),
                 Text(
                   paid == total ? 'todo cobrado' : 'falta ${money(total - paid, hideZeroCents: true)}',
-                  style: GText.sans(size: 11.5, color: paid == total ? GColors.monte : GColors.oxido),
+                  style: GText.sans(size: 11.5, color: paid == total ? GColors.cenote : GColors.marca),
                 ),
               ],
             ),
@@ -216,7 +216,7 @@ class TandaDetailScreen extends ConsumerWidget {
             ),
             if (onTap != null) const Icon(Icons.edit_outlined, size: 15, color: GColors.tintaSuave),
             const SizedBox(width: 6),
-            Text(money(cents), style: GText.mono(size: 13, color: color ?? GColors.tinta)),
+            Text(money(cents), style: GText.figures(size: 13, color: color ?? GColors.tinta)),
           ],
         ),
       ),
@@ -224,7 +224,7 @@ class TandaDetailScreen extends ConsumerWidget {
 
     return Scaffold(
       appBar: AppBar(
-        backgroundColor: GColors.papel,
+        backgroundColor: GColors.fondo,
         surfaceTintColor: Colors.transparent,
         title: Text(tanda.name, style: GText.sans(size: 17, weight: FontWeight.w800)),
       ),
@@ -235,14 +235,15 @@ class TandaDetailScreen extends ConsumerWidget {
             Container(
               padding: const EdgeInsets.all(14),
               decoration: BoxDecoration(
-                color: GColors.papelClaro,
+                color: GColors.superficie,
                 border: Border.all(color: GColors.linea),
+                borderRadius: BorderRadius.circular(GShape.radiusSmall),
               ),
               child: Column(
                 children: [
                   line('Vendido (${_orders(orders.length)})', total),
-                  line('Cobrado', paid, color: GColors.monte),
-                  line('Por cobrar', total - paid, color: total == paid ? GColors.tintaSuave : GColors.oxido),
+                  line('Cobrado', paid, color: GColors.cenote),
+                  line('Por cobrar', total - paid, color: total == paid ? GColors.tintaSuave : GColors.marca),
                   line(
                     'Insumos',
                     tanda.suppliesCents,
@@ -257,7 +258,7 @@ class TandaDetailScreen extends ConsumerWidget {
                       ),
                       Text(
                         money(profit),
-                        style: GText.amount(size: 22, color: profit >= 0 ? GColors.monte : GColors.rojo),
+                        style: GText.amount(size: 22, color: profit >= 0 ? GColors.cenote : GColors.rojo),
                       ),
                     ],
                   ),
@@ -294,8 +295,8 @@ class _OrderRow extends ConsumerWidget {
     final notifier = ref.read(storeProvider.notifier);
     final (deliveryLabel, deliveryColor) = switch (order.delivery) {
       DeliveryStatus.pendiente => ('Pendiente', GColors.tintaSuave),
-      DeliveryStatus.listo => ('Listo', GColors.ocre),
-      DeliveryStatus.entregado => ('Entregado', GColors.monte),
+      DeliveryStatus.listo => ('Listo', GColors.izamal),
+      DeliveryStatus.entregado => ('Entregado', GColors.cenote),
     };
     final next = switch (order.delivery) {
       DeliveryStatus.pendiente => DeliveryStatus.listo,
@@ -307,17 +308,17 @@ class _OrderRow extends ConsumerWidget {
       button: true,
       child: InkWell(
         onTap: onTap,
-        borderRadius: BorderRadius.circular(4),
+        borderRadius: BorderRadius.circular(GShape.radiusSmall),
         child: Container(
           padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 7),
           decoration: BoxDecoration(
             color: filled ? color : Colors.transparent,
             border: Border.all(color: color, width: 1.5),
-            borderRadius: BorderRadius.circular(4),
+            borderRadius: BorderRadius.circular(GShape.radiusSmall),
           ),
           child: Text(
             label,
-            style: GText.sans(size: 12.5, weight: FontWeight.w800, color: filled ? GColors.papel : color),
+            style: GText.sans(size: 12.5, weight: FontWeight.w800, color: filled ? GColors.fondo : color),
           ),
         ),
       ),
@@ -352,14 +353,14 @@ class _OrderRow extends ConsumerWidget {
               const SizedBox(width: 8),
               toggle(
                 order.paid ? 'Pagado' : 'Por pagar',
-                order.paid ? GColors.monte : GColors.oxido,
+                order.paid ? GColors.cenote : GColors.marca,
                 order.paid,
                 () => notifier.updateBatchOrder(order.copyWith(paid: !order.paid)),
               ),
               const Spacer(),
               IconButton(
                 tooltip: 'Avisar por WhatsApp',
-                icon: const Icon(Icons.chat_outlined, color: GColors.monte),
+                icon: const Icon(Icons.chat_outlined, color: GColors.cenote),
                 onPressed: () => shareText(
                   context,
                   'Hola, ${order.customerName}. Le saluda $business. '

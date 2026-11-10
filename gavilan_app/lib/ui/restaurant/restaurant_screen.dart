@@ -1,3 +1,4 @@
+import 'dart:math' as math;
 import 'dart:async';
 
 import 'package:flutter/material.dart';
@@ -69,7 +70,7 @@ class _RestaurantScreenState extends ConsumerState<RestaurantScreen> {
 
     return Scaffold(
       appBar: AppBar(
-        backgroundColor: GColors.papel,
+        backgroundColor: GColors.fondo,
         surfaceTintColor: Colors.transparent,
         automaticallyImplyLeading: !widget.embedded,
         title: Text(
@@ -218,49 +219,93 @@ class _TableCard extends ConsumerWidget {
     final o = order;
     final busy = o != null;
     final ready = busy ? store.itemsOfOrder(o.id).where((i) => i.status == KitchenStatus.listo).length : 0;
-    return Material(
-      color: busy ? GColors.ocre.withValues(alpha: .16) : GColors.papelClaro,
-      shape: RoundedRectangleBorder(
-        side: BorderSide(color: busy ? GColors.ocre : GColors.linea, width: busy ? 1.5 : 1),
-        borderRadius: BorderRadius.circular(4),
-      ),
-      child: InkWell(
-        onTap: () => Navigator.of(context).push(
-          MaterialPageRoute<void>(
-            builder: (_) => busy ? OrderScreen(orderId: o.id) : OrderScreen(tableId: table.id),
-          ),
+    return Pressable(
+      onTap: () => Navigator.of(context).push(
+        MaterialPageRoute<void>(
+          builder: (_) => busy ? OrderScreen(orderId: o.id) : OrderScreen(tableId: table.id),
         ),
-        child: Padding(
-          padding: const EdgeInsets.all(10),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text(
-                table.name,
-                maxLines: 2,
-                overflow: TextOverflow.ellipsis,
-                style: GText.sans(size: 15, weight: FontWeight.w800),
-              ),
-              const Spacer(),
-              if (!busy)
-                Text('Libre', style: GText.muted(size: 12.5))
-              else ...[
-                Text(money(store.totalOfOrder(o.id)), style: GText.amount(size: 16)),
-                Text('${minutesSince(o.createdAt)} min', style: GText.muted(size: 12)),
-              ],
-              if (ready > 0) ...[
-                const SizedBox(height: 4),
-                Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
-                  color: GColors.monte,
+      ),
+      scale: 0.95,
+      // Libre en blanco; ocupada se pinta de achiote suave al abrir la cuenta.
+      child: AnimatedContainer(
+        duration: const Duration(milliseconds: 350),
+        curve: Curves.easeOutCubic,
+        padding: const EdgeInsets.all(12),
+        decoration: BoxDecoration(
+          color: busy ? GColors.marcaSuave : GColors.superficie,
+          borderRadius: BorderRadius.circular(GShape.radius),
+          border: Border.all(color: busy ? GColors.marca.withValues(alpha: 0.45) : Colors.transparent, width: 1.5),
+          boxShadow: busy ? null : GShape.shadow,
+        ),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              children: [
+                Expanded(
                   child: Text(
-                    ready == 1 ? '1 listo' : '$ready listos',
-                    style: GText.sans(size: 11.5, weight: FontWeight.w800, color: GColors.papel),
+                    table.name,
+                    maxLines: 2,
+                    overflow: TextOverflow.ellipsis,
+                    style: GText.sans(size: 15, weight: FontWeight.w800),
                   ),
                 ),
+                Icon(
+                  busy ? Icons.restaurant_rounded : Icons.table_restaurant_outlined,
+                  size: 17,
+                  color: busy ? GColors.marca : GColors.tintaTenue,
+                ),
               ],
+            ),
+            const Spacer(),
+            if (!busy)
+              Text(
+                'Libre',
+                style: GText.sans(size: 12.5, weight: FontWeight.w600, color: GColors.tintaTenue),
+              )
+            else ...[
+              Text(money(store.totalOfOrder(o.id)), style: GText.amount(size: 17)),
+              Text('${minutesSince(o.createdAt)} min', style: GText.muted(size: 12)),
             ],
-          ),
+            if (ready > 0) ...[const SizedBox(height: 5), _ReadyPill(count: ready)],
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+/// "2 listos": late suave para que el mesero lo vea desde lejos.
+class _ReadyPill extends StatefulWidget {
+  const _ReadyPill({required this.count});
+
+  final int count;
+
+  @override
+  State<_ReadyPill> createState() => _ReadyPillState();
+}
+
+class _ReadyPillState extends State<_ReadyPill> with SingleTickerProviderStateMixin {
+  late final _pulse = AnimationController(vsync: this, duration: const Duration(milliseconds: 900))
+    ..repeat(reverse: true);
+
+  @override
+  void dispose() {
+    _pulse.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return ScaleTransition(
+      scale: Tween(begin: 1.0, end: 1.07).animate(CurvedAnimation(parent: _pulse, curve: Curves.easeInOut)),
+      alignment: Alignment.centerLeft,
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+        decoration: BoxDecoration(color: GColors.cenote, borderRadius: BorderRadius.circular(99)),
+        child: Text(
+          widget.count == 1 ? '1 listo' : '${widget.count} listos',
+          style: GText.sans(size: 11.5, weight: FontWeight.w800, color: Colors.white),
         ),
       ),
     );
@@ -275,13 +320,31 @@ class _OrderTile extends StatelessWidget {
   final int totalCents;
 
   @override
-  Widget build(BuildContext context) => ListTile(
-    contentPadding: EdgeInsets.zero,
-    leading: const Icon(Icons.takeout_dining_outlined, color: GColors.pardo),
-    title: Text(title, style: GText.sans(size: 14.5, weight: FontWeight.w800)),
-    subtitle: Text('hace ${minutesSince(order.createdAt)} min', style: GText.muted()),
-    trailing: Text(money(totalCents), style: GText.amount(size: 15)),
+  Widget build(BuildContext context) => GCard(
+    margin: const EdgeInsets.only(top: 10),
+    padding: const EdgeInsets.fromLTRB(14, 12, 14, 12),
     onTap: () => Navigator.of(context).push(MaterialPageRoute<void>(builder: (_) => OrderScreen(orderId: order.id))),
+    child: Row(
+      children: [
+        Container(
+          width: 40,
+          height: 40,
+          decoration: BoxDecoration(color: GColors.izamalSuave, borderRadius: BorderRadius.circular(12)),
+          child: const Icon(Icons.takeout_dining_rounded, color: Color(0xFFB27C00), size: 21),
+        ),
+        const SizedBox(width: 12),
+        Expanded(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(title, style: GText.sans(size: 15, weight: FontWeight.w700)),
+              Text('hace ${minutesSince(order.createdAt)} min', style: GText.muted(size: 12.5)),
+            ],
+          ),
+        ),
+        Text(money(totalCents), style: GText.amount(size: 16)),
+      ],
+    ),
   );
 }
 
@@ -397,15 +460,40 @@ class _KitchenView extends ConsumerWidget {
     }
     return ListView(
       padding: const EdgeInsets.fromLTRB(16, 0, 16, 24),
-      children: [for (final o in orders) _KitchenTicket(order: o)],
+      children: [for (final o in orders) _KitchenTicket(key: ValueKey(o.id), order: o)],
     );
   }
 }
 
-class _KitchenTicket extends ConsumerWidget {
-  const _KitchenTicket({required this.order});
+class _KitchenTicket extends ConsumerStatefulWidget {
+  const _KitchenTicket({super.key, required this.order});
 
   final RestaurantOrder order;
+
+  @override
+  ConsumerState<_KitchenTicket> createState() => _KitchenTicketState();
+}
+
+class _KitchenTicketState extends ConsumerState<_KitchenTicket> with SingleTickerProviderStateMixin {
+  // Al llegar: entra desde la derecha y el borde late en achiote unos segundos.
+  late final _arrive = AnimationController(vsync: this, duration: const Duration(milliseconds: 2600));
+
+  @override
+  void initState() {
+    super.initState();
+    // Solo lo recién mandado (últimos 20 s) entra con animación; lo demás ya estaba ahí.
+    final sent = ref.read(storeProvider).kitchenItemsOf(widget.order.id).map((i) => i.sentAt!);
+    final fresh = sent.isNotEmpty && sent.any((t) => DateTime.now().difference(t).inSeconds < 20);
+    fresh ? _arrive.forward() : _arrive.value = 1;
+  }
+
+  @override
+  void dispose() {
+    _arrive.dispose();
+    super.dispose();
+  }
+
+  RestaurantOrder get order => widget.order;
 
   static KitchenStatus? _next(KitchenStatus s) => switch (s) {
     KitchenStatus.pendiente => KitchenStatus.preparando,
@@ -414,37 +502,86 @@ class _KitchenTicket extends ConsumerWidget {
   };
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
+  Widget build(BuildContext context) {
     final store = ref.watch(storeProvider);
     final items = store.kitchenItemsOf(order.id);
     final firstSent = items.map((i) => i.sentAt!).reduce((a, b) => a.isBefore(b) ? a : b);
     final waited = minutesSince(firstSent);
     final allReady = items.every((i) => i.status == KitchenStatus.listo);
-    final waitColor = waited >= 15 ? GColors.rojo : (waited >= 8 ? GColors.ocre : GColors.tintaSuave);
-    return Container(
-      margin: const EdgeInsets.only(bottom: 12),
-      decoration: BoxDecoration(
-        color: GColors.papelClaro,
-        border: Border(
-          top: BorderSide(color: allReady ? GColors.monte : GColors.tinta, width: 3),
-          left: const BorderSide(color: GColors.linea),
-          right: const BorderSide(color: GColors.linea),
-          bottom: const BorderSide(color: GColors.linea),
-        ),
-      ),
+    final waitColor = waited >= 15 ? GColors.rojo : (waited >= 8 ? const Color(0xFFB27C00) : GColors.tintaSuave);
+    final slide = CurvedAnimation(
+      parent: _arrive,
+      curve: const Interval(0, 0.18, curve: Curves.easeOutBack),
+    );
+    final glow = CurvedAnimation(
+      parent: _arrive,
+      curve: const Interval(0.1, 1, curve: Curves.easeOut),
+    );
+    return AnimatedBuilder(
+      animation: _arrive,
+      builder: (context, child) {
+        // Late tres veces y se apaga.
+        final fresh = 1 - glow.value;
+        final pulse = math.max(fresh * 0.55, fresh * (0.5 + 0.5 * math.sin(glow.value * math.pi * 6)).abs());
+        return Opacity(
+          opacity: slide.value.clamp(0.0, 1.0),
+          child: Transform.translate(
+            offset: Offset(40 * (1 - slide.value), 0),
+            child: Container(
+              margin: const EdgeInsets.only(bottom: 14),
+              decoration: BoxDecoration(
+                color: GColors.superficie,
+                borderRadius: BorderRadius.circular(GShape.radius),
+                border: Border.all(
+                  color: Color.lerp(
+                    allReady ? GColors.cenote.withValues(alpha: 0.5) : Colors.transparent,
+                    GColors.marca,
+                    pulse,
+                  )!,
+                  width: 2.5,
+                ),
+                boxShadow: [
+                  ...GShape.shadow,
+                  if (pulse > 0.01)
+                    BoxShadow(color: GColors.marca.withValues(alpha: 0.55 * pulse), blurRadius: 26, spreadRadius: 2),
+                ],
+              ),
+              child: child,
+            ),
+          ),
+        );
+      },
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
           Padding(
-            padding: const EdgeInsets.fromLTRB(12, 10, 12, 4),
+            padding: const EdgeInsets.fromLTRB(14, 12, 14, 4),
             child: Row(
               children: [
                 Expanded(
                   child: Text(store.orderTitle(order), style: GText.sans(size: 18, weight: FontWeight.w800)),
                 ),
+                // Etiqueta de recién llegada: se desvanece cuando deja de latir.
+                AnimatedBuilder(
+                  animation: glow,
+                  builder: (context, _) => glow.value >= 1
+                      ? const SizedBox.shrink()
+                      : Opacity(
+                          opacity: (1 - glow.value).clamp(0.0, 1.0),
+                          child: Container(
+                            margin: const EdgeInsets.only(right: 8),
+                            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                            decoration: BoxDecoration(color: GColors.marca, borderRadius: BorderRadius.circular(99)),
+                            child: Text(
+                              'Nueva',
+                              style: GText.sans(size: 11.5, weight: FontWeight.w800, color: Colors.white),
+                            ),
+                          ),
+                        ),
+                ),
                 Text(
                   '$waited min',
-                  style: GText.mono(size: 14, weight: FontWeight.w700, color: waitColor),
+                  style: GText.figures(size: 14, weight: FontWeight.w700, color: waitColor),
                 ),
               ],
             ),
@@ -478,7 +615,7 @@ class _KitchenTicket extends ConsumerWidget {
                           if (i.notes != null)
                             Text(
                               i.notes!,
-                              style: GText.sans(size: 14, color: GColors.oxido).copyWith(fontStyle: FontStyle.italic),
+                              style: GText.sans(size: 14, color: GColors.marca).copyWith(fontStyle: FontStyle.italic),
                             ),
                         ],
                       ),
@@ -491,7 +628,7 @@ class _KitchenTicket extends ConsumerWidget {
           Padding(
             padding: const EdgeInsets.fromLTRB(12, 4, 12, 12),
             child: allReady
-                ? Text('Todo listo: esperando al mesero', style: GText.sans(size: 13.5, color: GColors.monte))
+                ? Text('Todo listo: esperando al mesero', style: GText.sans(size: 13.5, color: GColors.cenote))
                 : GButton(
                     label: 'Todo listo',
                     icon: Icons.check,
@@ -515,15 +652,15 @@ class KitchenStatusPill extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final (bg, fg) = switch (status) {
-      KitchenStatus.pendiente => (GColors.papel2, GColors.tinta),
-      KitchenStatus.preparando => (GColors.ocre, GColors.tinta),
-      KitchenStatus.listo => (GColors.monte, GColors.papel),
+      KitchenStatus.pendiente => (GColors.hundido, GColors.tinta),
+      KitchenStatus.preparando => (GColors.izamal, GColors.tinta),
+      KitchenStatus.listo => (GColors.cenote, GColors.fondo),
       KitchenStatus.servido => (Colors.transparent, GColors.tintaSuave),
       KitchenStatus.cancelado => (Colors.transparent, GColors.rojo),
     };
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-      decoration: BoxDecoration(color: bg, borderRadius: BorderRadius.circular(3)),
+      decoration: BoxDecoration(color: bg, borderRadius: BorderRadius.circular(99)),
       child: Text(
         status.label,
         style: GText.sans(size: 12, weight: FontWeight.w800, color: fg),

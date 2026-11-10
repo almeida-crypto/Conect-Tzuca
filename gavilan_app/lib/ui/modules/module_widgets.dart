@@ -49,13 +49,14 @@ class ProgressStrip extends StatelessWidget {
     return Container(
       height: height,
       decoration: BoxDecoration(
-        color: GColors.papel2,
+        color: GColors.hundido,
         border: Border.all(color: GColors.linea),
+        borderRadius: BorderRadius.circular(GShape.radiusSmall),
       ),
       alignment: Alignment.centerLeft,
       child: FractionallySizedBox(
         widthFactor: f,
-        child: Container(color: f >= 1 ? GColors.monte : GColors.oxido),
+        child: Container(color: f >= 1 ? GColors.cenote : GColors.marca),
       ),
     );
   }

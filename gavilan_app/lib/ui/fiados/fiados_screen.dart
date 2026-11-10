@@ -32,24 +32,16 @@ class FiadosScreen extends ConsumerWidget {
           'Fiados',
           subtitle: max == null ? 'Quién te debe y desde cuándo' : '${debtors.length} de $max clientes con deuda',
         ),
-        Container(
-          margin: const EdgeInsets.fromLTRB(16, 10, 16, 4),
-          padding: const EdgeInsets.symmetric(vertical: 10),
-          decoration: const BoxDecoration(
-            border: Border(
-              top: BorderSide(color: GColors.tinta, width: 2),
-              bottom: BorderSide(color: GColors.linea),
-            ),
-          ),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text('EN LA CALLE', style: GText.label()),
-              const SizedBox(height: 2),
-              Text(money(store.totalOnCreditCents), style: GText.amount(size: 34, color: GColors.rojo)),
-            ],
-          ),
+        StatCard(
+          label: 'En la calle',
+          cents: store.totalOnCreditCents,
+          color: store.totalOnCreditCents > 0 ? GColors.rojo : GColors.cenote,
+          icon: Icons.menu_book_rounded,
+          caption: debtors.isEmpty
+              ? 'Nadie te debe'
+              : '${debtors.length} ${debtors.length == 1 ? 'cliente' : 'clientes'} con cuenta abierta',
         ),
+        if (debtors.isNotEmpty) const SectionTitle('Quién debe'),
         if (debtors.isEmpty)
           Padding(
             padding: const EdgeInsets.all(24),
@@ -59,11 +51,15 @@ class FiadosScreen extends ConsumerWidget {
               style: GText.muted(size: 14),
             ),
           ),
-        for (final d in debtors) _DebtorRow(debtor: d, now: now),
+        for (final (i, d) in debtors.indexed)
+          EnterAnimation(
+            index: i,
+            child: _DebtorRow(debtor: d, now: now),
+          ),
         if (debtors.isNotEmpty)
           Padding(
-            padding: const EdgeInsets.fromLTRB(16, 10, 16, 0),
-            child: Text('Raya roja: más de 2 semanas sin pagar.', style: GText.muted()),
+            padding: const EdgeInsets.fromLTRB(16, 6, 16, 0),
+            child: Text('En rojo: más de 2 semanas sin pagar.', style: GText.muted()),
           ),
       ],
     );
@@ -80,55 +76,50 @@ class _DebtorRow extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final late = now.difference(debtor.since).inDays > 14;
     final business = ref.watch(storeProvider).businessName;
-    return InkWell(
+    return GCard(
+      margin: const EdgeInsets.fromLTRB(16, 0, 16, 10),
+      padding: const EdgeInsets.fromLTRB(14, 12, 6, 12),
       onTap: () => showGSheet(context, (_) => _DebtorDetail(customerId: debtor.customer.id)),
-      child: Container(
-        padding: const EdgeInsets.fromLTRB(13, 10, 8, 10),
-        decoration: BoxDecoration(
-          border: Border(
-            left: BorderSide(color: late ? GColors.rojo : GColors.ocre, width: 3),
-            bottom: const BorderSide(color: GColors.linea),
-          ),
-        ),
-        child: Row(
-          children: [
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(debtor.customer.name, style: GText.sans(size: 14, weight: FontWeight.w800)),
-                  Text(
-                    debtor.entries.any((e) => e.type == CreditType.abono)
-                        ? 'Último abono ${daysAgo(debtor.since, now)}'
-                        : 'Debe desde ${daysAgo(debtor.since, now)}',
-                    style: GText.muted(size: 11.5),
+      child: Row(
+        children: [
+          Avatar(debtor.customer.name),
+          const SizedBox(width: 12),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(debtor.customer.name, style: GText.sans(size: 15, weight: FontWeight.w700)),
+                const SizedBox(height: 2),
+                Text(
+                  debtor.entries.any((e) => e.type == CreditType.abono)
+                      ? 'Último abono ${daysAgo(debtor.since, now)}'
+                      : 'Debe desde ${daysAgo(debtor.since, now)}',
+                  style: GText.sans(
+                    size: 12.5,
+                    weight: late ? FontWeight.w700 : FontWeight.w500,
+                    color: late ? GColors.rojo : GColors.tintaSuave,
                   ),
-                ],
-              ),
+                ),
+              ],
             ),
-            Text(money(debtor.balanceCents, hideZeroCents: true), style: GText.amount(size: 16)),
-            const SizedBox(width: 8),
-            OutlinedButton(
-              style: OutlinedButton.styleFrom(
-                foregroundColor: GColors.tinta,
-                side: const BorderSide(color: GColors.tinta),
-                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(4)),
-                padding: const EdgeInsets.symmetric(horizontal: 10),
-                minimumSize: const Size(0, 36),
-              ),
-              onPressed: () => showAbonoSheet(context, debtor.customer.id),
-              child: Text('Abonar', style: GText.sans(size: 12.5, weight: FontWeight.w800)),
+          ),
+          Column(
+            crossAxisAlignment: CrossAxisAlignment.end,
+            children: [
+              Text(money(debtor.balanceCents, hideZeroCents: true), style: GText.amount(size: 17)),
+              const SizedBox(height: 6),
+              SoftButton(label: 'Abonar', onTap: () => showAbonoSheet(context, debtor.customer.id)),
+            ],
+          ),
+          IconButton(
+            tooltip: 'Recordar por WhatsApp',
+            icon: const Icon(Icons.chat_rounded, color: GColors.cenote),
+            onPressed: () => shareText(
+              context,
+              reminderText(business: business, name: debtor.customer.name, balanceCents: debtor.balanceCents),
             ),
-            IconButton(
-              tooltip: 'Recordar por WhatsApp',
-              icon: const Icon(Icons.chat_outlined, color: GColors.monte),
-              onPressed: () => shareText(
-                context,
-                reminderText(business: business, name: debtor.customer.name, balanceCents: debtor.balanceCents),
-              ),
-            ),
-          ],
-        ),
+          ),
+        ],
       ),
     );
   }
@@ -155,7 +146,7 @@ class _DebtorDetail extends ConsumerWidget {
           children: [
             Text('Saldo', style: GText.sans(size: 14)),
             const Spacer(),
-            Text(money(balance), style: GText.amount(size: 26, color: balance > 0 ? GColors.rojo : GColors.monte)),
+            Text(money(balance), style: GText.amount(size: 26, color: balance > 0 ? GColors.rojo : GColors.cenote)),
           ],
         ),
         const SizedBox(height: 10),
@@ -167,7 +158,7 @@ class _DebtorDetail extends ConsumerWidget {
             ),
             child: Row(
               children: [
-                Text(dateTimeLabel(e.createdAt), style: GText.mono(size: 11, color: GColors.tintaSuave)),
+                Text(dateTimeLabel(e.createdAt), style: GText.figures(size: 11, color: GColors.tintaSuave)),
                 const SizedBox(width: 10),
                 Expanded(
                   child: Text(
@@ -179,7 +170,7 @@ class _DebtorDetail extends ConsumerWidget {
                 ),
                 Text(
                   '${e.type == CreditType.cargo ? '+' : '-'}${money(e.amountCents)}',
-                  style: GText.mono(size: 12, color: e.type == CreditType.cargo ? GColors.rojo : GColors.monte),
+                  style: GText.figures(size: 12, color: e.type == CreditType.cargo ? GColors.rojo : GColors.cenote),
                 ),
               ],
             ),

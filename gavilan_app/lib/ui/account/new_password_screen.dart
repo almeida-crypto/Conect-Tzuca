@@ -62,7 +62,7 @@ class _NewPasswordScreenState extends ConsumerState<NewPasswordScreen> {
     final email = ref.watch(syncProvider.select((s) => s.email));
     return Scaffold(
       appBar: AppBar(
-        backgroundColor: GColors.papel,
+        backgroundColor: GColors.fondo,
         surfaceTintColor: Colors.transparent,
         title: Text('Contraseña nueva', style: GText.sans(size: 17, weight: FontWeight.w800)),
       ),

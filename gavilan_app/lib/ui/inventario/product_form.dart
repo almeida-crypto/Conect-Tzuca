@@ -215,7 +215,7 @@ class _ProductFormState extends ConsumerState<_ProductForm> {
                       needed: Plan.emprendedor,
                     ),
               icon: Icon(plan.limits.photos ? Icons.photo_camera_outlined : Icons.lock_outline, size: 16),
-              label: Text('Usar foto', style: GText.sans(size: 12.5, color: GColors.oxido)),
+              label: Text('Usar foto', style: GText.sans(size: 12.5, color: GColors.marca)),
             ),
           ],
         ),
@@ -230,15 +230,15 @@ class _ProductFormState extends ConsumerState<_ProductForm> {
                 label: e.key,
                 child: InkWell(
                   onTap: () => setState(() => _icon = e.key),
-                  borderRadius: BorderRadius.circular(4),
+                  borderRadius: BorderRadius.circular(GShape.radiusSmall),
                   child: Container(
                     width: 42,
                     height: 42,
                     decoration: BoxDecoration(
-                      color: _icon == e.key ? GColors.tinta : GColors.papel2,
-                      borderRadius: BorderRadius.circular(4),
+                      color: _icon == e.key ? GColors.tinta : GColors.hundido,
+                      borderRadius: BorderRadius.circular(GShape.radiusSmall),
                     ),
-                    child: Icon(e.value, size: 20, color: _icon == e.key ? GColors.papel : GColors.pardo),
+                    child: Icon(e.value, size: 20, color: _icon == e.key ? GColors.fondo : GColors.cafe),
                   ),
                 ),
               ),
@@ -248,7 +248,7 @@ class _ProductFormState extends ConsumerState<_ProductForm> {
         SwitchListTile(
           contentPadding: EdgeInsets.zero,
           value: _track,
-          activeThumbColor: GColors.oxido,
+          activeThumbColor: GColors.marca,
           onChanged: (v) => setState(() => _track = v),
           title: Text('Controlar existencia', style: GText.sans(size: 14)),
           subtitle: Text('Se descuenta sola con cada venta', style: GText.muted()),
@@ -280,8 +280,9 @@ class _ProductFormState extends ConsumerState<_ProductForm> {
           Container(
             padding: const EdgeInsets.all(12),
             decoration: BoxDecoration(
-              color: GColors.papelClaro,
+              color: GColors.superficie,
               border: Border.all(color: GColors.linea),
+              borderRadius: BorderRadius.circular(GShape.radiusSmall),
             ),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.stretch,

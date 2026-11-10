@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../domain/team.dart';
@@ -23,11 +24,11 @@ class _HomeShellState extends ConsumerState<HomeShell> {
   int _tab = 0;
 
   static const _tabs = [
-    (Icons.receipt_long_outlined, 'Cobrar'),
-    (Icons.menu_book_outlined, 'Fiados'),
-    (Icons.inventory_2_outlined, 'Inventario'),
-    (Icons.calculate_outlined, 'Caja'),
-    (Icons.apps_outlined, 'Más'),
+    (Icons.point_of_sale_rounded, 'Cobrar'),
+    (Icons.menu_book_rounded, 'Fiados'),
+    (Icons.inventory_2_rounded, 'Inventario'),
+    (Icons.account_balance_wallet_rounded, 'Caja'),
+    (Icons.grid_view_rounded, 'Más'),
   ];
 
   void _go(int i) => setState(() => _tab = i);
@@ -41,61 +42,105 @@ class _HomeShellState extends ConsumerState<HomeShell> {
     return Scaffold(
       body: SafeArea(
         bottom: false,
-        child: IndexedStack(
-          index: _tab,
-          children: [
-            const CobrarScreen(),
-            const FiadosScreen(),
-            const InventarioScreen(),
-            CajaScreen(onGoToCobrar: () => _go(0)),
-            const MasScreen(),
-          ],
-        ),
-      ),
-      bottomNavigationBar: SafeArea(
-        top: false,
-        child: Container(
-          height: 60,
-          decoration: const BoxDecoration(
-            color: GColors.papel,
-            border: Border(top: BorderSide(color: GColors.linea)),
+        // Al cambiar de pestaña la pantalla aparece con un desvanecido corto.
+        child: TweenAnimationBuilder<double>(
+          key: ValueKey(_tab),
+          tween: Tween(begin: 0, end: 1),
+          duration: const Duration(milliseconds: 240),
+          curve: Curves.easeOutCubic,
+          builder: (context, t, child) => Opacity(
+            opacity: 0.35 + 0.65 * t,
+            child: Transform.translate(offset: Offset(0, 8 * (1 - t)), child: child),
           ),
-          child: Row(
+          child: IndexedStack(
+            index: _tab,
             children: [
-              for (var i = 0; i < _tabs.length; i++)
-                Expanded(
-                  child: Semantics(
-                    button: true,
-                    selected: _tab == i,
-                    label: _tabs[i].$2,
-                    excludeSemantics: true,
-                    child: InkWell(
-                      onTap: () => _go(i),
-                      child: Column(
-                        mainAxisAlignment: MainAxisAlignment.center,
-                        children: [
-                          Icon(_tabs[i].$1, size: 22, color: _tab == i ? GColors.oxido : GColors.tintaTenue),
-                          const SizedBox(height: 2),
-                          Text(
-                            _tabs[i].$2,
-                            style: GText.sans(size: 11, color: _tab == i ? GColors.oxido : GColors.tintaTenue),
-                          ),
-                          const SizedBox(height: 2),
-                          AnimatedContainer(
-                            duration: const Duration(milliseconds: 150),
-                            width: _tab == i ? 18 : 0,
-                            height: 3,
-                            color: GColors.oxido,
-                          ),
-                        ],
-                      ),
-                    ),
-                  ),
-                ),
+              const CobrarScreen(),
+              const FiadosScreen(),
+              const InventarioScreen(),
+              CajaScreen(onGoToCobrar: () => _go(0)),
+              const MasScreen(),
             ],
           ),
         ),
       ),
+      bottomNavigationBar: Container(
+        decoration: const BoxDecoration(
+          color: GColors.superficie,
+          boxShadow: [BoxShadow(color: Color(0x141B1A19), blurRadius: 16, offset: Offset(0, -2))],
+        ),
+        child: SafeArea(
+          top: false,
+          child: SizedBox(
+            height: 68,
+            child: Row(
+              children: [
+                for (var i = 0; i < _tabs.length; i++)
+                  Expanded(
+                    child: Semantics(
+                      button: true,
+                      selected: _tab == i,
+                      label: _tabs[i].$2,
+                      excludeSemantics: true,
+                      child: GestureDetector(
+                        behavior: HitTestBehavior.opaque,
+                        onTap: () {
+                          if (_tab != i) HapticFeedback.selectionClick();
+                          _go(i);
+                        },
+                        child: _NavItem(icon: _tabs[i].$1, label: _tabs[i].$2, selected: _tab == i),
+                      ),
+                    ),
+                  ),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+/// Pestaña: el icono se asienta en una pastilla de color al elegirla.
+class _NavItem extends StatelessWidget {
+  const _NavItem({required this.icon, required this.label, required this.selected});
+
+  final IconData icon;
+  final String label;
+  final bool selected;
+
+  @override
+  Widget build(BuildContext context) {
+    return Column(
+      mainAxisAlignment: MainAxisAlignment.center,
+      children: [
+        AnimatedContainer(
+          duration: const Duration(milliseconds: 260),
+          curve: Curves.easeOutCubic,
+          width: selected ? 58 : 40,
+          height: 32,
+          decoration: BoxDecoration(
+            color: selected ? GColors.marcaSuave : Colors.transparent,
+            borderRadius: BorderRadius.circular(16),
+          ),
+          child: AnimatedScale(
+            scale: selected ? 1.08 : 1,
+            duration: const Duration(milliseconds: 260),
+            curve: Curves.easeOutBack,
+            child: Icon(icon, size: 23, color: selected ? GColors.marca : GColors.tintaTenue),
+          ),
+        ),
+        const SizedBox(height: 4),
+        AnimatedDefaultTextStyle(
+          duration: const Duration(milliseconds: 200),
+          style: GText.sans(
+            size: 11.5,
+            weight: selected ? FontWeight.w800 : FontWeight.w600,
+            color: selected ? GColors.tinta : GColors.tintaTenue,
+          ),
+          child: Text(label),
+        ),
+      ],
     );
   }
 }

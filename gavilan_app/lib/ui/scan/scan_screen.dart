@@ -187,7 +187,7 @@ class _ScanScreenState extends ConsumerState<ScanScreen> {
           child: Text(
             message,
             textAlign: TextAlign.center,
-            style: GText.sans(size: 15, weight: FontWeight.w400, color: GColors.papel),
+            style: GText.sans(size: 15, weight: FontWeight.w400, color: GColors.fondo),
           ),
         ),
       ),
@@ -214,7 +214,7 @@ class _ScanScreenState extends ConsumerState<ScanScreen> {
           ? _PriceCard(product: last.product)
           : Row(
               children: [
-                const Icon(Icons.check_circle, color: GColors.monte),
+                const Icon(Icons.check_circle, color: GColors.cenote),
                 const SizedBox(width: 8),
                 Expanded(
                   child: Text(
@@ -251,8 +251,8 @@ class _ScanScreenState extends ConsumerState<ScanScreen> {
 
     return Container(
       decoration: const BoxDecoration(
-        color: GColors.papel,
-        border: Border(top: BorderSide(color: GColors.tinta, width: 3)),
+        color: GColors.superficie,
+        borderRadius: BorderRadius.vertical(top: Radius.circular(GShape.radiusSheet)),
       ),
       padding: EdgeInsets.fromLTRB(16, 14, 16, 14 + MediaQuery.paddingOf(context).bottom),
       child: Column(
@@ -300,7 +300,7 @@ class _ModeSwitch extends StatelessWidget {
         child: Container(
           padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 7),
           decoration: BoxDecoration(
-            color: mode == m ? GColors.papel : Colors.transparent,
+            color: mode == m ? GColors.fondo : Colors.transparent,
             borderRadius: BorderRadius.circular(99),
           ),
           child: Text(
@@ -337,7 +337,7 @@ class _PriceCard extends StatelessWidget {
       children: [
         Text(product.name, style: GText.sans(size: 17, weight: FontWeight.w800)),
         const SizedBox(height: 2),
-        Text(money(product.priceCents), style: GText.amount(size: 44, color: GColors.oxido)),
+        Text(money(product.priceCents), style: GText.amount(size: 44, color: GColors.marca)),
         if (product.trackStock)
           Text(
             'Quedan ${qtyLabel(product.stock)}',
@@ -358,7 +358,7 @@ class _FramePainter extends CustomPainter {
     final h = w * .55;
     final rect = Rect.fromCenter(center: Offset(size.width / 2, size.height * .4), width: w, height: h);
     final paint = Paint()
-      ..color = GColors.ocre
+      ..color = GColors.izamal
       ..strokeWidth = 4
       ..style = PaintingStyle.stroke
       ..strokeCap = StrokeCap.round;

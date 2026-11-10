@@ -17,7 +17,7 @@ class PlanScreen extends ConsumerWidget {
     final current = ref.watch(planProvider);
     return Scaffold(
       appBar: AppBar(
-        backgroundColor: GColors.papel,
+        backgroundColor: GColors.fondo,
         surfaceTintColor: Colors.transparent,
         title: Text('Mi plan', style: GText.sans(size: 17, weight: FontWeight.w800)),
       ),
@@ -34,8 +34,8 @@ class PlanScreen extends ConsumerWidget {
               Container(
                 padding: const EdgeInsets.all(14),
                 decoration: BoxDecoration(
-                  color: GColors.papelClaro,
-                  border: Border.all(color: p == current ? GColors.oxido : GColors.linea, width: p == current ? 2 : 1),
+                  color: GColors.superficie,
+                  border: Border.all(color: p == current ? GColors.marca : GColors.linea, width: p == current ? 2 : 1),
                 ),
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -47,7 +47,7 @@ class PlanScreen extends ConsumerWidget {
                         if (p == current)
                           Text(
                             'Tu plan',
-                            style: GText.sans(size: 12, weight: FontWeight.w800, color: GColors.oxido),
+                            style: GText.sans(size: 12, weight: FontWeight.w800, color: GColors.marca),
                           ),
                       ],
                     ),
@@ -64,7 +64,7 @@ class PlanScreen extends ConsumerWidget {
                           children: [
                             const Padding(
                               padding: EdgeInsets.only(top: 2),
-                              child: Icon(Icons.check, size: 16, color: GColors.monte),
+                              child: Icon(Icons.check, size: 16, color: GColors.cenote),
                             ),
                             const SizedBox(width: 6),
                             Expanded(

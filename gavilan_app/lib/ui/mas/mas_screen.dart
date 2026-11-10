@@ -13,6 +13,7 @@ import '../modules/lots_screen.dart';
 import '../modules/tandas_screen.dart';
 import '../restaurant/restaurant_screen.dart';
 import '../team/team_screen.dart';
+import '../widgets/buttons.dart';
 import '../widgets/common.dart';
 import 'plan_screen.dart';
 
@@ -96,14 +97,23 @@ class MasScreen extends ConsumerWidget {
       children: [
         const ScreenTitle('Más'),
         Padding(
-          padding: const EdgeInsets.fromLTRB(16, 10, 16, 6),
-          child: InkWell(
+          padding: const EdgeInsets.fromLTRB(16, 8, 16, 0),
+          child: Pressable(
             onTap: () => Navigator.of(context).push(MaterialPageRoute(builder: (_) => const PlanScreen())),
+            scale: 0.98,
+            // Tarjeta de la cuenta: degradado de achiote, como el plumaje del gavilán.
             child: Container(
-              padding: const EdgeInsets.all(14),
+              padding: const EdgeInsets.fromLTRB(18, 18, 14, 18),
               decoration: BoxDecoration(
-                color: GColors.papelClaro,
-                border: Border.all(color: GColors.tinta, width: 1.5),
+                borderRadius: BorderRadius.circular(GShape.radius),
+                gradient: const LinearGradient(
+                  colors: [GColors.marca, GColors.marcaOscura],
+                  begin: Alignment.topLeft,
+                  end: Alignment.bottomRight,
+                ),
+                boxShadow: [
+                  BoxShadow(color: GColors.marca.withValues(alpha: 0.3), blurRadius: 18, offset: const Offset(0, 6)),
+                ],
               ),
               child: Row(
                 children: [
@@ -111,13 +121,29 @@ class MasScreen extends ConsumerWidget {
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        Text(store.businessName, style: GText.sans(size: 16, weight: FontWeight.w800)),
-                        const SizedBox(height: 6),
+                        Text(
+                          store.businessName,
+                          style: GText.sans(size: 18, weight: FontWeight.w800, color: Colors.white),
+                        ),
+                        const SizedBox(height: 8),
                         Row(
                           children: [
-                            PlanBadge(plan),
+                            Container(
+                              padding: const EdgeInsets.symmetric(horizontal: 9, vertical: 3),
+                              decoration: BoxDecoration(
+                                color: Colors.white.withValues(alpha: 0.22),
+                                borderRadius: BorderRadius.circular(99),
+                              ),
+                              child: Text(
+                                'Plan ${plan.label}',
+                                style: GText.sans(size: 12, weight: FontWeight.w800, color: Colors.white),
+                              ),
+                            ),
                             const SizedBox(width: 8),
-                            Text(plan.price, style: GText.muted()),
+                            Text(
+                              plan.price,
+                              style: GText.sans(size: 12.5, color: Colors.white.withValues(alpha: 0.85)),
+                            ),
                           ],
                         ),
                       ],
@@ -125,59 +151,87 @@ class MasScreen extends ConsumerWidget {
                   ),
                   Text(
                     'Mi plan',
-                    style: GText.sans(size: 13, weight: FontWeight.w800, color: GColors.oxido),
+                    style: GText.sans(size: 13.5, weight: FontWeight.w800, color: Colors.white),
                   ),
-                  const Icon(Icons.chevron_right, color: GColors.oxido),
+                  const Icon(Icons.chevron_right_rounded, color: Colors.white),
                 ],
               ),
             ),
           ),
         ),
-        Padding(
-          padding: const EdgeInsets.fromLTRB(16, 16, 16, 4),
-          child: Text('Módulos', style: GText.sans(size: 15, weight: FontWeight.w800)),
+        const SectionTitle('Módulos'),
+        GCard(
+          margin: const EdgeInsets.symmetric(horizontal: 16),
+          padding: EdgeInsets.zero,
+          child: Column(
+            children: [
+              for (final (i, m) in _modules.indexed) ...[
+                if (i > 0) const Divider(height: 1, indent: 68, color: GColors.linea),
+                _ModuleRow(module: m, unlocked: m.unlocked(limits), plan: plan),
+              ],
+            ],
+          ),
         ),
-        for (final m in _modules) _ModuleRow(module: m, unlocked: m.unlocked(limits), plan: plan),
-        Padding(
-          padding: const EdgeInsets.fromLTRB(16, 22, 16, 4),
-          child: Text('Respaldo en la nube', style: GText.sans(size: 15, weight: FontWeight.w800)),
-        ),
+        const SectionTitle('Respaldo en la nube'),
         Builder(
           builder: (context) {
             final (label, dot) = syncLabel(ref.watch(syncProvider));
             final sync = ref.watch(syncProvider);
-            return ListTile(
-              contentPadding: const EdgeInsets.symmetric(horizontal: 16),
-              leading: Icon(Icons.cloud_outlined, color: dot),
-              title: Text(sync.signedIn ? sync.email! : 'Entrar o crear cuenta', style: GText.sans(size: 14)),
-              subtitle: Text(label, style: GText.muted()),
-              trailing: const Icon(Icons.chevron_right),
+            return GCard(
+              margin: const EdgeInsets.symmetric(horizontal: 16),
+              padding: const EdgeInsets.fromLTRB(14, 12, 10, 12),
               onTap: () => Navigator.of(context).push(MaterialPageRoute(builder: (_) => const AccountScreen())),
+              child: Row(
+                children: [
+                  _IconTile(icon: Icons.cloud_rounded, color: dot),
+                  const SizedBox(width: 14),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          sync.signedIn ? sync.email! : 'Entrar o crear cuenta',
+                          style: GText.sans(size: 15, weight: FontWeight.w700),
+                        ),
+                        Text(label, style: GText.muted(size: 12.5)),
+                      ],
+                    ),
+                  ),
+                  const Icon(Icons.chevron_right_rounded, color: GColors.tintaTenue),
+                ],
+              ),
             );
           },
         ),
-        Padding(
-          padding: const EdgeInsets.fromLTRB(16, 22, 16, 4),
-          child: Text('Datos de este teléfono', style: GText.sans(size: 15, weight: FontWeight.w800)),
-        ),
-        Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 16),
-          child: Text(
-            'Las ventas, fiados y cortes se guardan en el celular aunque no haya internet.',
-            style: GText.muted(size: 12.5),
-          ),
-        ),
-        if (can.resetPhone)
-          ListTile(
-            contentPadding: const EdgeInsets.symmetric(horizontal: 16),
-            leading: const Icon(Icons.delete_outline, color: GColors.rojo),
-            title: Text('Borrar todo y empezar de nuevo', style: GText.sans(size: 14, color: GColors.rojo)),
-            subtitle: Text(
-              'Útil para quitar la tiendita de ejemplo. Lo que ya está en la nube no se borra.',
-              style: GText.muted(),
-            ),
+        if (can.resetPhone) ...[
+          const SectionTitle('Datos de este teléfono'),
+          GCard(
+            margin: const EdgeInsets.symmetric(horizontal: 16),
+            padding: const EdgeInsets.fromLTRB(14, 12, 10, 12),
             onTap: () => _confirmReset(context, ref),
+            child: Row(
+              children: [
+                const _IconTile(icon: Icons.delete_outline_rounded, color: GColors.rojo),
+                const SizedBox(width: 14),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        'Borrar todo y empezar de nuevo',
+                        style: GText.sans(size: 15, weight: FontWeight.w700, color: GColors.rojo),
+                      ),
+                      Text(
+                        'Útil para quitar la tiendita de ejemplo. Lo que ya está en la nube no se borra.',
+                        style: GText.muted(size: 12.5),
+                      ),
+                    ],
+                  ),
+                ),
+              ],
+            ),
           ),
+        ],
       ],
     );
   }
@@ -212,6 +266,22 @@ class MasScreen extends ConsumerWidget {
   }
 }
 
+/// Icono en un cuadro de color suave.
+class _IconTile extends StatelessWidget {
+  const _IconTile({required this.icon, required this.color});
+
+  final IconData icon;
+  final Color color;
+
+  @override
+  Widget build(BuildContext context) => Container(
+    width: 40,
+    height: 40,
+    decoration: BoxDecoration(color: color.withValues(alpha: 0.12), borderRadius: BorderRadius.circular(12)),
+    child: Icon(icon, size: 21, color: color),
+  );
+}
+
 class _ModuleRow extends StatelessWidget {
   const _ModuleRow({required this.module, required this.unlocked, required this.plan});
 
@@ -219,8 +289,11 @@ class _ModuleRow extends StatelessWidget {
   final bool unlocked;
   final Plan plan;
 
+  static const _colors = [GColors.marca, Color(0xFF6B4FA0), Color(0xFFB27C00), GColors.cenote, Color(0xFF2F6DB5)];
+
   @override
   Widget build(BuildContext context) {
+    final color = unlocked ? _colors[module.title.length % _colors.length] : GColors.tintaTenue;
     return InkWell(
       onTap: () {
         if (!unlocked) {
@@ -237,15 +310,12 @@ class _ModuleRow extends StatelessWidget {
           );
         }
       },
-      child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-        decoration: const BoxDecoration(
-          border: Border(bottom: BorderSide(color: GColors.linea)),
-        ),
+      child: Padding(
+        padding: const EdgeInsets.fromLTRB(14, 12, 12, 12),
         child: Row(
           children: [
-            Icon(module.icon, color: unlocked ? GColors.pardo : GColors.tintaTenue),
-            const SizedBox(width: 12),
+            _IconTile(icon: module.icon, color: color),
+            const SizedBox(width: 14),
             Expanded(
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
@@ -253,21 +323,25 @@ class _ModuleRow extends StatelessWidget {
                   Text(
                     module.title,
                     style: GText.sans(
-                      size: 14,
-                      weight: FontWeight.w800,
+                      size: 15,
+                      weight: FontWeight.w700,
                       color: unlocked ? GColors.tinta : GColors.tintaSuave,
                     ),
                   ),
-                  Text(module.subtitle, style: GText.muted(size: 12)),
+                  const SizedBox(height: 1),
+                  Text(module.subtitle, style: GText.muted(size: 12.5)),
                 ],
               ),
             ),
             if (unlocked && module.screen != null)
-              const Icon(Icons.chevron_right, color: GColors.tintaSuave)
+              const Icon(Icons.chevron_right_rounded, color: GColors.tintaTenue)
             else if (unlocked)
-              Text('Pronto', style: GText.sans(size: 11.5, color: GColors.tintaSuave))
+              Text(
+                'Pronto',
+                style: GText.sans(size: 12, weight: FontWeight.w600, color: GColors.tintaTenue),
+              )
             else ...[
-              const Icon(Icons.lock_outline, size: 16, color: GColors.tintaSuave),
+              const Icon(Icons.lock_rounded, size: 15, color: GColors.tintaTenue),
               const SizedBox(width: 4),
               PlanBadge(module.needed),
             ],

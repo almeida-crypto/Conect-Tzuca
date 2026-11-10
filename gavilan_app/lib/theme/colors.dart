@@ -1,23 +1,38 @@
 import 'package:flutter/painting.dart';
 
-/// Paleta Gavilán: sacada del ave (pardo, ocre) y del papel de las notas de tienda.
+/// Paleta Gavilán: neutros limpios y tres colores de Yucatán con un trabajo cada uno.
+/// - Achiote (la cochinita, el plumaje del gavilán): acciones y la marca.
+/// - Cenote (el agua turquesa): dinero, cobrar, pagado, todo bien.
+/// - Izamal (la ciudad amarilla): avisos y lo que pide atención sin ser error.
+/// El inicio animado tiene sus propios colores (IntroColors) y no cambia con esta paleta.
 abstract final class GColors {
-  static const papel = Color(0xFFF4ECDD);
-  static const papel2 = Color(0xFFE9DEC8);
-  static const papelClaro = Color(0xFFFBF6EC);
-  static const tinta = Color(0xFF221C17);
-  static const pardo = Color(0xFF6B4226);
-  static const oxido = Color(0xFFB5471B);
-  static const oxidoOscuro = Color(0xFF7E2F0F);
-  static const ocre = Color(0xFFD8A02A);
-  static const monte = Color(0xFF2E5E3E);
-  static const monteOscuro = Color(0xFF1D3C28);
-  static const rojo = Color(0xFFA12D1E);
+  // Neutros
+  static const fondo = Color(0xFFF5F4F1);
+  static const superficie = Color(0xFFFFFFFF);
+  static const hundido = Color(0xFFEDEBE7);
+  static const linea = Color(0xFFE3E0DA);
+  static const tinta = Color(0xFF1B1A19);
+  static const tintaSuave = Color(0xFF66625D);
+  static const tintaTenue = Color(0xFF9C978F);
 
-  /// Solo para el bordado de hipil.
-  static const rosa = Color(0xFFC2416F);
+  // Achiote: botones principales, selección, la marca.
+  static const marca = Color(0xFFE2582B);
+  static const marcaOscura = Color(0xFFB8431B);
+  static const marcaSuave = Color(0xFFFCE9E1);
 
-  static const linea = Color(0x33221C17);
-  static const tintaSuave = Color(0x99221C17);
-  static const tintaTenue = Color(0x73221C17);
+  // Cenote: cobrar, dinero, pagado, respaldado.
+  static const cenote = Color(0xFF0E7A70);
+  static const cenoteOscuro = Color(0xFF095A53);
+  static const cenoteSuave = Color(0xFFDDF1EE);
+
+  // Izamal: avisos, por acabarse, sin internet.
+  static const izamal = Color(0xFFF2AE1C);
+  static const izamalSuave = Color(0xFFFDF1D4);
+
+  /// Café del plumaje: iconos de producto y detalles.
+  static const cafe = Color(0xFF7A5236);
+
+  /// Errores, deudas vencidas, borrar.
+  static const rojo = Color(0xFFCC2F2F);
+  static const rojoSuave = Color(0xFFFBE5E3);
 }

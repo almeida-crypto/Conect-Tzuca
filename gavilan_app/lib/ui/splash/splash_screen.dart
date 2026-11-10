@@ -2,7 +2,6 @@ import 'dart:math' as math;
 
 import 'package:flutter/material.dart';
 
-import '../../theme/colors.dart';
 import '../../theme/theme.dart';
 import 'hawk.dart';
 import 'yucatan_painters.dart';
@@ -64,7 +63,7 @@ class _SplashScreenState extends State<SplashScreen> with SingleTickerProviderSt
   Widget build(BuildContext context) {
     final reduceMotion = MediaQuery.disableAnimationsOf(context);
     return Scaffold(
-      backgroundColor: GColors.papel,
+      backgroundColor: IntroColors.papel,
       body: GestureDetector(
         behavior: HitTestBehavior.opaque,
         onTap: _finish,
@@ -124,7 +123,7 @@ class _SplashScreenState extends State<SplashScreen> with SingleTickerProviderSt
             child: Container(
               width: 280 * k,
               height: 280 * k,
-              decoration: const BoxDecoration(color: GColors.oxido, shape: BoxShape.circle),
+              decoration: const BoxDecoration(color: IntroColors.oxido, shape: BoxShape.circle),
             ),
           ),
         ),
@@ -159,7 +158,7 @@ class _SplashScreenState extends State<SplashScreen> with SingleTickerProviderSt
             child: Text(
               'ojo de gavilán para tu negocio',
               textAlign: TextAlign.center,
-              style: GText.mono(size: 12 * k, color: GColors.pardo),
+              style: GText.mono(size: 12 * k, color: IntroColors.pardo),
             ),
           ),
         ),
@@ -183,7 +182,7 @@ class _SplashScreenState extends State<SplashScreen> with SingleTickerProviderSt
             child: Text(
               'hecho en Tzucacab, Yucatán',
               textAlign: TextAlign.center,
-              style: GText.mono(size: 11, color: GColors.tintaSuave),
+              style: GText.mono(size: 11, color: IntroColors.tintaSuave),
             ),
           ),
         ),

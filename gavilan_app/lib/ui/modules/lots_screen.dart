@@ -47,7 +47,7 @@ class LotsScreen extends ConsumerWidget {
       });
     return Scaffold(
       appBar: AppBar(
-        backgroundColor: GColors.papel,
+        backgroundColor: GColors.fondo,
         surfaceTintColor: Colors.transparent,
         title: Text('Pacas y lotes', style: GText.sans(size: 17, weight: FontWeight.w800)),
       ),
@@ -115,7 +115,7 @@ class _LotRow extends StatelessWidget {
               missing > 0
                   ? 'Faltan ${money(missing)} para recuperar ${money(lot.investmentCents)}'
                   : 'Recuperada. Ganancia: ${money(-missing)}',
-              style: GText.sans(size: 12.5, color: missing > 0 ? GColors.tintaSuave : GColors.monte),
+              style: GText.sans(size: 12.5, color: missing > 0 ? GColors.tintaSuave : GColors.cenote),
             ),
           ],
         ),
@@ -246,7 +246,7 @@ class _LotDetailScreenState extends ConsumerState<LotDetailScreen> {
 
     return Scaffold(
       appBar: AppBar(
-        backgroundColor: GColors.papel,
+        backgroundColor: GColors.fondo,
         surfaceTintColor: Colors.transparent,
         title: Text(lot.name, style: GText.sans(size: 17, weight: FontWeight.w800)),
       ),
@@ -257,8 +257,9 @@ class _LotDetailScreenState extends ConsumerState<LotDetailScreen> {
             Container(
               padding: const EdgeInsets.all(14),
               decoration: BoxDecoration(
-                color: GColors.papelClaro,
+                color: GColors.superficie,
                 border: Border.all(color: GColors.linea),
+                borderRadius: BorderRadius.circular(GShape.radiusSmall),
               ),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -266,7 +267,7 @@ class _LotDetailScreenState extends ConsumerState<LotDetailScreen> {
                   Text(missing > 0 ? 'FALTA PARA RECUPERAR' : 'YA ES GANANCIA', style: GText.label()),
                   Text(
                     money(missing > 0 ? missing : -missing),
-                    style: GText.amount(size: 38, color: missing > 0 ? GColors.oxido : GColors.monte),
+                    style: GText.amount(size: 38, color: missing > 0 ? GColors.marca : GColors.cenote),
                   ),
                   const SizedBox(height: 10),
                   ProgressStrip(fraction: lot.investmentCents == 0 ? 1 : recovered / lot.investmentCents, height: 16),
@@ -329,12 +330,12 @@ class _LotDetailScreenState extends ConsumerState<LotDetailScreen> {
                 ),
                 child: Row(
                   children: [
-                    Text(dateTimeLabel(s.createdAt), style: GText.mono(size: 11, color: GColors.tintaSuave)),
+                    Text(dateTimeLabel(s.createdAt), style: GText.figures(size: 11, color: GColors.tintaSuave)),
                     const SizedBox(width: 10),
                     Expanded(
                       child: Text(s.note ?? '', style: GText.sans(size: 13, weight: FontWeight.w400)),
                     ),
-                    Text(money(s.amountCents), style: GText.mono(size: 12.5)),
+                    Text(money(s.amountCents), style: GText.figures(size: 12.5)),
                   ],
                 ),
               ),

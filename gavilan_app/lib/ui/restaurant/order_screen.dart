@@ -130,7 +130,7 @@ class _OrderScreenState extends ConsumerState<OrderScreen> {
 
     return Scaffold(
       appBar: AppBar(
-        backgroundColor: GColors.papel,
+        backgroundColor: GColors.fondo,
         surfaceTintColor: Colors.transparent,
         title: Text(title, style: GText.sans(size: 17, weight: FontWeight.w800)),
         actions: [
@@ -149,7 +149,7 @@ class _OrderScreenState extends ConsumerState<OrderScreen> {
               Container(
                 width: double.infinity,
                 padding: const EdgeInsets.all(12),
-                color: GColors.papel2,
+                color: GColors.hundido,
                 child: Text(
                   order.status == OrderStatus.cerrada ? 'Esta cuenta ya se cobró.' : 'Esta cuenta se canceló.',
                   style: GText.sans(size: 14, weight: FontWeight.w800),
@@ -174,27 +174,51 @@ class _OrderScreenState extends ConsumerState<OrderScreen> {
                       children: [
                         if (unsent.isNotEmpty) ...[
                           _Section('Por mandar a cocina'),
-                          for (final i in unsent)
-                            _UnsentRow(item: i, onNotes: () => _editNotes(i), onQty: (q) => _store.setItemQty(i.id, q)),
+                          GCard(
+                            padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 4),
+                            child: Column(
+                              children: [
+                                for (final (n, i) in unsent.indexed) ...[
+                                  if (n > 0) const Divider(height: 1, color: GColors.linea),
+                                  _UnsentRow(
+                                    item: i,
+                                    onNotes: () => _editNotes(i),
+                                    onQty: (q) => _store.setItemQty(i.id, q),
+                                  ),
+                                ],
+                              ],
+                            ),
+                          ),
                         ],
                         if (sent.isNotEmpty) ...[
                           _Section('En cocina y servido'),
-                          for (final i in sent)
-                            _SentRow(
-                              item: i,
-                              onServed: i.status == KitchenStatus.listo
-                                  ? () => _store.setItemStatus(i.id, KitchenStatus.servido)
-                                  : null,
+                          GCard(
+                            padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 4),
+                            child: Column(
+                              children: [
+                                for (final (n, i) in sent.indexed) ...[
+                                  if (n > 0) const Divider(height: 1, color: GColors.linea),
+                                  _SentRow(
+                                    item: i,
+                                    onServed: i.status == KitchenStatus.listo
+                                        ? () => _store.setItemStatus(i.id, KitchenStatus.servido)
+                                        : null,
+                                  ),
+                                ],
+                              ],
                             ),
+                          ),
                         ],
                       ],
                     ),
             ),
             if (!closed)
               Container(
-                padding: const EdgeInsets.fromLTRB(16, 10, 16, 12),
+                padding: const EdgeInsets.fromLTRB(18, 16, 18, 14),
                 decoration: const BoxDecoration(
-                  border: Border(top: BorderSide(color: GColors.tinta, width: 2)),
+                  color: GColors.superficie,
+                  borderRadius: BorderRadius.vertical(top: Radius.circular(GShape.radiusSheet)),
+                  boxShadow: [BoxShadow(color: Color(0x1A1B1A19), blurRadius: 24, offset: Offset(0, -4))],
                 ),
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -274,9 +298,6 @@ class _UnsentRow extends StatelessWidget {
   Widget build(BuildContext context) {
     return Container(
       padding: const EdgeInsets.symmetric(vertical: 6),
-      decoration: const BoxDecoration(
-        border: Border(bottom: BorderSide(color: GColors.linea)),
-      ),
       child: Row(
         children: [
           Expanded(
@@ -290,7 +311,7 @@ class _UnsentRow extends StatelessWidget {
                     item.notes ?? 'Toca para agregar indicaciones',
                     style: item.notes == null
                         ? GText.muted(size: 12.5)
-                        : GText.sans(size: 13, color: GColors.oxido).copyWith(fontStyle: FontStyle.italic),
+                        : GText.sans(size: 13, color: GColors.marca).copyWith(fontStyle: FontStyle.italic),
                   ),
                 ],
               ),
@@ -309,7 +330,7 @@ class _UnsentRow extends StatelessWidget {
           ),
           SizedBox(
             width: 72,
-            child: Text(money(item.totalCents), textAlign: TextAlign.right, style: GText.mono(size: 13)),
+            child: Text(money(item.totalCents), textAlign: TextAlign.right, style: GText.figures(size: 13)),
           ),
         ],
       ),
@@ -327,9 +348,6 @@ class _SentRow extends StatelessWidget {
   Widget build(BuildContext context) {
     return Container(
       padding: const EdgeInsets.symmetric(vertical: 8),
-      decoration: const BoxDecoration(
-        border: Border(bottom: BorderSide(color: GColors.linea)),
-      ),
       child: Row(
         children: [
           SizedBox(
@@ -344,7 +362,7 @@ class _SentRow extends StatelessWidget {
                 if (item.notes != null)
                   Text(
                     item.notes!,
-                    style: GText.sans(size: 13, color: GColors.oxido).copyWith(fontStyle: FontStyle.italic),
+                    style: GText.sans(size: 13, color: GColors.marca).copyWith(fontStyle: FontStyle.italic),
                   ),
               ],
             ),
@@ -352,17 +370,17 @@ class _SentRow extends StatelessWidget {
           if (onServed != null)
             TextButton.icon(
               onPressed: onServed,
-              icon: const Icon(Icons.room_service_outlined, size: 18, color: GColors.monte),
+              icon: const Icon(Icons.room_service_outlined, size: 18, color: GColors.cenote),
               label: Text(
                 'Servir',
-                style: GText.sans(size: 13.5, weight: FontWeight.w800, color: GColors.monte),
+                style: GText.sans(size: 13.5, weight: FontWeight.w800, color: GColors.cenote),
               ),
             )
           else
             KitchenStatusPill(item.status),
           SizedBox(
             width: 72,
-            child: Text(money(item.totalCents), textAlign: TextAlign.right, style: GText.mono(size: 13)),
+            child: Text(money(item.totalCents), textAlign: TextAlign.right, style: GText.figures(size: 13)),
           ),
         ],
       ),
@@ -406,7 +424,7 @@ class _ProductPickerState extends ConsumerState<_ProductPicker> {
               for (final p in products)
                 ListTile(
                   contentPadding: EdgeInsets.zero,
-                  leading: Icon(productIcon(p.iconId), color: GColors.pardo),
+                  leading: ProductBadge(p.iconId, size: 42),
                   title: Text(p.name, style: GText.sans(size: 15)),
                   subtitle: Text(money(p.priceCents), style: GText.muted()),
                   trailing: (_picked[p] ?? 0) == 0

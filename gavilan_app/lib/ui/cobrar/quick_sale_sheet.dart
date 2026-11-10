@@ -63,8 +63,9 @@ class _QuickSaleSheetState extends ConsumerState<_QuickSaleSheet> {
         Container(
           padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 14),
           decoration: BoxDecoration(
-            color: GColors.papelClaro,
-            border: Border.all(color: GColors.tinta, width: 1.5),
+            color: GColors.superficie,
+            border: Border.all(color: GColors.linea, width: 1.5),
+            borderRadius: BorderRadius.circular(GShape.radiusSmall),
           ),
           child: Text(money(_cents), textAlign: TextAlign.right, style: GText.amount(size: 34)),
         ),
@@ -90,11 +91,11 @@ class _QuickSaleSheetState extends ConsumerState<_QuickSaleSheet> {
           children: [
             for (final k in ['1', '2', '3', '4', '5', '6', '7', '8', '9', '00', '0', '⌫'])
               Material(
-                color: GColors.papel2,
-                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(4)),
+                color: GColors.hundido,
+                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(GShape.radiusSmall)),
                 child: InkWell(
                   onTap: () => _press(k),
-                  borderRadius: BorderRadius.circular(4),
+                  borderRadius: BorderRadius.circular(GShape.radiusSmall),
                   child: Center(
                     child: k == '⌫'
                         ? const Icon(Icons.backspace_outlined, semanticLabel: 'Borrar')

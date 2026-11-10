@@ -44,7 +44,7 @@ class _TicketScreenState extends ConsumerState<TicketScreen> {
 
     return Scaffold(
       appBar: AppBar(
-        backgroundColor: GColors.papel,
+        backgroundColor: GColors.fondo,
         surfaceTintColor: Colors.transparent,
         title: Text(paid ? 'Venta cobrada' : 'Venta fiada', style: GText.sans(size: 17, weight: FontWeight.w800)),
       ),
@@ -60,7 +60,7 @@ class _TicketScreenState extends ConsumerState<TicketScreen> {
                   child: Container(
                     padding: const EdgeInsets.fromLTRB(16, 18, 16, 16),
                     decoration: BoxDecoration(
-                      color: GColors.papelClaro,
+                      color: GColors.superficie,
                       border: Border.all(color: GColors.linea),
                     ),
                     child: Stack(
@@ -135,7 +135,7 @@ class _TicketScreenState extends ConsumerState<TicketScreen> {
                     ),
                     TextButton(
                       onPressed: () => shareText(context, text),
-                      child: Text('Mandar como texto', style: GText.sans(size: 13.5, color: GColors.oxido)),
+                      child: Text('Mandar como texto', style: GText.sans(size: 13.5, color: GColors.marca)),
                     ),
                     const SizedBox(height: 4),
                     GButton(
@@ -200,7 +200,7 @@ class _Stamp extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final color = paid ? GColors.monte : GColors.rojo;
+    final color = paid ? GColors.cenote : GColors.rojo;
     return TweenAnimationBuilder<double>(
       tween: Tween(begin: 0, end: 1),
       duration: const Duration(milliseconds: 450),

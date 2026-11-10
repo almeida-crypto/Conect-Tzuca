@@ -61,7 +61,7 @@ class _CartSheet extends ConsumerWidget {
                 ),
                 SizedBox(
                   width: 78,
-                  child: Text(money(l.totalCents), textAlign: TextAlign.right, style: GText.mono(size: 12.5)),
+                  child: Text(money(l.totalCents), textAlign: TextAlign.right, style: GText.figures(size: 12.5)),
                 ),
               ],
             ),
