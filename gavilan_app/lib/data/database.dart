@@ -54,6 +54,7 @@ class SalesTable extends Table {
   TextColumn get method => textEnum<PayMethod>().nullable()();
   IntColumn get receivedCents => integer().nullable()();
   TextColumn get customerId => text().nullable()();
+  TextColumn get device => text().nullable()();
 
   @override
   Set<Column> get primaryKey => {id};
@@ -284,7 +285,7 @@ class GavilanDb extends _$GavilanDb {
   factory GavilanDb.onDevice() => GavilanDb(driftDatabase(name: 'gavilan'));
 
   @override
-  int get schemaVersion => 3;
+  int get schemaVersion => 4;
 
   @override
   MigrationStrategy get migration => MigrationStrategy(
@@ -292,6 +293,7 @@ class GavilanDb extends _$GavilanDb {
       // v2: fila de pendientes para la sincronización.
       if (from < 2) await m.createTable(outboxTable);
       // v3: pacas y lotes, apartados y pedidos por tanda.
+      if (from < 4) await m.addColumn(salesTable, salesTable.device);
       if (from < 3) {
         for (final table in <TableInfo>[
           lotsTable,

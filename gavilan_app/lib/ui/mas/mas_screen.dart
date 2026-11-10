@@ -11,6 +11,7 @@ import '../account/account_screen.dart';
 import '../modules/layaways_screen.dart';
 import '../modules/lots_screen.dart';
 import '../modules/tandas_screen.dart';
+import '../team/team_screen.dart';
 import '../widgets/common.dart';
 import 'plan_screen.dart';
 
@@ -60,7 +61,14 @@ final _modules = [
     Plan.negocio,
     (l) => l.restaurant,
   ),
-  _Module(Icons.groups_outlined, 'Equipo y roles', 'Dueño, cajeros, meseros y cocina', Plan.negocio, (l) => l.team),
+  _Module(
+    Icons.groups_outlined,
+    'Equipo y roles',
+    'Dueño, cajeros, meseros y cocina',
+    Plan.negocio,
+    (l) => l.team,
+    screen: () => const TeamScreen(),
+  ),
   _Module(Icons.print_outlined, 'Impresora de tickets', 'Térmica por Bluetooth o USB', Plan.negocio, (l) => l.printer),
   _Module(
     Icons.computer_outlined,
@@ -79,6 +87,7 @@ class MasScreen extends ConsumerWidget {
     final plan = ref.watch(planProvider);
     final store = ref.watch(storeProvider);
     final limits = plan.limits;
+    final can = ref.watch(permissionsProvider);
 
     return ListView(
       padding: const EdgeInsets.only(bottom: 24),
@@ -156,16 +165,17 @@ class MasScreen extends ConsumerWidget {
             style: GText.muted(size: 12.5),
           ),
         ),
-        ListTile(
-          contentPadding: const EdgeInsets.symmetric(horizontal: 16),
-          leading: const Icon(Icons.delete_outline, color: GColors.rojo),
-          title: Text('Borrar todo y empezar de nuevo', style: GText.sans(size: 14, color: GColors.rojo)),
-          subtitle: Text(
-            'Útil para quitar la tiendita de ejemplo. Lo que ya está en la nube no se borra.',
-            style: GText.muted(),
+        if (can.resetPhone)
+          ListTile(
+            contentPadding: const EdgeInsets.symmetric(horizontal: 16),
+            leading: const Icon(Icons.delete_outline, color: GColors.rojo),
+            title: Text('Borrar todo y empezar de nuevo', style: GText.sans(size: 14, color: GColors.rojo)),
+            subtitle: Text(
+              'Útil para quitar la tiendita de ejemplo. Lo que ya está en la nube no se borra.',
+              style: GText.muted(),
+            ),
+            onTap: () => _confirmReset(context, ref),
           ),
-          onTap: () => _confirmReset(context, ref),
-        ),
       ],
     );
   }

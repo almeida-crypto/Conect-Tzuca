@@ -7,6 +7,7 @@ import '../../core/money.dart';
 import '../../domain/models.dart';
 import '../../state/app_state.dart';
 import '../../state/store.dart';
+import '../../state/sync.dart';
 import '../../theme/colors.dart';
 import '../../theme/theme.dart';
 import '../inventario/product_form.dart';
@@ -235,12 +236,15 @@ class _ScanScreenState extends ConsumerState<ScanScreen> {
             style: GText.sans(size: 15, weight: FontWeight.w800, color: GColors.rojo),
           ),
           const SizedBox(height: 8),
-          GButton(
-            label: 'Darlo de alta',
-            kind: GButtonKind.dark,
-            icon: Icons.add,
-            onPressed: () => _register(last.code),
-          ),
+          if (ref.watch(permissionsProvider).editCatalog)
+            GButton(
+              label: 'Darlo de alta',
+              kind: GButtonKind.dark,
+              icon: Icons.add,
+              onPressed: () => _register(last.code),
+            )
+          else
+            Text('Pídele al dueño o a un administrador que lo dé de alta.', style: GText.muted(size: 13)),
         ],
       );
     }

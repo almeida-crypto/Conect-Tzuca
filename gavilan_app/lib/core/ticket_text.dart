@@ -15,7 +15,7 @@ String ticketText({
 }) {
   final b = StringBuffer()
     ..writeln('*$business*')
-    ..writeln('Folio A-${sale.folio.toString().padLeft(4, '0')} · ${dateTimeLabel(sale.createdAt)}')
+    ..writeln('Folio ${sale.folioLabel} · ${dateTimeLabel(sale.createdAt)}')
     ..writeln('');
   for (final l in sale.lines) {
     b.writeln('${qtyLabel(l.qty)} x ${l.name}  ${money(l.totalCents)}');

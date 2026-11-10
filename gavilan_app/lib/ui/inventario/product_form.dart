@@ -6,6 +6,7 @@ import '../../domain/models.dart';
 import '../../domain/plan.dart';
 import '../../state/app_state.dart';
 import '../../state/store.dart';
+import '../../state/sync.dart';
 import '../../theme/colors.dart';
 import '../../theme/theme.dart';
 import '../widgets/buttons.dart';
@@ -14,8 +15,15 @@ import '../scan/scan_screen.dart';
 import '../widgets/product_icons.dart';
 
 /// Abre la ficha de producto. Devuelve el producto guardado (null si se canceló).
-Future<Product?> showProductForm(BuildContext context, {Product? product, String? initialBarcode}) =>
-    showGSheet<Product>(context, (_) => _ProductForm(product: product, initialBarcode: initialBarcode));
+Future<Product?> showProductForm(BuildContext context, {Product? product, String? initialBarcode}) async {
+  // En la nube solo el dueño y los administradores cambian el catálogo; un cambio de un cajero se rechazaría.
+  if (!ProviderScope.containerOf(context).read(permissionsProvider).editCatalog) {
+    ScaffoldMessenger.of(context)
+        .showSnackBar(const SnackBar(content: Text('Solo el dueño o un administrador pueden cambiar los productos')));
+    return null;
+  }
+  return showGSheet<Product>(context, (_) => _ProductForm(product: product, initialBarcode: initialBarcode));
+}
 
 /// Revisa el límite de productos del plan antes de dar de alta uno nuevo.
 Future<bool> ensureRoomForProduct(BuildContext context, WidgetRef ref) async {

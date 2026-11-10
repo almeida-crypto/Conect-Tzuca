@@ -104,6 +104,7 @@ class Sale {
     this.method,
     this.receivedCents,
     this.customerId,
+    this.device,
   });
 
   final String id;
@@ -115,6 +116,12 @@ class Sale {
   final PayMethod? method;
   final int? receivedCents;
   final String? customerId;
+
+  /// Clave del teléfono que hizo la venta. Las ventas de antes no la tienen.
+  final String? device;
+
+  /// "K7-0043": cada teléfono lleva su propia numeración.
+  String get folioLabel => '${device ?? 'A'}-${folio.toString().padLeft(4, '0')}';
 
   int get totalCents => lines.fold(0, (a, l) => a + l.totalCents);
   int get changeCents => (receivedCents ?? totalCents) - totalCents;

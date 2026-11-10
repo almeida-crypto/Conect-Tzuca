@@ -6,6 +6,7 @@ import '../../domain/models.dart';
 import '../../domain/plan.dart';
 import '../../state/app_state.dart';
 import '../../state/store.dart';
+import '../../state/sync.dart';
 import '../../theme/colors.dart';
 import '../../theme/theme.dart';
 import '../widgets/buttons.dart';
@@ -53,7 +54,9 @@ class _InventarioScreenState extends ConsumerState<InventarioScreen> {
             low == 0 ? 'Nada por acabarse' : '$low ${low == 1 ? 'producto' : 'productos'} por acabarse',
             if (max != null) '${all.length} de $max productos',
           ].join(' · '),
-          trailing: GButton(label: 'Agregar', icon: Icons.add, onPressed: _add),
+          trailing: ref.watch(permissionsProvider).editCatalog
+              ? GButton(label: 'Agregar', icon: Icons.add, onPressed: _add)
+              : null,
         ),
         Padding(
           padding: const EdgeInsets.fromLTRB(16, 10, 16, 6),

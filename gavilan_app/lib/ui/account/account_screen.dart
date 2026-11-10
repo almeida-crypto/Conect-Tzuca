@@ -11,13 +11,16 @@ import '../widgets/buttons.dart';
 
 /// Cuenta y respaldo en la nube. Entrar es opcional: sin cuenta todo funciona en el teléfono.
 class AccountScreen extends ConsumerStatefulWidget {
-  const AccountScreen({super.key, this.notice, this.autoLink = false});
+  const AccountScreen({super.key, this.notice, this.autoLink = false, this.join = false});
 
   /// Aviso al abrir, por ejemplo al volver del correo de confirmación.
   final String? notice;
 
   /// Enlaza el teléfono en cuanto abre, si ya hay sesión.
   final bool autoLink;
+
+  /// Viene de "Me invitaron a un negocio": pide el código de invitación.
+  final bool join;
 
   @override
   ConsumerState<AccountScreen> createState() => _AccountScreenState();
@@ -26,7 +29,8 @@ class AccountScreen extends ConsumerStatefulWidget {
 class _AccountScreenState extends ConsumerState<AccountScreen> {
   final _email = TextEditingController();
   final _password = TextEditingController();
-  bool _creating = false;
+  final _code = TextEditingController();
+  late bool _creating = widget.join;
   bool _working = false;
   String? _error;
   String? _info;
@@ -47,6 +51,7 @@ class _AccountScreenState extends ConsumerState<AccountScreen> {
   void dispose() {
     _email.dispose();
     _password.dispose();
+    _code.dispose();
     super.dispose();
   }
 
@@ -71,6 +76,8 @@ class _AccountScreenState extends ConsumerState<AccountScreen> {
       if (_creating) {
         final signedIn = await _sync.signUp(email, _password.text);
         if (!signedIn) {
+          // Al volver del correo se usa el código para unirse.
+          if (_inviteCode != null) _sync.pendingInvite = _inviteCode;
           setState(
             () => _info =
                 'Te mandamos un correo a $email. Ábrelo en este celular y toca el enlace: la app se abre con tu cuenta lista.',
@@ -113,11 +120,17 @@ class _AccountScreenState extends ConsumerState<AccountScreen> {
     }
   }
 
-  /// Enlaza el teléfono con la cuenta y explica qué pasó.
+  String? get _inviteCode {
+    final code = _code.text.trim();
+    return code.isEmpty ? _sync.pendingInvite : code;
+  }
+
+  /// Enlaza el teléfono con la cuenta (o lo une al negocio del código) y explica qué pasó.
   Future<void> _link() async {
     setState(() => _working = true);
     try {
-      final outcome = await _sync.ensureLinked();
+      final code = _inviteCode;
+      final outcome = code == null ? await _sync.ensureLinked() : await _sync.joinWithCode(code);
       if (!mounted) return;
       final store = ref.read(storeProvider);
       switch (outcome.result) {
@@ -126,7 +139,9 @@ class _AccountScreenState extends ConsumerState<AccountScreen> {
         case LinkResult.synced:
           _done('Listo: este teléfono está al día con tu cuenta.');
         case LinkResult.downloaded:
-          _done('Bajamos ${outcome.remoteName} a este teléfono.');
+          _done(
+            code == null ? 'Bajamos ${outcome.remoteName} a este teléfono.' : 'Ya eres parte de ${outcome.remoteName}.',
+          );
         case LinkResult.needsBusiness:
           setState(
             () => _info = store.isDemo
@@ -209,7 +224,10 @@ class _AccountScreenState extends ConsumerState<AccountScreen> {
       appBar: AppBar(
         backgroundColor: GColors.papel,
         surfaceTintColor: Colors.transparent,
-        title: Text('Cuenta y respaldo', style: GText.sans(size: 17, weight: FontWeight.w800)),
+        title: Text(
+          widget.join && !sync.signedIn ? 'Unirme a un negocio' : 'Cuenta y respaldo',
+          style: GText.sans(size: 17, weight: FontWeight.w800),
+        ),
       ),
       body: SafeArea(
         child: ListView(
@@ -245,13 +263,26 @@ class _AccountScreenState extends ConsumerState<AccountScreen> {
     );
   }
 
+  Widget _codeField() => TextField(
+    controller: _code,
+    textCapitalization: TextCapitalization.characters,
+    autocorrect: false,
+    onChanged: (_) => setState(() => _error = null),
+    style: GText.mono(size: 16, weight: FontWeight.w700),
+    decoration: const InputDecoration(labelText: 'Código de invitación', hintText: 'ABCD-EFGH'),
+  );
+
   List<Widget> _loginForm() => [
     Text(
-      'Con una cuenta, tus ventas, fiados y cortes se respaldan en la nube y puedes usarlos en otro teléfono. '
-      'Sin cuenta, todo sigue funcionando en este teléfono.',
+      widget.join
+          ? 'Escribe el código que te mandó el dueño del negocio. Después crea tu cuenta (o entra, si ya tienes una) '
+                'y la app baja el negocio a este teléfono.'
+          : 'Con una cuenta, tus ventas, fiados y cortes se respaldan en la nube y puedes usarlos en otro teléfono. '
+                'Sin cuenta, todo sigue funcionando en este teléfono.',
       style: GText.sans(size: 14, weight: FontWeight.w400, color: GColors.tintaSuave),
     ),
     const SizedBox(height: 18),
+    if (widget.join) ...[_codeField(), const SizedBox(height: 10)],
     TextField(
       controller: _email,
       keyboardType: TextInputType.emailAddress,
@@ -339,13 +370,20 @@ class _AccountScreenState extends ConsumerState<AccountScreen> {
         ),
       ),
       const SizedBox(height: 16),
-      if (!sync.linked)
+      if (!sync.linked) ...[
+        Text(
+          '¿Te invitaron a un negocio? Escribe el código. Si no, enlaza este teléfono con tu cuenta.',
+          style: GText.muted(size: 13),
+        ),
+        const SizedBox(height: 8),
+        _codeField(),
+        const SizedBox(height: 10),
         GButton(
-          label: _working ? 'Un momento…' : 'Enlazar este teléfono',
+          label: _working ? 'Un momento…' : (_code.text.trim().isEmpty ? 'Enlazar este teléfono' : 'Unirme al negocio'),
           expand: true,
           onPressed: _working ? null : _link,
-        )
-      else
+        ),
+      ] else
         GButton(
           label: sync.busy ? 'Respaldando…' : 'Respaldar ahora',
           kind: GButtonKind.money,

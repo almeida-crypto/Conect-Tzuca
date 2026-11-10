@@ -2,6 +2,7 @@ import 'dart:async';
 
 import 'package:gavilan/data/remote_mapping.dart';
 import 'package:gavilan/data/sync_remote.dart';
+import 'package:gavilan/domain/team.dart';
 
 /// Servidor simulado que se comporta como el Supabase del proyecto:
 /// - guarda filas por negocio y marca synced_at con la hora del servidor;
@@ -10,6 +11,8 @@ import 'package:gavilan/data/sync_remote.dart';
 class FakeServer {
   final Map<String, Map<String, Map<String, Object?>>> tables = {};
   final Map<String, String> membership = {}; // usuario -> negocio
+  final Map<String, MemberRole> roles = {}; // usuario -> rol
+  final Map<String, ({String business, MemberRole role, String name})> invites = {}; // código -> invitación
   final Set<String> rejectTables = {};
   DateTime _clock = DateTime.utc(2026, 10, 26, 12);
   int writes = 0;
@@ -107,11 +110,11 @@ class FakeRemote implements SyncRemote {
   }
 
   @override
-  Future<({String id, String name})?> myBusiness() async {
+  Future<({String id, String name, MemberRole role})?> myBusiness() async {
     _check();
     final id = server.membership[_user];
     if (id == null) return null;
-    return (id: id, name: server.table('businesses')[id]!['name']! as String);
+    return (id: id, name: server.table('businesses')[id]!['name']! as String, role: server.roles[_user]!);
   }
 
   @override
@@ -119,6 +122,47 @@ class FakeRemote implements SyncRemote {
     _check();
     server._write('businesses', {'id': id, 'name': name});
     server.membership[_user!] = id;
+    server.roles[_user!] = MemberRole.owner;
+  }
+
+  @override
+  Future<void> acceptInvite(String code) async {
+    _check();
+    final invite = server.invites.remove(code.replaceAll('-', '').toUpperCase());
+    if (invite == null) throw const SyncException(SyncFailure.rejected, 'Ese código no existe');
+    if (server.membership.containsKey(_user)) throw const SyncException(SyncFailure.rejected, 'Ya perteneces');
+    server.membership[_user!] = invite.business;
+    server.roles[_user!] = invite.role;
+  }
+
+  @override
+  Future<String> createInvite(String businessId, MemberRole role, String name) async {
+    _check();
+    final code = 'CODE${server.invites.length.toString().padLeft(4, '0')}';
+    server.invites[code] = (business: businessId, role: role, name: name);
+    return code;
+  }
+
+  @override
+  Future<List<TeamMember>> members(String businessId) async => [
+    for (final e in server.membership.entries)
+      if (e.value == businessId) TeamMember(id: e.key, userId: e.key, role: server.roles[e.key]!),
+  ];
+
+  @override
+  Future<List<TeamInvite>> invites(String businessId) async => [
+    for (final e in server.invites.entries)
+      if (e.value.business == businessId)
+        TeamInvite(id: e.key, code: e.key, role: e.value.role, expiresAt: DateTime(2099)),
+  ];
+
+  @override
+  Future<void> revokeInvite(String inviteId) async => server.invites.remove(inviteId);
+
+  @override
+  Future<void> removeMember(String memberId) async {
+    server.membership.remove(memberId);
+    server.roles.remove(memberId);
   }
 
   @override
@@ -128,6 +172,10 @@ class FakeRemote implements SyncRemote {
       throw SyncException(SyncFailure.rejected, 'rechazado: $table');
     }
     if (server.membership[_user] != businessId) throw const SyncException(SyncFailure.rejected, 'RLS');
+    // Como en Supabase: el catálogo solo lo cambian dueño y administrador.
+    if (table == 'products' && !{MemberRole.owner, MemberRole.admin}.contains(server.roles[_user])) {
+      throw const SyncException(SyncFailure.rejected, 'RLS: products');
+    }
     for (final r in rows) {
       server._write(table, {...r, 'business_id': businessId});
     }

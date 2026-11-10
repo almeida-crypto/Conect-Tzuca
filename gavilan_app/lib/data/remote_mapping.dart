@@ -113,6 +113,7 @@ List<RemoteChange> saleToRemote(Sale s, {Set<String> stockTracked = const {}}) {
     'cash_session_id': s.sessionId,
     'customer_id': s.customerId,
     'folio': '${s.folio}',
+    'device_id': s.device,
     'status': s.kind == SaleKind.fiada ? 'credit' : 'paid',
     'subtotal': _pesos(s.totalCents),
     'discount': 0,
@@ -199,6 +200,7 @@ SaleRow saleFromRemote(RemoteRow r) => SaleRow(
   method: _method(r['pay_method']),
   receivedCents: _centsOrNull(r['received_amount']),
   customerId: r['customer_id'] as String?,
+  device: r['device_id'] as String?,
 );
 
 SaleLineRow saleLineFromRemote(RemoteRow r) => SaleLineRow(

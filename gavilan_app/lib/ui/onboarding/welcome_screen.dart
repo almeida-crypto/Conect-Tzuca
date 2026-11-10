@@ -99,6 +99,15 @@ class _WelcomeScreenState extends ConsumerState<WelcomeScreen> {
                         style: GText.sans(size: 14, weight: FontWeight.w800, color: GColors.oxido),
                       ),
                     ),
+                    TextButton(
+                      onPressed: () =>
+                          Navigator.of(context)
+                              .push(MaterialPageRoute(builder: (_) => const AccountScreen(join: true))),
+                      child: Text(
+                        'Me invitaron a un negocio',
+                        style: GText.sans(size: 14, weight: FontWeight.w800, color: GColors.monte),
+                      ),
+                    ),
                   ],
                   const SizedBox(height: 22),
                   const Divider(color: GColors.linea),

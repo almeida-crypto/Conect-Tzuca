@@ -3295,8 +3295,27 @@ class $SalesTableTable extends SalesTable with TableInfo<$SalesTableTable, SaleR
     type: DriftSqlType.string,
     requiredDuringInsert: false,
   );
+  static const VerificationMeta _deviceMeta = const VerificationMeta('device');
   @override
-  List<GeneratedColumn> get $columns => [id, folio, createdAt, kind, sessionId, method, receivedCents, customerId];
+  late final GeneratedColumn<String> device = GeneratedColumn<String>(
+    'device',
+    aliasedName,
+    true,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+  );
+  @override
+  List<GeneratedColumn> get $columns => [
+    id,
+    folio,
+    createdAt,
+    kind,
+    sessionId,
+    method,
+    receivedCents,
+    customerId,
+    device,
+  ];
   @override
   String get aliasedName => _alias ?? actualTableName;
   @override
@@ -3333,6 +3352,9 @@ class $SalesTableTable extends SalesTable with TableInfo<$SalesTableTable, SaleR
     if (data.containsKey('customer_id')) {
       context.handle(_customerIdMeta, customerId.isAcceptableOrUnknown(data['customer_id']!, _customerIdMeta));
     }
+    if (data.containsKey('device')) {
+      context.handle(_deviceMeta, device.isAcceptableOrUnknown(data['device']!, _deviceMeta));
+    }
     return context;
   }
 
@@ -3354,6 +3376,7 @@ class $SalesTableTable extends SalesTable with TableInfo<$SalesTableTable, SaleR
       ),
       receivedCents: attachedDatabase.typeMapping.read(DriftSqlType.int, data['${effectivePrefix}received_cents']),
       customerId: attachedDatabase.typeMapping.read(DriftSqlType.string, data['${effectivePrefix}customer_id']),
+      device: attachedDatabase.typeMapping.read(DriftSqlType.string, data['${effectivePrefix}device']),
     );
   }
 
@@ -3382,6 +3405,7 @@ class SaleRow extends DataClass implements Insertable<SaleRow> {
   final PayMethod? method;
   final int? receivedCents;
   final String? customerId;
+  final String? device;
   const SaleRow({
     required this.id,
     required this.folio,
@@ -3391,6 +3415,7 @@ class SaleRow extends DataClass implements Insertable<SaleRow> {
     this.method,
     this.receivedCents,
     this.customerId,
+    this.device,
   });
   @override
   Map<String, Expression> toColumns(bool nullToAbsent) {
@@ -3413,6 +3438,9 @@ class SaleRow extends DataClass implements Insertable<SaleRow> {
     if (!nullToAbsent || customerId != null) {
       map['customer_id'] = Variable<String>(customerId);
     }
+    if (!nullToAbsent || device != null) {
+      map['device'] = Variable<String>(device);
+    }
     return map;
   }
 
@@ -3426,6 +3454,7 @@ class SaleRow extends DataClass implements Insertable<SaleRow> {
       method: method == null && nullToAbsent ? const Value.absent() : Value(method),
       receivedCents: receivedCents == null && nullToAbsent ? const Value.absent() : Value(receivedCents),
       customerId: customerId == null && nullToAbsent ? const Value.absent() : Value(customerId),
+      device: device == null && nullToAbsent ? const Value.absent() : Value(device),
     );
   }
 
@@ -3440,6 +3469,7 @@ class SaleRow extends DataClass implements Insertable<SaleRow> {
       method: $SalesTableTable.$convertermethodn.fromJson(serializer.fromJson<String?>(json['method'])),
       receivedCents: serializer.fromJson<int?>(json['receivedCents']),
       customerId: serializer.fromJson<String?>(json['customerId']),
+      device: serializer.fromJson<String?>(json['device']),
     );
   }
   @override
@@ -3454,6 +3484,7 @@ class SaleRow extends DataClass implements Insertable<SaleRow> {
       'method': serializer.toJson<String?>($SalesTableTable.$convertermethodn.toJson(method)),
       'receivedCents': serializer.toJson<int?>(receivedCents),
       'customerId': serializer.toJson<String?>(customerId),
+      'device': serializer.toJson<String?>(device),
     };
   }
 
@@ -3466,6 +3497,7 @@ class SaleRow extends DataClass implements Insertable<SaleRow> {
     Value<PayMethod?> method = const Value.absent(),
     Value<int?> receivedCents = const Value.absent(),
     Value<String?> customerId = const Value.absent(),
+    Value<String?> device = const Value.absent(),
   }) => SaleRow(
     id: id ?? this.id,
     folio: folio ?? this.folio,
@@ -3475,6 +3507,7 @@ class SaleRow extends DataClass implements Insertable<SaleRow> {
     method: method.present ? method.value : this.method,
     receivedCents: receivedCents.present ? receivedCents.value : this.receivedCents,
     customerId: customerId.present ? customerId.value : this.customerId,
+    device: device.present ? device.value : this.device,
   );
   SaleRow copyWithCompanion(SalesTableCompanion data) {
     return SaleRow(
@@ -3486,6 +3519,7 @@ class SaleRow extends DataClass implements Insertable<SaleRow> {
       method: data.method.present ? data.method.value : this.method,
       receivedCents: data.receivedCents.present ? data.receivedCents.value : this.receivedCents,
       customerId: data.customerId.present ? data.customerId.value : this.customerId,
+      device: data.device.present ? data.device.value : this.device,
     );
   }
 
@@ -3499,13 +3533,14 @@ class SaleRow extends DataClass implements Insertable<SaleRow> {
           ..write('sessionId: $sessionId, ')
           ..write('method: $method, ')
           ..write('receivedCents: $receivedCents, ')
-          ..write('customerId: $customerId')
+          ..write('customerId: $customerId, ')
+          ..write('device: $device')
           ..write(')'))
         .toString();
   }
 
   @override
-  int get hashCode => Object.hash(id, folio, createdAt, kind, sessionId, method, receivedCents, customerId);
+  int get hashCode => Object.hash(id, folio, createdAt, kind, sessionId, method, receivedCents, customerId, device);
   @override
   bool operator ==(Object other) =>
       identical(this, other) ||
@@ -3517,7 +3552,8 @@ class SaleRow extends DataClass implements Insertable<SaleRow> {
           other.sessionId == this.sessionId &&
           other.method == this.method &&
           other.receivedCents == this.receivedCents &&
-          other.customerId == this.customerId);
+          other.customerId == this.customerId &&
+          other.device == this.device);
 }
 
 class SalesTableCompanion extends UpdateCompanion<SaleRow> {
@@ -3529,6 +3565,7 @@ class SalesTableCompanion extends UpdateCompanion<SaleRow> {
   final Value<PayMethod?> method;
   final Value<int?> receivedCents;
   final Value<String?> customerId;
+  final Value<String?> device;
   final Value<int> rowid;
   const SalesTableCompanion({
     this.id = const Value.absent(),
@@ -3539,6 +3576,7 @@ class SalesTableCompanion extends UpdateCompanion<SaleRow> {
     this.method = const Value.absent(),
     this.receivedCents = const Value.absent(),
     this.customerId = const Value.absent(),
+    this.device = const Value.absent(),
     this.rowid = const Value.absent(),
   });
   SalesTableCompanion.insert({
@@ -3550,6 +3588,7 @@ class SalesTableCompanion extends UpdateCompanion<SaleRow> {
     this.method = const Value.absent(),
     this.receivedCents = const Value.absent(),
     this.customerId = const Value.absent(),
+    this.device = const Value.absent(),
     this.rowid = const Value.absent(),
   }) : id = Value(id),
        folio = Value(folio),
@@ -3564,6 +3603,7 @@ class SalesTableCompanion extends UpdateCompanion<SaleRow> {
     Expression<String>? method,
     Expression<int>? receivedCents,
     Expression<String>? customerId,
+    Expression<String>? device,
     Expression<int>? rowid,
   }) {
     return RawValuesInsertable({
@@ -3575,6 +3615,7 @@ class SalesTableCompanion extends UpdateCompanion<SaleRow> {
       if (method != null) 'method': method,
       if (receivedCents != null) 'received_cents': receivedCents,
       if (customerId != null) 'customer_id': customerId,
+      if (device != null) 'device': device,
       if (rowid != null) 'rowid': rowid,
     });
   }
@@ -3588,6 +3629,7 @@ class SalesTableCompanion extends UpdateCompanion<SaleRow> {
     Value<PayMethod?>? method,
     Value<int?>? receivedCents,
     Value<String?>? customerId,
+    Value<String?>? device,
     Value<int>? rowid,
   }) {
     return SalesTableCompanion(
@@ -3599,6 +3641,7 @@ class SalesTableCompanion extends UpdateCompanion<SaleRow> {
       method: method ?? this.method,
       receivedCents: receivedCents ?? this.receivedCents,
       customerId: customerId ?? this.customerId,
+      device: device ?? this.device,
       rowid: rowid ?? this.rowid,
     );
   }
@@ -3630,6 +3673,9 @@ class SalesTableCompanion extends UpdateCompanion<SaleRow> {
     if (customerId.present) {
       map['customer_id'] = Variable<String>(customerId.value);
     }
+    if (device.present) {
+      map['device'] = Variable<String>(device.value);
+    }
     if (rowid.present) {
       map['rowid'] = Variable<int>(rowid.value);
     }
@@ -3647,6 +3693,7 @@ class SalesTableCompanion extends UpdateCompanion<SaleRow> {
           ..write('method: $method, ')
           ..write('receivedCents: $receivedCents, ')
           ..write('customerId: $customerId, ')
+          ..write('device: $device, ')
           ..write('rowid: $rowid')
           ..write(')'))
         .toString();
@@ -7046,6 +7093,7 @@ typedef $$SalesTableTableCreateCompanionBuilder = SalesTableCompanion Function({
   Value<PayMethod?> method,
   Value<int?> receivedCents,
   Value<String?> customerId,
+  Value<String?> device,
   Value<int> rowid,
 });
 typedef $$SalesTableTableUpdateCompanionBuilder = SalesTableCompanion Function({
@@ -7057,6 +7105,7 @@ typedef $$SalesTableTableUpdateCompanionBuilder = SalesTableCompanion Function({
   Value<PayMethod?> method,
   Value<int?> receivedCents,
   Value<String?> customerId,
+  Value<String?> device,
   Value<int> rowid,
 });
 
@@ -7089,6 +7138,9 @@ class $$SalesTableTableFilterComposer extends Composer<_$GavilanDb, $SalesTableT
 
   ColumnFilters<String> get customerId =>
       $composableBuilder(column: $table.customerId, builder: (column) => ColumnFilters(column));
+
+  ColumnFilters<String> get device =>
+      $composableBuilder(column: $table.device, builder: (column) => ColumnFilters(column));
 }
 
 class $$SalesTableTableOrderingComposer extends Composer<_$GavilanDb, $SalesTableTable> {
@@ -7121,6 +7173,9 @@ class $$SalesTableTableOrderingComposer extends Composer<_$GavilanDb, $SalesTabl
 
   ColumnOrderings<String> get customerId =>
       $composableBuilder(column: $table.customerId, builder: (column) => ColumnOrderings(column));
+
+  ColumnOrderings<String> get device =>
+      $composableBuilder(column: $table.device, builder: (column) => ColumnOrderings(column));
 }
 
 class $$SalesTableTableAnnotationComposer extends Composer<_$GavilanDb, $SalesTableTable> {
@@ -7149,6 +7204,8 @@ class $$SalesTableTableAnnotationComposer extends Composer<_$GavilanDb, $SalesTa
       $composableBuilder(column: $table.receivedCents, builder: (column) => column);
 
   GeneratedColumn<String> get customerId => $composableBuilder(column: $table.customerId, builder: (column) => column);
+
+  GeneratedColumn<String> get device => $composableBuilder(column: $table.device, builder: (column) => column);
 }
 
 class $$SalesTableTableTableManager
@@ -7184,6 +7241,7 @@ class $$SalesTableTableTableManager
                 Value<PayMethod?> method = const Value.absent(),
                 Value<int?> receivedCents = const Value.absent(),
                 Value<String?> customerId = const Value.absent(),
+                Value<String?> device = const Value.absent(),
                 Value<int> rowid = const Value.absent(),
               }) => SalesTableCompanion(
                 id: id,
@@ -7194,6 +7252,7 @@ class $$SalesTableTableTableManager
                 method: method,
                 receivedCents: receivedCents,
                 customerId: customerId,
+                device: device,
                 rowid: rowid,
               ),
           createCompanionCallback:
@@ -7206,6 +7265,7 @@ class $$SalesTableTableTableManager
                 Value<PayMethod?> method = const Value.absent(),
                 Value<int?> receivedCents = const Value.absent(),
                 Value<String?> customerId = const Value.absent(),
+                Value<String?> device = const Value.absent(),
                 Value<int> rowid = const Value.absent(),
               }) => SalesTableCompanion.insert(
                 id: id,
@@ -7216,6 +7276,7 @@ class $$SalesTableTableTableManager
                 method: method,
                 receivedCents: receivedCents,
                 customerId: customerId,
+                device: device,
                 rowid: rowid,
               ),
           withReferenceMapper: (p0) => p0

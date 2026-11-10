@@ -34,3 +34,7 @@ Decisiones ya tomadas, con su razón. Antes de cambiar alguna, revisa por qué s
 | 28 | El gavilán del inicio es la ilustración de Flow, recortada en capas PNG | Se ve mucho mejor que el dibujo hecho con código. Flow no exporta animación (Lottie o Rive) y un video taparía el nombre; las capas conservan la animación de siempre | 01/11/2026 |
 | 29 | Las fuentes van dentro de la app y no se descargan | Muchos negocios abren la app por primera vez sin buena señal; sin las fuentes la interfaz se veía distinta | 01/11/2026 |
 | 30 | Los correos de la cuenta abren la app con un enlace propio (`mx.gavilan.gavilan://auth/...`) en lugar de una página web | No hace falta hospedar páginas; la app abre la sesión y enlaza el teléfono sola. Se abre en el mismo celular donde se pidió el correo | 01/11/2026 |
+| 31 | El equipo se une con un **código de invitación** de 8 letras, no por correo | No depende de que lleguen correos y se comparte por WhatsApp, como se hace en Tzucacab | 09/11/2026 |
+| 32 | Una cuenta pertenece a un solo negocio | La app enlaza un teléfono con un negocio; varios negocios por cuenta complica todo sin que nadie lo pida aún | 09/11/2026 |
+| 33 | Cada teléfono numera sus propios folios con una clave de 2 letras | Dos teléfonos sin internet nunca repiten folio y no hace falta coordinarlos | 09/11/2026 |
+| 34 | El rol se queda guardado aunque se cierre la sesión | Que un cajero no gane permisos de dueño con solo cerrar sesión | 09/11/2026 |

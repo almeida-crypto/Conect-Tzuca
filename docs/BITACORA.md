@@ -274,3 +274,42 @@ Se abren desde **Más → Módulos** con el plan Emprendedor o superior. Los tre
   - Encabezado con el gavilán.
   - Un enlace vencido abierto con `adb` muestra "El enlace ya venció o ya se usó".
 - **No probado:** el correo real de confirmación y el de contraseña nueva, porque falta el ajuste de Redirect URLs en Supabase.
+- **Después:** el usuario agregó la dirección en Redirect URLs y probó "Olvidé mi contraseña" en su celular. Funcionó de punta a punta: llegó el correo, se abrió la app y cambió la contraseña.
+
+## 9 de noviembre de 2026 · Sesión 5
+
+### Supabase estaba pausado
+- El plan gratis pausó proyecto-Gavilan tras 7 días sin uso y se reactivó desde aquí. Los datos seguían completos.
+- Queda como pendiente **Alta**: pasar a plan Pro antes de tener clientes.
+
+### Varios celulares en un negocio
+- **Folios por teléfono:** cada teléfono genera una clave de 2 letras (sin I, O, 0 ni 1) y numera sus ventas: "K7-0043".
+  - Dos teléfonos sin internet ya no repiten folio.
+  - La clave sube como `device_id` y se queda aunque se borre todo.
+  - La base local pasa a la versión 4 (columna `device` en ventas).
+- **Equipo con código de invitación** (migración `0005_team`):
+  - En **Más → Equipo y roles** (plan Negocio) el dueño ve quién usa la app y crea códigos para cajeros o administradores.
+  - El código se manda por WhatsApp con instrucciones. Sirve una vez y vence en 7 días.
+  - Quien lo recibe toca **"Me invitaron a un negocio"**, escribe el código, crea su cuenta y la app baja el negocio. Si tiene que confirmar el correo, el código se guarda y se usa al volver.
+  - El dueño puede cancelar códigos y quitar a alguien del equipo.
+  - En la base ya nadie puede darse de alta ni cambiarse de rol directo: solo por las funciones, que revisan permisos.
+- **Permisos en la app según el rol:**
+  - El cajero vende, cobra fiados y apartados y hace el corte.
+  - No puede dar de alta ni editar productos, ni siquiera desde el escáner, ni borrar todo.
+  - El rol se revisa al abrir la app y se queda aunque cierre sesión.
+
+### Verificación
+- **En el servidor**, dentro de una transacción que se deshizo:
+  - El dueño crea un código de 8 letras.
+  - Un código inventado da `invalid_invite`.
+  - El dueño no puede usar su propio código (`already_member`).
+  - Un extraño no puede invitar ni ver códigos.
+  - Nadie puede insertarse en `business_members` directo.
+- 41 pruebas pasan. Las nuevas cubren:
+  - Folios de dos teléfonos sin internet.
+  - El flujo completo: el dueño invita, el cajero se une, vende y la venta llega al dueño; el cajero no puede editar el catálogo; un código usado ya no sirve y el dueño quita al cajero.
+- **En el emulador:**
+  - Bienvenida con "Me invitaron a un negocio".
+  - Formulario "Unirme a un negocio" con el campo del código.
+  - "Equipo y roles" sin cuenta pide respaldar primero.
+- **No probado:** el flujo con dos cuentas reales. No se crean cuentas desde aquí; lo prueba el usuario con su celular y otro.

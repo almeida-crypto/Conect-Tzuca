@@ -10,6 +10,7 @@ Proyecto de Supabase **proyecto-Gavilan** (`jveklinfbptnxmtavnez`, región us-ea
 | [0002_lock_down_functions.sql](../pos-backend/supabase/migrations/0002_lock_down_functions.sql) | `pos_lock_down_functions` | Quita permisos de ejecución sin sesión a las funciones auxiliares |
 | [0003_sync.sql](../pos-backend/supabase/migrations/0003_sync.sql) | `pos_sync` | Columnas para la app, `synced_at` con la hora del servidor, `create_business` con id y candado del plan |
 | [0004_modules_sync.sql](../pos-backend/supabase/migrations/0004_modules_sync.sql) | `pos_modules_sync` | `synced_at` en pacas, apartados y tandas, y turno de caja en ventas de paca y abonos de apartado |
+| [0005_team.sql](../pos-backend/supabase/migrations/0005_team.sql) | `pos_team` | Invitaciones con código (`business_invites`), funciones del equipo y sin altas ni cambios directos en `business_members` |
 
 Toda migración nueva va en `pos-backend/supabase/migrations/` con número consecutivo y se registra aquí.
 
@@ -17,7 +18,7 @@ Toda migración nueva va en `pos-backend/supabase/migrations/` con número conse
 
 | Grupo | Tablas |
 |---|---|
-| Núcleo | `businesses`, `business_members` |
+| Núcleo | `businesses`, `business_members`, `business_invites` |
 | Catálogo | `categories`, `products`, `inventory_movements` |
 | Clientes y fiados | `customers`, `credit_entries` (+ vista `customer_balances`) |
 | Ventas | `sales`, `sale_items`, `sale_payments` |
@@ -44,6 +45,11 @@ Las existencias se calculan desde `inventory_movements`: un trigger actualiza `p
 | `protect_business_plan()` | Trigger: impide cambiar `businesses.plan` desde la app; solo el sistema de cobro puede |
 | `is_member(negocio)` | Usada por RLS: ¿el usuario pertenece al negocio? |
 | `has_role(negocio, roles)` | Usada por RLS: ¿tiene alguno de estos roles? |
+| `create_invite(negocio, rol, nombre)` | Dueño o administrador crean un código de 8 letras que vence en 7 días. Solo el dueño invita administradores |
+| `accept_invite(código)` | Quien entra con su cuenta se une al negocio con el rol del código. Una cuenta pertenece a un solo negocio |
+| `revoke_invite(id)` | Cancela un código sin usar |
+| `remove_member(id)` | Quita a alguien del equipo (nunca al dueño; a un administrador, solo el dueño) |
+| `new_invite_code()` | Interna: genera el código con `gen_random_bytes`. Nadie la puede llamar por la API |
 | `apply_stock_movement()` | Trigger que actualiza existencias. No se puede llamar por la API |
 | `set_updated_at()` | Trigger de `updated_at` |
 
@@ -54,7 +60,8 @@ Roles: `owner` (dueño), `admin`, `cashier` (cajero), `waiter` (mesero) y `kitch
 | Qué | Leer | Escribir |
 |---|---|---|
 | Negocio | Miembros | Dueño y admin (no se crea ni borra directo) |
-| Equipo | Miembros | Dueño y admin |
+| Equipo | Miembros | Solo por funciones (`accept_invite`, `remove_member`) |
+| Invitaciones | Dueño y admin | Solo por funciones (`create_invite`, `revoke_invite`) |
 | Catálogo y mesas | Miembros | Dueño y admin |
 | Ventas, caja, fiados, apartados, lotes y tandas | Miembros | Dueño, admin y cajero |
 | Pedidos y cocina | Miembros | Todos los roles |
@@ -65,9 +72,12 @@ Realtime está activo en `orders` y `order_items`, para la pantalla de cocina.
 
 ## Avisos de seguridad de Supabase
 
-Quedan 3 avisos "WARN" que son **intencionales**:
-- `is_member` y `has_role` las pueden llamar usuarios con sesión. RLS las necesita, y solo responden sobre el propio usuario.
-- `create_business` la pueden llamar usuarios con sesión. Es la forma prevista de crear un negocio.
+Quedan 7 avisos "WARN" de funciones que pueden llamar los usuarios con sesión. Son **intencionales**:
+- `is_member` y `has_role`: RLS las necesita, y solo responden sobre el propio usuario.
+- `create_business`: es la forma prevista de crear un negocio.
+- `create_invite`, `accept_invite`, `revoke_invite` y `remove_member`: son la única forma de manejar el equipo, y revisan el rol por dentro.
+
+Aparte queda el aviso de "protección contra contraseñas filtradas". Es un ajuste del panel que activa el dueño del proyecto.
 
 ## Pendientes de la base
 
@@ -88,10 +98,10 @@ La app guarda todo en SQLite dentro del teléfono (`gavilan_app/lib/data/databas
 |---|---|
 | `products` | Productos con existencia, precio, costo, icono y código |
 | `customers` | Clientes |
-| `sales` y `sale_items` | Ventas y sus renglones (incluye la forma de pago en `sales`) |
+| `sales` y `sale_items` | Ventas y sus renglones (incluye la forma de pago y la clave del teléfono, `device`, versión 4) |
 | `credit_entries` | Cargos y abonos de fiado |
 | `cash_sessions` y `cash_movements` | Cortes, gastos y entradas |
-| `meta` | Nombre del negocio, siguiente folio y plan |
+| `meta` | Nombre del negocio, siguiente folio, plan, clave del teléfono (`device_code`) y rol de la cuenta (`member_role`) |
 | `lots` y `lot_sales` | Pacas y lotes, y lo cobrado de cada una (versión 3) |
 | `layaways` y `layaway_payments` | Apartados, anticipos y abonos (versión 3) |
 | `batches` y `batch_orders` | Tandas y sus pedidos (versión 3) |
@@ -128,5 +138,6 @@ No hay servicios externos: la app habla directo con Supabase (`gavilan_app/lib/s
 | venta pagada o fiada | `status` `paid` o `credit` |
 | renglón (venta + posición) | `sale_items.id` estable, generado de la venta y la posición |
 | folio (número) | `folio` (texto) |
+| clave del teléfono | `device_id`: el folio que se ve es "clave-número" (K7-0043). Ventas viejas sin clave se ven como "A-" |
 
 Pendiente: la app guarda la forma de pago en `sales.pay_method`; `sale_payments` (pagos mixtos) todavía no se usa.

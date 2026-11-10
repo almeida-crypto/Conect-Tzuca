@@ -4,6 +4,7 @@ import 'package:drift/drift.dart';
 
 import '../domain/models.dart';
 import '../domain/plan.dart';
+import '../domain/team.dart';
 import '../state/store.dart';
 import 'database.dart';
 import 'remote_mapping.dart';
@@ -18,6 +19,9 @@ class LoadedData {
 
 /// Dónde se guardan los datos. Las pantallas solo hablan con esta interfaz.
 abstract class StoreRepository {
+  /// Clave corta de este teléfono para los folios, por ejemplo "K7".
+  String get deviceCode;
+
   /// null si todavía no hay negocio (primer arranque).
   Future<LoadedData?> load();
 
@@ -55,6 +59,11 @@ abstract class SyncStore {
   /// Negocio de Supabase al que está enlazado este teléfono (null = solo local).
   String? get linkedBusinessId;
 
+  /// Rol de la cuenta en ese negocio (null = teléfono sin cuenta: es del dueño).
+  /// Se queda aunque se cierre la sesión, para que un cajero no gane permisos así.
+  MemberRole? get role;
+  Future<void> setRole(MemberRole? role);
+
   /// Enlaza con la nube. Con [uploadAll] anota todo lo que hay para subirlo.
   Future<void> link(String businessId, {StoreState? uploadAll});
 
@@ -75,6 +84,9 @@ abstract class SyncStore {
 
 /// Sin almacenamiento: para la vista previa en navegador y algunas pruebas.
 class MemoryRepository implements StoreRepository {
+  @override
+  final String deviceCode = newDeviceCode();
+
   @override
   Future<LoadedData?> load() async => null;
   @override
@@ -124,6 +136,8 @@ const _kDemo = 'is_demo';
 const _kFolio = 'next_folio';
 const _kPlan = 'plan';
 const _kLinked = 'linked_business';
+const _kDevice = 'device_code';
+const _kRole = 'member_role';
 String _kCursor(String table) => 'cursor:$table';
 
 /// Tablas de Supabase en el orden en que se bajan (primero lo que otras filas referencian).
@@ -145,10 +159,28 @@ const pullTables = [
 ];
 
 class DriftRepository implements StoreRepository, SyncStore {
-  DriftRepository(this.db);
+  DriftRepository(this.db, {String? deviceCode}) : _device = deviceCode;
 
   final GavilanDb db;
   String? _linked;
+  String? _device;
+  MemberRole? _role;
+
+  @override
+  MemberRole? get role => _role;
+
+  @override
+  Future<void> setRole(MemberRole? role) async {
+    _role = role;
+    if (role == null) {
+      await (db.delete(db.metaTable)..where((t) => t.key.equals(_kRole))).go();
+    } else {
+      await _setMeta(_kRole, role.name);
+    }
+  }
+
+  @override
+  String get deviceCode => _device ??= newDeviceCode();
 
   @override
   SyncStore get sync => this;
@@ -164,6 +196,9 @@ class DriftRepository implements StoreRepository, SyncStore {
   Future<LoadedData?> load() async {
     final meta = await _meta();
     _linked = meta[_kLinked];
+    _role = MemberRole.fromRemote(meta[_kRole]);
+    _device = meta[_kDevice] ?? _device;
+    if (_device == null) await _setMeta(_kDevice, deviceCode);
     final name = meta[_kBusiness];
     if (name == null || name.isEmpty) return null;
 
@@ -205,6 +240,7 @@ class DriftRepository implements StoreRepository, SyncStore {
             method: s.method,
             receivedCents: s.receivedCents,
             customerId: s.customerId,
+            device: s.device,
           ),
       ],
       credit: [
@@ -413,6 +449,7 @@ class DriftRepository implements StoreRepository, SyncStore {
             method: s.method,
             receivedCents: s.receivedCents,
             customerId: s.customerId,
+            device: s.device,
           ),
         );
     for (var i = 0; i < s.lines.length; i++) {
@@ -485,6 +522,9 @@ class DriftRepository implements StoreRepository, SyncStore {
       await db.delete(table).go();
     }
     _linked = null;
+    _role = null;
+    // La clave del teléfono se queda: es del aparato, no del negocio.
+    await _setMeta(_kDevice, deviceCode);
   }
 
   @override
@@ -726,9 +766,11 @@ class DriftRepository implements StoreRepository, SyncStore {
         case 'sales':
           final sale = saleFromRemote(r);
           await db.into(db.salesTable).insertOnConflictUpdate(sale);
-          // El siguiente folio nunca queda por debajo de lo que ya hay en la nube.
-          final folio = int.tryParse((await _meta())[_kFolio] ?? '') ?? 1;
-          if (sale.folio >= folio) await _setMeta(_kFolio, '${sale.folio + 1}');
+          // El siguiente folio de este teléfono nunca queda por debajo de lo que ya subió.
+          if (sale.device == null || sale.device == deviceCode) {
+            final folio = int.tryParse((await _meta())[_kFolio] ?? '') ?? 1;
+            if (sale.folio >= folio) await _setMeta(_kFolio, '${sale.folio + 1}');
+          }
         case 'sale_items':
           await db.into(db.saleLinesTable).insertOnConflictUpdate(saleLineFromRemote(r));
         case 'credit_entries':

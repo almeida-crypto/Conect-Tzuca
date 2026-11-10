@@ -3,6 +3,7 @@ import 'dart:async';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
 import '../config.dart';
+import '../domain/team.dart';
 import 'remote_mapping.dart';
 
 enum SyncFailure { network, auth, rejected }
@@ -38,9 +39,17 @@ abstract class SyncRemote {
   /// pero se abrió en otro celular: el correo queda confirmado y solo falta entrar.
   Future<bool> openAuthLink(Uri uri);
 
-  /// El negocio al que pertenece el usuario, si tiene.
-  Future<({String id, String name})?> myBusiness();
+  /// El negocio al que pertenece el usuario, si tiene, y su rol en él.
+  Future<({String id, String name, MemberRole role})?> myBusiness();
   Future<void> createBusiness({required String id, required String name});
+
+  // Equipo
+  Future<void> acceptInvite(String code);
+  Future<String> createInvite(String businessId, MemberRole role, String name);
+  Future<List<TeamMember>> members(String businessId);
+  Future<List<TeamInvite>> invites(String businessId);
+  Future<void> revokeInvite(String inviteId);
+  Future<void> removeMember(String memberId);
 
   Future<void> upsert(String table, String businessId, List<RemoteRow> rows);
   Future<List<RemoteRow>> changes(
@@ -73,7 +82,7 @@ class SupabaseRemote implements SyncRemote {
       throw SyncException(SyncFailure.auth, _authMessage(e));
     } on PostgrestException catch (e) {
       final expired = e.code == 'PGRST301' || e.code == '401' || e.message.contains('JWT');
-      throw SyncException(expired ? SyncFailure.auth : SyncFailure.rejected, e.message);
+      throw SyncException(expired ? SyncFailure.auth : SyncFailure.rejected, _teamMessage(e.message));
     } catch (e) {
       final text = e.toString();
       final network =
@@ -88,6 +97,14 @@ class SupabaseRemote implements SyncRemote {
       throw SyncException(SyncFailure.rejected, text);
     }
   }
+
+  /// Errores de las funciones del equipo (0005_team.sql), en palabras del usuario.
+  static String _teamMessage(String m) => switch (m) {
+    'invalid_invite' => 'Ese código no existe, ya se usó o ya venció. Pide otro',
+    'already_member' => 'Tu cuenta ya pertenece a un negocio. Para unirte a otro, usa otra cuenta',
+    'not_allowed' => 'Solo el dueño o un administrador pueden hacer esto',
+    _ => m,
+  };
 
   static String _authMessage(AuthException e) {
     final m = e.message.toLowerCase();
@@ -139,12 +156,12 @@ class SupabaseRemote implements SyncRemote {
   });
 
   @override
-  Future<({String id, String name})?> myBusiness() => _guard(() async {
+  Future<({String id, String name, MemberRole role})?> myBusiness() => _guard(() async {
     final uid = userId;
     if (uid == null) return null;
     final rows = await client
         .from('business_members')
-        .select('business_id, businesses(name)')
+        .select('business_id, role, businesses(name)')
         .eq('user_id', uid)
         .isFilter('deleted_at', null)
         .order('created_at')
@@ -152,8 +169,71 @@ class SupabaseRemote implements SyncRemote {
     if (rows.isEmpty) return null;
     final row = rows.first;
     final business = row['businesses'] as Map<String, dynamic>?;
-    return (id: row['business_id'] as String, name: (business?['name'] as String?) ?? 'Mi negocio');
+    return (
+      id: row['business_id'] as String,
+      name: (business?['name'] as String?) ?? 'Mi negocio',
+      role: MemberRole.fromRemote(row['role'] as String?) ?? MemberRole.cashier,
+    );
   });
+
+  @override
+  Future<void> acceptInvite(String code) => _guard(() => client.rpc('accept_invite', params: {'p_code': code}));
+
+  @override
+  Future<String> createInvite(String businessId, MemberRole role, String name) => _guard(
+    () async =>
+        await client.rpc('create_invite', params: {'p_business': businessId, 'p_role': role.name, 'p_name': name})
+            as String,
+  );
+
+  @override
+  Future<List<TeamMember>> members(String businessId) => _guard(() async {
+    final rows = await client
+        .from('business_members')
+        .select('id, user_id, role, display_name')
+        .eq('business_id', businessId)
+        .isFilter('deleted_at', null)
+        .order('created_at');
+    return [
+      for (final r in rows)
+        TeamMember(
+          id: r['id'] as String,
+          userId: r['user_id'] as String,
+          role: MemberRole.fromRemote(r['role'] as String?) ?? MemberRole.cashier,
+          name: r['display_name'] as String?,
+        ),
+    ];
+  });
+
+  @override
+  Future<List<TeamInvite>> invites(String businessId) => _guard(() async {
+    final rows = await client
+        .from('business_invites')
+        .select('id, code, role, display_name, expires_at')
+        .eq('business_id', businessId)
+        .isFilter('used_at', null)
+        .isFilter('revoked_at', null)
+        .gt('expires_at', DateTime.now().toUtc().toIso8601String())
+        .order('created_at');
+    return [
+      for (final r in rows)
+        TeamInvite(
+          id: r['id'] as String,
+          code: r['code'] as String,
+          role: MemberRole.fromRemote(r['role'] as String?) ?? MemberRole.cashier,
+          name: r['display_name'] as String?,
+          expiresAt: DateTime.parse(r['expires_at'] as String).toLocal(),
+        ),
+    ];
+  });
+
+  @override
+  Future<void> revokeInvite(String inviteId) =>
+      _guard(() => client.rpc('revoke_invite', params: {'p_invite': inviteId}));
+
+  @override
+  Future<void> removeMember(String memberId) =>
+      _guard(() => client.rpc('remove_member', params: {'p_member': memberId}));
 
   @override
   Future<void> createBusiness({required String id, required String name}) =>

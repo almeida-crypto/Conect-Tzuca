@@ -76,7 +76,7 @@ class _TicketScreenState extends ConsumerState<TicketScreen> {
                             ),
                             const SizedBox(height: 2),
                             Text(
-                              'Folio A-${sale.folio.toString().padLeft(4, '0')} · ${dateTimeLabel(sale.createdAt)}',
+                              'Folio ${sale.folioLabel} · ${dateTimeLabel(sale.createdAt)}',
                               textAlign: TextAlign.center,
                               style: GText.mono(size: 11, color: GColors.tintaSuave),
                             ),
@@ -129,7 +129,7 @@ class _TicketScreenState extends ConsumerState<TicketScreen> {
                       onPressed: () => shareAsImage(
                         context,
                         _ticketKey,
-                        fileName: 'ticket-A-${sale.folio.toString().padLeft(4, '0')}.png',
+                        fileName: 'ticket-${sale.folioLabel}.png',
                         fallbackText: text,
                       ),
                     ),

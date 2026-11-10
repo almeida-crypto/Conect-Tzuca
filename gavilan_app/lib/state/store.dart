@@ -1,3 +1,5 @@
+import 'dart:math';
+
 import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:uuid/uuid.dart';
@@ -11,6 +13,13 @@ import 'sync.dart';
 
 const _uuid = Uuid();
 String newId() => _uuid.v4();
+
+/// Clave de dos caracteres para los folios de un teléfono (sin I, O, 0 ni 1, que se confunden).
+String newDeviceCode() {
+  const alphabet = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
+  final random = Random.secure();
+  return String.fromCharCodes([for (var i = 0; i < 2; i++) alphabet.codeUnitAt(random.nextInt(alphabet.length))]);
+}
 
 /// Estado del negocio en memoria. Cada cambio se guarda también en el teléfono
 /// (Drift) a través de [StoreRepository]; al abrir la app se vuelve a cargar.
@@ -382,6 +391,7 @@ class StoreNotifier extends Notifier<StoreState> {
       method: kind == SaleKind.pagada ? (method ?? PayMethod.efectivo) : null,
       receivedCents: kind == SaleKind.pagada ? receivedCents : null,
       customerId: customerId,
+      device: ref.read(repositoryProvider).deviceCode,
     );
     final sold = <String, double>{};
     for (final l in lines) {

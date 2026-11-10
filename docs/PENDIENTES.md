@@ -19,7 +19,7 @@ Prioridad: **Alta** = sin esto no se puede usar con un negocio real · **Media**
 - [ ] **Alta** · Correo propio (SMTP con Resend o Brevo) para los correos de confirmación: el de Supabase solo manda unos cuantos por hora y puede caer en spam.
 - [x] **Media** · El enlace del correo de confirmación abre la app con la cuenta lista y enlaza el teléfono (`mx.gavilan.gavilan://auth/confirmado`). *01/11/2026*
 - [x] **Media** · "Olvidé mi contraseña": correo con enlace que abre la app para elegir la contraseña nueva. *01/11/2026*
-- [ ] **Alta** · En Supabase → Authentication → URL Configuration, agregar `mx.gavilan.gavilan://**` en Redirect URLs. Sin esto los enlaces del correo siguen abriendo la página que no carga. Lo hace el dueño del proyecto.
+- [x] **Alta** · `mx.gavilan.gavilan://**` agregado en Supabase → Authentication → URL Configuration → Redirect URLs. El usuario probó "Olvidé mi contraseña" en su celular y funcionó. *09/11/2026*
 - [ ] **Baja** · Traducir al español las plantillas de correo de Supabase (Authentication → Emails).
 - [ ] **Media** · Decidir si el respaldo en la nube es solo de los planes de pago: el PDF lo pone en Emprendedor. Hoy está abierto para todos.
 - [ ] **Baja** · Pagos mixtos (`sale_payments`) y devoluciones en la sincronización.
@@ -27,8 +27,8 @@ Prioridad: **Alta** = sin esto no se puede usar con un negocio real · **Media**
 - [ ] **Media** · Guía para dar de alta el primer producto cuando el negocio está vacío.
 - [ ] **Media** · En el navegador (vista previa) los datos no se guardan. Si hace falta, agregar `sqlite3.wasm` y `drift_worker.js` a `web/`.
 - [x] **Alta** · Indicador real en el encabezado: Sin internet, Sin respaldo, Por subir, Respaldado o Revisar respaldo. *26/10/2026*
-- [ ] **Media** · Folios de venta que no choquen entre dos dispositivos sin internet (prefijo por dispositivo).
-- [ ] **Media** · Probar que un cajero del negocio A no vea nada del negocio B (RLS con usuarios reales).
+- [x] **Media** · Folios que no chocan entre teléfonos: cada uno tiene su clave ("K7-0043") y su propia numeración. *09/11/2026*
+- [ ] **Media** · Probar que un cajero del negocio A no vea nada del negocio B (RLS con usuarios reales). Las funciones del equipo ya se probaron en el servidor con un usuario simulado.
 
 ## Etapa 2 · Completar el mostrador
 - [x] **Alta** · Cámara como escáner de códigos (`mobile_scanner`), modo "¿Cuánto cuesta?", alta de producto desde un código desconocido y lector en la ficha de producto. *31/10/2026*
@@ -61,7 +61,10 @@ Prioridad: **Alta** = sin esto no se puede usar con un negocio real · **Media**
   - Cobro por mesa.
 
   Las tablas `restaurant_tables`, `orders` y `order_items` ya existen, con Realtime activado.
-- [ ] **Media** · Equipo y roles: invitar cajeros, meseros y cocina.
+- [x] **Media** · Equipo y roles: el dueño invita cajeros y administradores con un código; el cajero no cambia el catálogo. *09/11/2026*
+- [ ] **Media** · Probar el equipo con dos cuentas reales: el dueño invita desde su celular y alguien se une desde otro.
+- [ ] **Media** · Invitar meseros y cocina cuando exista el módulo de restaurante.
+- [ ] **Baja** · Validar en la base que solo el plan Negocio pueda invitar (hoy solo lo limita la app, con la vista previa).
 - [ ] **Baja** · Impresora térmica Bluetooth o USB.
 - [ ] **Baja** · Límite de crédito por cliente y alertas de vencimiento (plan Negocio).
 - [ ] **Baja** · Reportes de margen de ganancia y costos de proveedores.
@@ -70,7 +73,7 @@ Prioridad: **Alta** = sin esto no se puede usar con un negocio real · **Media**
 - [ ] **Media** · Confirmar los límites exactos de cada plan contra el PDF (la tabla salió desordenada al leerla).
 - [ ] **Media** · Validar los límites también en la base de datos (triggers), no solo en la app.
 - [ ] **Media** · Cobro real de suscripciones y quitar el selector de "vista previa" de planes.
-- [ ] **Media** · Pasar proyecto-Gavilan a plan Pro de Supabase antes de tener clientes: el gratis se pausa tras 7 días sin actividad.
+- [ ] **Alta** · Pasar proyecto-Gavilan a plan Pro de Supabase antes de tener clientes: el gratis se pausa tras 7 días sin actividad. Ya pasó una vez (09/11/2026) y se reactivó a mano; mientras está pausado, ningún teléfono respalda.
 
 ## Etapa 5 · Panel web (Next.js)
 - [ ] **Baja** · Definir el alcance mínimo: reportes, catálogo tipo Excel y cobro con lector USB.

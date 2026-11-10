@@ -3,7 +3,9 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:gavilan/data/database.dart';
 import 'package:gavilan/data/repository.dart';
+import 'package:gavilan/data/sync_remote.dart';
 import 'package:gavilan/domain/models.dart';
+import 'package:gavilan/domain/team.dart';
 import 'package:gavilan/state/store.dart';
 import 'package:gavilan/state/sync.dart';
 
@@ -18,9 +20,9 @@ class Phone {
   final FakeRemote remote;
   final ProviderContainer app;
 
-  static Future<Phone> open(FakeServer server) async {
+  static Future<Phone> open(FakeServer server, {String? device}) async {
     final db = GavilanDb(NativeDatabase.memory());
-    final repo = DriftRepository(db);
+    final repo = DriftRepository(db, deviceCode: device);
     final remote = FakeRemote(server);
     final loaded = await repo.load();
     final app = ProviderContainer(
@@ -90,8 +92,8 @@ void main() {
   late FakeServer server;
   final phones = <Phone>[];
 
-  Future<Phone> phone() async {
-    final p = await Phone.open(server);
+  Future<Phone> phone({String? device}) async {
+    final p = await Phone.open(server, device: device);
     phones.add(p);
     return p;
   }
@@ -142,7 +144,7 @@ void main() {
     expect(b.state.sales, hasLength(2));
     expect(b.state.balanceOf(lupe), 800);
     expect(b.expectedCash(), a.expectedCash());
-    expect(b.state.nextFolio, a.state.nextFolio);
+    expect(b.state.nextFolio, 1); // cada teléfono numera lo suyo
 
     // A vende sin internet; al volver la señal sube y B lo baja.
     a.remote.offline = true;
@@ -186,6 +188,36 @@ void main() {
     expect(b.state.productById('coca')!.stock, 14);
     expect(a.state.sales, hasLength(4));
     expect(b.state.sales, hasLength(4));
+  });
+
+  test('cada teléfono lleva sus propios folios y no chocan', () async {
+    final a = await phone(device: 'K7');
+    await _setUpShop(a);
+    await a.login('mary@correo.mx');
+    await a.settle();
+    final b = await phone(device: 'R3');
+    await b.login('mary@correo.mx');
+
+    a.remote.offline = true;
+    b.remote.offline = true;
+    final fromA = a.sell('coca', 1);
+    final fromB = b.sell('coca', 1);
+    expect(fromB.folio, 1); // B empieza su propia numeración
+    expect(fromA.folioLabel, isNot(fromB.folioLabel));
+    expect(fromA.folioLabel, startsWith('K7-'));
+    expect(fromB.folioLabel, startsWith('R3-'));
+
+    a.remote.offline = false;
+    b.remote.offline = false;
+    await a.settle();
+    await b.settle();
+    await a.settle();
+    expect(server.rows('sales').where((s) => s['device_id'] == 'R3'), hasLength(1));
+    // Lo que vendió B no adelanta la numeración de A.
+    final next = a.sell('coca', 1);
+    await a.store.flush();
+    expect(next.folio, fromA.folio + 1);
+    expect(a.state.sales.firstWhere((s) => s.id == fromB.id).folioLabel, fromB.folioLabel);
   });
 
   test('la tiendita de ejemplo nunca se sube', () async {
@@ -315,6 +347,46 @@ void main() {
     await a.sync.signOut();
     expect(await a.sync.openLink(Uri.parse('mx.gavilan.gavilan://auth/confirmado')), AuthLink.confirmedSignIn);
     expect(a.status.signedIn, isFalse);
+  });
+
+  test('un cajero se une con código, vende y no puede cambiar el catálogo', () async {
+    final owner = await phone(device: 'K7');
+    await _setUpShop(owner);
+    await owner.login('mary@correo.mx');
+    await owner.settle();
+    expect(owner.status.role, MemberRole.owner);
+    expect(owner.app.read(permissionsProvider).manageTeam, isTrue);
+
+    final code = await owner.sync.createInvite(MemberRole.cashier, 'Juan');
+    expect((await owner.sync.invites()).single.role, MemberRole.cashier);
+
+    final cashier = await phone(device: 'R3');
+    cashier.store.loadDemo();
+    await cashier.sync.signIn('juan@correo.mx', 'secreta1');
+    final outcome = await cashier.sync.joinWithCode(formatInviteCode(code));
+    expect(outcome.result, LinkResult.downloaded);
+    expect(cashier.state.businessName, 'Tienda La Esperanza');
+    expect(cashier.status.role, MemberRole.cashier);
+    final can = cashier.app.read(permissionsProvider);
+    expect(can.editCatalog, isFalse);
+    expect(can.manageTeam, isFalse);
+    expect(await owner.sync.invites(), isEmpty); // el código ya se usó
+
+    final sale = cashier.sell('coca', 2);
+    await cashier.settle();
+    await owner.settle();
+    expect(cashier.status.pending, 0);
+    expect(owner.state.sales.any((s) => s.id == sale.id), isTrue);
+    expect(owner.state.productById('coca')!.stock, 19);
+
+    // Un código ya usado no sirve otra vez.
+    final other = await phone();
+    await other.sync.signIn('pedro@correo.mx', 'secreta1');
+    expect(() => other.sync.joinWithCode(code), throwsA(isA<SyncException>()));
+
+    expect(await owner.sync.members(), hasLength(2));
+    await owner.sync.removeMember('juan@correo.mx');
+    expect((await owner.sync.members()).single.role, MemberRole.owner);
   });
 
   test('sin sesión no se anota nada para subir', () async {

@@ -7,6 +7,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../config.dart';
 import '../data/repository.dart';
 import '../data/sync_remote.dart';
+import '../domain/team.dart';
 import 'store.dart';
 
 /// Conexión con Supabase. main() la configura; en pruebas y en web sin internet queda en null.
@@ -25,6 +26,7 @@ class SyncStatus {
     this.busy = false,
     this.lastSync,
     this.problem,
+    this.role,
   });
 
   final bool configured;
@@ -38,6 +40,9 @@ class SyncStatus {
   /// Último error que el usuario debe ver (null = todo bien).
   final String? problem;
 
+  /// Rol de la cuenta en el negocio enlazado (null = teléfono sin cuenta, es del dueño).
+  final MemberRole? role;
+
   bool get signedIn => email != null;
 
   SyncStatus copyWith({
@@ -50,6 +55,7 @@ class SyncStatus {
     DateTime? lastSync,
     String? problem,
     bool clearProblem = false,
+    MemberRole? role,
   }) => SyncStatus(
     configured: configured,
     online: online ?? this.online,
@@ -59,6 +65,7 @@ class SyncStatus {
     busy: busy ?? this.busy,
     lastSync: lastSync ?? this.lastSync,
     problem: clearProblem ? null : (problem ?? this.problem),
+    role: role ?? this.role,
   );
 }
 
@@ -134,7 +141,12 @@ class SyncController extends Notifier<SyncStatus> {
       _auth?.cancel();
     });
     Future.microtask(_start);
-    return SyncStatus(configured: true, email: remote.email, linked: _store?.linkedBusinessId != null);
+    return SyncStatus(
+      configured: true,
+      email: remote.email,
+      linked: _store?.linkedBusinessId != null,
+      role: _store?.role,
+    );
   }
 
   void _start() {
@@ -152,6 +164,30 @@ class SyncController extends Notifier<SyncStatus> {
     }
     _timer = Timer.periodic(const Duration(minutes: 1), (_) => syncNow());
     syncNow();
+    _refreshRole();
+  }
+
+  /// El dueño pudo cambiar o quitar a esta cuenta desde otro teléfono.
+  Future<void> _refreshRole() async {
+    final remote = _remote;
+    final store = _store;
+    if (remote == null || store == null || remote.userId == null || store.linkedBusinessId == null) return;
+    try {
+      final mine = await remote.myBusiness();
+      if (!ref.mounted) return;
+      if (mine == null || mine.id != store.linkedBusinessId) {
+        state = state.copyWith(problem: 'Tu cuenta ya no pertenece a este negocio. Pregúntale al dueño.');
+      } else if (mine.role != store.role) {
+        await _setRole(mine.role);
+      }
+    } on SyncException {
+      // Sin internet: se revisa la próxima vez que abra.
+    }
+  }
+
+  Future<void> _setRole(MemberRole role) async {
+    await _store!.setRole(role);
+    state = state.copyWith(role: role);
   }
 
   void _onConnectivity(List<ConnectivityResult> results) {
@@ -176,6 +212,7 @@ class SyncController extends Notifier<SyncStatus> {
     final store = _store;
     if (store == null) return;
     final pending = await store.pendingCount();
+    if (!ref.mounted) return; // la app se cerró mientras contaba
     if (pending != state.pending) state = state.copyWith(pending: pending);
   }
 
@@ -315,6 +352,7 @@ class SyncController extends Notifier<SyncStatus> {
       if (!local.hasBusiness || local.isDemo) return const LinkOutcome(LinkResult.needsBusiness);
       await remote.createBusiness(id: local.businessId, name: local.businessName);
       await store.link(local.businessId, uploadAll: local);
+      await _setRole(MemberRole.owner);
       state = state.copyWith(linked: true);
       await syncNow();
       return const LinkOutcome(LinkResult.uploaded);
@@ -322,6 +360,7 @@ class SyncController extends Notifier<SyncStatus> {
 
     if (local.hasBusiness && !local.isDemo && local.businessId == mine.id) {
       if (store.linkedBusinessId != mine.id) await store.link(mine.id);
+      await _setRole(mine.role);
       state = state.copyWith(linked: true);
       await syncNow();
       return LinkOutcome(LinkResult.synced, remoteId: mine.id, remoteName: mine.name);
@@ -333,6 +372,28 @@ class SyncController extends Notifier<SyncStatus> {
     }
     return LinkOutcome(LinkResult.conflict, remoteId: mine.id, remoteName: mine.name);
   }
+
+  // ---------- Equipo ----------
+
+  /// Código de invitación que se escribió antes de confirmar el correo; se usa al volver.
+  String? pendingInvite;
+
+  /// Se une al negocio de un código de invitación y lo baja a este teléfono.
+  Future<LinkOutcome> joinWithCode(String code) async {
+    await _remote!.acceptInvite(code);
+    pendingInvite = null;
+    return ensureLinked();
+  }
+
+  String? get myUserId => _remote?.userId;
+
+  String get _business => _store!.linkedBusinessId!;
+
+  Future<String> createInvite(MemberRole role, String name) => _remote!.createInvite(_business, role, name);
+  Future<List<TeamMember>> members() => _remote!.members(_business);
+  Future<List<TeamInvite>> invites() => _remote!.invites(_business);
+  Future<void> revokeInvite(String id) => _remote!.revokeInvite(id);
+  Future<void> removeMember(String id) => _remote!.removeMember(id);
 
   /// Borra lo de este teléfono y baja el negocio de la cuenta.
   Future<void> downloadBusiness(String businessId, String name) async {
@@ -347,7 +408,12 @@ class SyncController extends Notifier<SyncStatus> {
     } finally {
       state = state.copyWith(busy: false);
     }
+    // El rol se borró junto con lo demás; se vuelve a pedir.
+    await _refreshRole();
   }
 }
 
 final syncProvider = NotifierProvider<SyncController, SyncStatus>(SyncController.new);
+
+/// Qué puede hacer quien usa este teléfono, según su rol en el negocio.
+final permissionsProvider = Provider<Permissions>((ref) => Permissions(ref.watch(syncProvider.select((s) => s.role))));
