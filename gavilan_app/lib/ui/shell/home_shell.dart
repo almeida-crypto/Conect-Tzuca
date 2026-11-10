@@ -1,5 +1,8 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../../domain/team.dart';
+import '../../state/sync.dart';
 import '../../theme/colors.dart';
 import '../../theme/theme.dart';
 import '../caja/caja_screen.dart';
@@ -7,15 +10,16 @@ import '../cobrar/cobrar_screen.dart';
 import '../fiados/fiados_screen.dart';
 import '../inventario/inventario_screen.dart';
 import '../mas/mas_screen.dart';
+import '../restaurant/restaurant_screen.dart';
 
-class HomeShell extends StatefulWidget {
+class HomeShell extends ConsumerStatefulWidget {
   const HomeShell({super.key});
 
   @override
-  State<HomeShell> createState() => _HomeShellState();
+  ConsumerState<HomeShell> createState() => _HomeShellState();
 }
 
-class _HomeShellState extends State<HomeShell> {
+class _HomeShellState extends ConsumerState<HomeShell> {
   int _tab = 0;
 
   static const _tabs = [
@@ -30,6 +34,10 @@ class _HomeShellState extends State<HomeShell> {
 
   @override
   Widget build(BuildContext context) {
+    // Meseros y cocina solo usan el restaurante.
+    if (ref.watch(permissionsProvider).restaurantOnly) {
+      return RestaurantScreen(embedded: true, kitchen: ref.watch(syncProvider).role == MemberRole.kitchen);
+    }
     return Scaffold(
       body: SafeArea(
         bottom: false,

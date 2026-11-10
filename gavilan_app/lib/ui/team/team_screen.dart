@@ -359,7 +359,12 @@ class _InviteSheetState extends ConsumerState<_InviteSheet> {
 
   @override
   Widget build(BuildContext context) {
-    final roles = [MemberRole.cashier, if (widget.canInviteAdmins) MemberRole.admin];
+    final roles = [
+      MemberRole.cashier,
+      MemberRole.waiter,
+      MemberRole.kitchen,
+      if (widget.canInviteAdmins) MemberRole.admin,
+    ];
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
@@ -371,23 +376,27 @@ class _InviteSheetState extends ConsumerState<_InviteSheet> {
           decoration: const InputDecoration(labelText: '¿Cómo se llama?', hintText: 'Juan'),
         ),
         const SizedBox(height: 12),
-        Row(
-          children: [
-            for (final r in roles) ...[
-              Expanded(
-                child: GChip(label: r.label, selected: _role == r, onTap: () => setState(() => _role = r)),
-              ),
-              if (r != roles.last) const SizedBox(width: 8),
+        // Dos por renglón: "Administrador" no cabe en cuatro columnas.
+        LayoutBuilder(
+          builder: (context, box) => Wrap(
+            spacing: 8,
+            runSpacing: 8,
+            children: [
+              for (final r in roles)
+                SizedBox(
+                  width: (box.maxWidth - 8) / 2,
+                  child: GChip(label: r.label, selected: _role == r, onTap: () => setState(() => _role = r)),
+                ),
             ],
-          ],
+          ),
         ),
         const SizedBox(height: 8),
-        Text(
-          _role == MemberRole.admin
-              ? 'Un administrador hace todo lo que tú, menos invitar o quitar administradores.'
-              : 'Un cajero vende, cobra fiados y apartados y hace el corte. No cambia precios ni productos.',
-          style: GText.muted(size: 13),
-        ),
+        Text(switch (_role) {
+          MemberRole.admin => 'Un administrador hace todo lo que tú, menos invitar o quitar administradores.',
+          MemberRole.waiter => 'Un mesero abre cuentas en las mesas y manda comandas a cocina. No cobra.',
+          MemberRole.kitchen => 'Cocina ve las comandas al instante y avisa cuando un platillo está listo.',
+          _ => 'Un cajero vende, cobra fiados y apartados y hace el corte. No cambia precios ni productos.',
+        }, style: GText.muted(size: 13)),
         if (_error != null) ...[
           const SizedBox(height: 8),
           Text(_error!, style: GText.sans(size: 13.5, color: GColors.rojo)),

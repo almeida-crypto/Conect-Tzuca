@@ -120,6 +120,9 @@ class SyncController extends Notifier<SyncStatus> {
   Timer? _debounce;
   StreamSubscription<List<ConnectivityResult>>? _connectivity;
   StreamSubscription<void>? _auth;
+  StreamSubscription<void>? _live;
+  String? _liveBusiness;
+  Timer? _liveDebounce;
   bool _running = false;
   bool _again = false;
 
@@ -139,6 +142,8 @@ class SyncController extends Notifier<SyncStatus> {
       _debounce?.cancel();
       _connectivity?.cancel();
       _auth?.cancel();
+      _live?.cancel();
+      _liveDebounce?.cancel();
     });
     Future.microtask(_start);
     return SyncStatus(
@@ -201,10 +206,11 @@ class SyncController extends Notifier<SyncStatus> {
   }
 
   /// Un cambio local se guardó: sincroniza en unos segundos (agrupa ventas seguidas).
-  void nudge() {
+  /// Lo del restaurante ([urgent]) sale casi al momento.
+  void nudge({bool urgent = false}) {
     if (!state.configured) return;
     _debounce?.cancel();
-    _debounce = Timer(const Duration(seconds: 2), syncNow);
+    _debounce = Timer(urgent ? const Duration(milliseconds: 300) : const Duration(seconds: 2), syncNow);
     _refreshPending();
   }
 
@@ -217,7 +223,7 @@ class SyncController extends Notifier<SyncStatus> {
   }
 
   /// Sube y baja ahora, si se puede. Nunca lanza errores: los deja en [SyncStatus.problem].
-  Future<void> syncNow() async {
+  Future<void> syncNow({Set<String>? only}) async {
     final remote = _remote;
     final store = _store;
     final businessId = store?.linkedBusinessId;
@@ -225,6 +231,7 @@ class SyncController extends Notifier<SyncStatus> {
       await _refreshPending();
       return;
     }
+    _listenLive(remote, businessId);
     if (_running) {
       _again = true;
       return;
@@ -233,7 +240,7 @@ class SyncController extends Notifier<SyncStatus> {
     state = state.copyWith(busy: true);
     try {
       await _push(remote, store, businessId);
-      if (await store.pendingCount() == 0) await _pull(remote, store, businessId);
+      if (await store.pendingCount() == 0) await _pull(remote, store, businessId, only: only);
       state = state.copyWith(lastSync: DateTime.now(), clearProblem: true, online: true);
     } on SyncException catch (e) {
       state = switch (e.kind) {
@@ -249,6 +256,18 @@ class SyncController extends Notifier<SyncStatus> {
         unawaited(syncNow());
       }
     }
+  }
+
+  /// Escucha a los otros teléfonos del negocio: si alguien manda una comanda o la cocina
+  /// avanza un platillo, se baja solo lo del restaurante casi al momento.
+  void _listenLive(SyncRemote remote, String businessId) {
+    if (_liveBusiness == businessId) return;
+    _live?.cancel();
+    _liveBusiness = businessId;
+    _live = remote.live(businessId).listen((_) {
+      _liveDebounce?.cancel();
+      _liveDebounce = Timer(const Duration(milliseconds: 400), () => syncNow(only: restaurantTables));
+    });
   }
 
   /// Sube la fila de pendientes en orden. Si una falla, se detiene ahí: lo que sigue
@@ -275,9 +294,16 @@ class SyncController extends Notifier<SyncStatus> {
 
   /// Baja lo que cambió desde la última vez. Repasa los últimos minutos por si una
   /// escritura de otro teléfono llegó con un poco de retraso; aplicarla dos veces no daña.
-  Future<bool> _pull(SyncRemote remote, SyncStore store, String businessId, {bool everything = false}) async {
+  Future<bool> _pull(
+    SyncRemote remote,
+    SyncStore store,
+    String businessId, {
+    bool everything = false,
+    Set<String>? only,
+  }) async {
     var changed = false;
     for (final table in pullTables) {
+      if (only != null && !only.contains(table)) continue;
       final cursor = everything ? null : await store.cursor(table);
       final since = cursor == null ? DateTime.utc(2000) : cursor.subtract(_overlap);
       var newest = cursor;
@@ -404,6 +430,7 @@ class SyncController extends Notifier<SyncStatus> {
     state = state.copyWith(linked: true, busy: true);
     try {
       await _pull(remote, store, businessId, everything: true);
+      _listenLive(remote, businessId);
       state = state.copyWith(lastSync: DateTime.now(), clearProblem: true);
     } finally {
       state = state.copyWith(busy: false);

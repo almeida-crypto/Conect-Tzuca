@@ -12,7 +12,9 @@ import '../widgets/common.dart';
 import 'customer_picker.dart';
 import 'ticket_screen.dart';
 
-Future<void> showPaySheet(BuildContext context) => showGSheet(context, (_) => const _PaySheet());
+/// Cobra la cuenta del mostrador o, con [orderId], la comanda de una mesa.
+Future<void> showPaySheet(BuildContext context, {String? orderId}) =>
+    showGSheet(context, (_) => _PaySheet(orderId: orderId));
 
 /// Billetes que suele dar el cliente, mayores o iguales al total.
 List<int> suggestedBills(int totalCents) {
@@ -21,7 +23,9 @@ List<int> suggestedBills(int totalCents) {
 }
 
 class _PaySheet extends ConsumerStatefulWidget {
-  const _PaySheet();
+  const _PaySheet({this.orderId});
+
+  final String? orderId;
 
   @override
   ConsumerState<_PaySheet> createState() => _PaySheetState();
@@ -41,7 +45,8 @@ class _PaySheetState extends ConsumerState<_PaySheet> {
   }
 
   void _finish({required SaleKind kind, String? customerId}) {
-    final total = ref.read(cartTotalProvider);
+    final orderId = widget.orderId;
+    final total = orderId == null ? ref.read(cartTotalProvider) : ref.read(storeProvider).totalOfOrder(orderId);
     int? received;
     if (kind == SaleKind.pagada && _method == PayMethod.efectivo) {
       received = _otherMode ? parseMoney(_other.text) : _received;
@@ -54,16 +59,21 @@ class _PaySheetState extends ConsumerState<_PaySheet> {
         return;
       }
     }
-    final sale = ref
-        .read(storeProvider.notifier)
-        .checkout(
-          lines: ref.read(cartProvider),
-          kind: kind,
-          method: _method,
-          receivedCents: received ?? (kind == SaleKind.pagada ? total : null),
-          customerId: customerId,
-        );
-    ref.read(cartProvider.notifier).clear();
+    final store = ref.read(storeProvider.notifier);
+    final paid = received ?? (kind == SaleKind.pagada ? total : null);
+    final Sale sale;
+    if (orderId == null) {
+      sale = store.checkout(
+        lines: ref.read(cartProvider),
+        kind: kind,
+        method: _method,
+        receivedCents: paid,
+        customerId: customerId,
+      );
+      ref.read(cartProvider.notifier).clear();
+    } else {
+      sale = store.chargeOrder(orderId, kind: kind, method: _method, receivedCents: paid, customerId: customerId);
+    }
     final navigator = Navigator.of(context);
     navigator.pop();
     navigator.push(MaterialPageRoute(builder: (_) => TicketScreen(saleId: sale.id)));
@@ -77,7 +87,9 @@ class _PaySheetState extends ConsumerState<_PaySheet> {
 
   @override
   Widget build(BuildContext context) {
-    final total = ref.watch(cartTotalProvider);
+    final total = widget.orderId == null
+        ? ref.watch(cartTotalProvider)
+        : ref.watch(storeProvider.select((s) => s.totalOfOrder(widget.orderId!)));
     final received = _otherMode ? parseMoney(_other.text) : _received;
     final change = (_method == PayMethod.efectivo && received != null) ? received - total : 0;
 

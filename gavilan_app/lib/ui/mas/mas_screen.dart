@@ -11,6 +11,7 @@ import '../account/account_screen.dart';
 import '../modules/layaways_screen.dart';
 import '../modules/lots_screen.dart';
 import '../modules/tandas_screen.dart';
+import '../restaurant/restaurant_screen.dart';
 import '../team/team_screen.dart';
 import '../widgets/common.dart';
 import 'plan_screen.dart';
@@ -60,6 +61,7 @@ final _modules = [
     'Meseros, comandas y pantalla de cocina',
     Plan.negocio,
     (l) => l.restaurant,
+    screen: () => const RestaurantScreen(),
   ),
   _Module(
     Icons.groups_outlined,

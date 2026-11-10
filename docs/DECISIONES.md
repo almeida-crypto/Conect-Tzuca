@@ -38,3 +38,6 @@ Decisiones ya tomadas, con su razón. Antes de cambiar alguna, revisa por qué s
 | 32 | Una cuenta pertenece a un solo negocio | La app enlaza un teléfono con un negocio; varios negocios por cuenta complica todo sin que nadie lo pida aún | 09/11/2026 |
 | 33 | Cada teléfono numera sus propios folios con una clave de 2 letras | Dos teléfonos sin internet nunca repiten folio y no hace falta coordinarlos | 09/11/2026 |
 | 34 | El rol se queda guardado aunque se cierre la sesión | Que un cajero no gane permisos de dueño con solo cerrar sesión | 09/11/2026 |
+| 35 | La comanda vive en el teléfono como todo lo demás y la cocina se entera por **Supabase Realtime** | Sin internet el mesero sigue anotando; con internet, la cocina la recibe en un segundo o dos sin recargar | 09/11/2026 |
+| 36 | Al cobrar, la comanda se vuelve una **venta normal** (con `order_id`) | El corte, los fiados, el ticket y los folios funcionan igual que en el mostrador | 09/11/2026 |
+| 37 | Meseros y cocina no cobran; la app les abre directo en mesas o cocina | En Supabase solo dueño, administrador y cajero registran ventas; así nadie ve botones que no le sirven | 09/11/2026 |

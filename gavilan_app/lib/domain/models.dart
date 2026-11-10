@@ -105,6 +105,7 @@ class Sale {
     this.receivedCents,
     this.customerId,
     this.device,
+    this.orderId,
   });
 
   final String id;
@@ -119,6 +120,9 @@ class Sale {
 
   /// Clave del teléfono que hizo la venta. Las ventas de antes no la tienen.
   final String? device;
+
+  /// Comanda del restaurante que se cobró con esta venta.
+  final String? orderId;
 
   /// "K7-0043": cada teléfono lleva su propia numeración.
   String get folioLabel => '${device ?? 'A'}-${folio.toString().padLeft(4, '0')}';

@@ -14,6 +14,7 @@ class FakeServer {
   final Map<String, MemberRole> roles = {}; // usuario -> rol
   final Map<String, ({String business, MemberRole role, String name})> invites = {}; // código -> invitación
   final Set<String> rejectTables = {};
+  final liveEvents = StreamController<void>.broadcast();
   DateTime _clock = DateTime.utc(2026, 10, 26, 12);
   int writes = 0;
 
@@ -165,6 +166,10 @@ class FakeRemote implements SyncRemote {
     server.roles.remove(memberId);
   }
 
+  /// Como Realtime: avisa a los demás teléfonos cuando cambian comandas o platillos.
+  @override
+  Stream<void> live(String businessId) => server.liveEvents.stream;
+
   @override
   Future<void> upsert(String table, String businessId, List<RemoteRow> rows) async {
     _check();
@@ -179,6 +184,7 @@ class FakeRemote implements SyncRemote {
     for (final r in rows) {
       server._write(table, {...r, 'business_id': businessId});
     }
+    if (table == 'orders' || table == 'order_items') server.liveEvents.add(null);
   }
 
   @override

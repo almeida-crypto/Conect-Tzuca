@@ -5,6 +5,7 @@ import 'package:gavilan/data/database.dart';
 import 'package:gavilan/data/repository.dart';
 import 'package:gavilan/data/sync_remote.dart';
 import 'package:gavilan/domain/models.dart';
+import 'package:gavilan/domain/restaurant.dart';
 import 'package:gavilan/domain/team.dart';
 import 'package:gavilan/state/store.dart';
 import 'package:gavilan/state/sync.dart';
@@ -387,6 +388,43 @@ void main() {
     expect(await owner.sync.members(), hasLength(2));
     await owner.sync.removeMember('juan@correo.mx');
     expect((await owner.sync.members()).single.role, MemberRole.owner);
+  });
+
+  test('el mesero manda la comanda y la cocina la recibe sola', () async {
+    final waiter = await phone(device: 'K7');
+    await _setUpShop(waiter);
+    waiter.store.addTables(4);
+    await waiter.login('mary@correo.mx');
+    await waiter.settle();
+
+    final kitchen = await phone(device: 'R3');
+    await kitchen.login('mary@correo.mx');
+    expect(kitchen.state.activeTables, hasLength(4));
+
+    final mesa = waiter.state.activeTables[2];
+    final order = waiter.store.openOrder(tableId: mesa.id);
+    waiter.store.addOrderItem(order.id, waiter.state.productById('coca')!, notes: 'sin hielo');
+    waiter.store.sendToKitchen(order.id);
+    await waiter.settle();
+
+    // Sin tocar nada en cocina: el aviso de Realtime baja la comanda.
+    await Future<void>.delayed(const Duration(milliseconds: 600));
+    await kitchen.store.flush();
+    final queued = kitchen.state.kitchenOrders.single;
+    expect(kitchen.state.orderTitle(queued), mesa.name);
+    final item = kitchen.state.kitchenItemsOf(queued.id).single;
+    expect(item.notes, 'sin hielo');
+
+    kitchen.store.setItemStatus(item.id, KitchenStatus.listo);
+    await kitchen.settle();
+    await Future<void>.delayed(const Duration(milliseconds: 600));
+    await waiter.store.flush();
+    expect(waiter.state.itemsOfOrder(order.id).single.status, KitchenStatus.listo);
+
+    final sale = waiter.store.chargeOrder(order.id, kind: SaleKind.pagada, receivedCents: 1800);
+    await waiter.settle();
+    expect(server.table('sales')[sale.id]!['order_id'], order.id);
+    expect(server.table('orders')[order.id]!['status'], 'closed');
   });
 
   test('sin sesión no se anota nada para subir', () async {

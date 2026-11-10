@@ -55,15 +55,13 @@ Prioridad: **Alta** = sin esto no se puede usar con un negocio real · **Media**
 - [x] **Media** · Pacas y lotes: inversión, ventas rápidas, barra de recuperación y ganancia; entra al corte. El plan gratis permite 1 paca activa. *31/10/2026*
 - [x] **Media** · Pedidos por tanda: entrega y pago en dos toques, insumos, ganancia y aviso por WhatsApp. *31/10/2026*
 - [ ] **Baja** · Decidir si lo cobrado de las tandas entra al corte de caja (hoy no entra: muchas tandas se cobran fuera del mostrador).
-- [ ] **Media** · Restaurante:
-  - Mesas y comandera para meseros.
-  - Pantalla de cocina en tiempo real.
-  - Cobro por mesa.
-
-  Las tablas `restaurant_tables`, `orders` y `order_items` ya existen, con Realtime activado.
+- [x] **Media** · Restaurante: mesas, comandas, pantalla de cocina al instante (Realtime), para llevar y cobro por mesa. Meseros y cocina se invitan al equipo y la app les abre directo en mesas o cocina. *09/11/2026*
+- [ ] **Media** · Probar el restaurante con dos celulares reales (mesero y cocina) para medir cuánto tarda en llegar la comanda.
+- [ ] **Baja** · Restaurante: dividir la cuenta, pasar una cuenta a otra mesa, imprimir la comanda en cocina y poner la mesa en el ticket.
+- [ ] **Baja** · Platillos que no se venden en mostrador (que solo salgan en el restaurante) y modificadores con precio (extra queso).
 - [x] **Media** · Equipo y roles: el dueño invita cajeros y administradores con un código; el cajero no cambia el catálogo. *09/11/2026*
 - [ ] **Media** · Probar el equipo con dos cuentas reales: el dueño invita desde su celular y alguien se une desde otro.
-- [ ] **Media** · Invitar meseros y cocina cuando exista el módulo de restaurante.
+- [x] **Media** · Invitar meseros y cocina. *09/11/2026*
 - [ ] **Baja** · Validar en la base que solo el plan Negocio pueda invitar (hoy solo lo limita la app, con la vista previa).
 - [ ] **Baja** · Impresora térmica Bluetooth o USB.
 - [ ] **Baja** · Límite de crédito por cliente y alertas de vencimiento (plan Negocio).
@@ -89,7 +87,7 @@ Prioridad: **Alta** = sin esto no se puede usar con un negocio real · **Media**
 - [x] **Baja** · Gavilán nuevo (ilustración de Flow) en el inicio, la bienvenida y el encabezado. *01/11/2026*
 - [x] **Baja** · Icono de la app: la cabeza del gavilán sobre óxido, en Android (adaptable) e iPhone. *01/11/2026*
 - [ ] **Baja** · Tema oscuro.
-- [ ] **Baja** · Diseñar comandera y pantalla de cocina.
+- [x] **Baja** · Diseñar comandera y pantalla de cocina. *09/11/2026*
 
 ## Proyecto 1 · Directorio (otro repositorio)
 Mejoras acordadas en el PDF, pendientes en el repositorio del Directorio:

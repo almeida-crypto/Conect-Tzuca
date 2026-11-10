@@ -2,6 +2,7 @@ import 'package:drift/drift.dart';
 import 'package:drift_flutter/drift_flutter.dart';
 
 import '../domain/models.dart';
+import '../domain/restaurant.dart';
 
 part 'database.g.dart';
 
@@ -55,6 +56,7 @@ class SalesTable extends Table {
   IntColumn get receivedCents => integer().nullable()();
   TextColumn get customerId => text().nullable()();
   TextColumn get device => text().nullable()();
+  TextColumn get orderId => text().nullable()();
 
   @override
   Set<Column> get primaryKey => {id};
@@ -259,9 +261,64 @@ class OutboxTable extends Table {
   TextColumn get lastError => text().nullable()();
 }
 
+@DataClassName('DiningTableRow')
+class DiningTablesTable extends Table {
+  @override
+  String get tableName => 'restaurant_tables';
+
+  TextColumn get id => text()();
+  TextColumn get name => text()();
+  IntColumn get position => integer().withDefault(const Constant(0))();
+  BoolColumn get active => boolean().withDefault(const Constant(true))();
+
+  @override
+  Set<Column> get primaryKey => {id};
+}
+
+@DataClassName('OrderRow')
+class OrdersTable extends Table {
+  @override
+  String get tableName => 'orders';
+
+  TextColumn get id => text()();
+  TextColumn get tableId => text().nullable()();
+  TextColumn get label => text().nullable()();
+  TextColumn get status => textEnum<OrderStatus>()();
+  DateTimeColumn get createdAt => dateTime()();
+  DateTimeColumn get closedAt => dateTime().nullable()();
+
+  @override
+  Set<Column> get primaryKey => {id};
+}
+
+@DataClassName('OrderItemRow')
+class OrderItemsTable extends Table {
+  @override
+  String get tableName => 'order_items';
+
+  TextColumn get id => text()();
+  TextColumn get orderId => text()();
+  TextColumn get productId => text().nullable()();
+  TextColumn get name => text()();
+  RealColumn get qty => real()();
+  IntColumn get unitCents => integer()();
+  TextColumn get notes => text().nullable()();
+  TextColumn get status => textEnum<KitchenStatus>()();
+  DateTimeColumn get createdAt => dateTime()();
+  DateTimeColumn get sentAt => dateTime().nullable()();
+  DateTimeColumn get readyAt => dateTime().nullable()();
+  DateTimeColumn get servedAt => dateTime().nullable()();
+
+  @override
+  Set<Column> get primaryKey => {id};
+}
+
 @DriftDatabase(
   tables: [
     OutboxTable,
+    DiningTablesTable,
+    OrdersTable,
+    OrderItemsTable,
     LotsTable,
     LotSalesTable,
     LayawaysTable,
@@ -285,7 +342,7 @@ class GavilanDb extends _$GavilanDb {
   factory GavilanDb.onDevice() => GavilanDb(driftDatabase(name: 'gavilan'));
 
   @override
-  int get schemaVersion => 4;
+  int get schemaVersion => 5;
 
   @override
   MigrationStrategy get migration => MigrationStrategy(
@@ -293,7 +350,6 @@ class GavilanDb extends _$GavilanDb {
       // v2: fila de pendientes para la sincronización.
       if (from < 2) await m.createTable(outboxTable);
       // v3: pacas y lotes, apartados y pedidos por tanda.
-      if (from < 4) await m.addColumn(salesTable, salesTable.device);
       if (from < 3) {
         for (final table in <TableInfo>[
           lotsTable,
@@ -305,6 +361,15 @@ class GavilanDb extends _$GavilanDb {
         ]) {
           await m.createTable(table);
         }
+      }
+      // v4: clave del teléfono en cada venta (folios que no chocan).
+      if (from < 4) await m.addColumn(salesTable, salesTable.device);
+      // v5: restaurante (mesas, comandas y cocina) y la comanda que se cobró en cada venta.
+      if (from < 5) {
+        for (final table in <TableInfo>[diningTablesTable, ordersTable, orderItemsTable]) {
+          await m.createTable(table);
+        }
+        await m.addColumn(salesTable, salesTable.orderId);
       }
     },
   );

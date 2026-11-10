@@ -4,6 +4,7 @@ import 'package:drift/drift.dart';
 
 import '../domain/models.dart';
 import '../domain/plan.dart';
+import '../domain/restaurant.dart';
 import '../domain/team.dart';
 import '../state/store.dart';
 import 'database.dart';
@@ -49,6 +50,10 @@ abstract class StoreRepository {
   Future<void> insertLayawayPayment(LayawayPayment payment);
   Future<void> upsertBatch(Tanda batch);
   Future<void> upsertBatchOrder(BatchOrder order);
+
+  Future<void> upsertTable(DiningTable table);
+  Future<void> upsertOrder(RestaurantOrder order);
+  Future<void> upsertOrderItems(List<OrderItem> items);
 
   /// Operaciones de sincronización; null si este almacenamiento no sincroniza.
   SyncStore? get sync;
@@ -127,6 +132,12 @@ class MemoryRepository implements StoreRepository {
   @override
   Future<void> upsertBatchOrder(BatchOrder order) async {}
   @override
+  Future<void> upsertTable(DiningTable table) async {}
+  @override
+  Future<void> upsertOrder(RestaurantOrder order) async {}
+  @override
+  Future<void> upsertOrderItems(List<OrderItem> items) async {}
+  @override
   SyncStore? get sync => null;
 }
 
@@ -156,7 +167,13 @@ const pullTables = [
   'layaway_payments',
   'batches',
   'batch_orders',
+  'restaurant_tables',
+  'orders',
+  'order_items',
 ];
+
+/// Lo que cambia en el restaurante: se baja al instante cuando avisa Realtime.
+const restaurantTables = {'restaurant_tables', 'orders', 'order_items'};
 
 class DriftRepository implements StoreRepository, SyncStore {
   DriftRepository(this.db, {String? deviceCode}) : _device = deviceCode;
@@ -241,6 +258,7 @@ class DriftRepository implements StoreRepository, SyncStore {
             receivedCents: s.receivedCents,
             customerId: s.customerId,
             device: s.device,
+            orderId: s.orderId,
           ),
       ],
       credit: [
@@ -279,6 +297,12 @@ class DriftRepository implements StoreRepository, SyncStore {
       layawayPayments: [for (final r in await db.select(db.layawayPaymentsTable).get()) _layawayPayment(r)],
       batches: [for (final r in await db.select(db.batchesTable).get()) _batch(r)],
       batchOrders: [for (final r in await db.select(db.batchOrdersTable).get()) _batchOrder(r)],
+      tables: [for (final r in await db.select(db.diningTablesTable).get()) _table(r)],
+      orders: [for (final r in await db.select(db.ordersTable).get()) _order(r)],
+      orderItems: [
+        for (final r in await (db.select(db.orderItemsTable)..orderBy([(t) => OrderingTerm.asc(t.createdAt)])).get())
+          _orderItem(r),
+      ],
     );
     final plan = Plan.values.asNameMap()[meta[_kPlan]] ?? Plan.semilla;
     return LoadedData(store: withModules, plan: plan);
@@ -392,6 +416,57 @@ class DriftRepository implements StoreRepository, SyncStore {
     paid: o.paid,
   );
 
+  static DiningTable _table(DiningTableRow r) =>
+      DiningTable(id: r.id, name: r.name, position: r.position, active: r.active);
+  static DiningTableRow _tableRow(DiningTable t) =>
+      DiningTableRow(id: t.id, name: t.name, position: t.position, active: t.active);
+
+  static RestaurantOrder _order(OrderRow r) => RestaurantOrder(
+    id: r.id,
+    tableId: r.tableId,
+    label: r.label,
+    status: r.status,
+    createdAt: r.createdAt,
+    closedAt: r.closedAt,
+  );
+  static OrderRow _orderRow(RestaurantOrder o) => OrderRow(
+    id: o.id,
+    tableId: o.tableId,
+    label: o.label,
+    status: o.status,
+    createdAt: o.createdAt,
+    closedAt: o.closedAt,
+  );
+
+  static OrderItem _orderItem(OrderItemRow r) => OrderItem(
+    id: r.id,
+    orderId: r.orderId,
+    productId: r.productId,
+    name: r.name,
+    qty: r.qty,
+    unitCents: r.unitCents,
+    notes: r.notes,
+    status: r.status,
+    createdAt: r.createdAt,
+    sentAt: r.sentAt,
+    readyAt: r.readyAt,
+    servedAt: r.servedAt,
+  );
+  static OrderItemRow _orderItemRow(OrderItem i) => OrderItemRow(
+    id: i.id,
+    orderId: i.orderId,
+    productId: i.productId,
+    name: i.name,
+    qty: i.qty,
+    unitCents: i.unitCents,
+    notes: i.notes,
+    status: i.status,
+    createdAt: i.createdAt,
+    sentAt: i.sentAt,
+    readyAt: i.readyAt,
+    servedAt: i.servedAt,
+  );
+
   // ---------- Conversión a renglones locales ----------
 
   static ProductRow _productRow(Product p) => ProductRow(
@@ -450,6 +525,7 @@ class DriftRepository implements StoreRepository, SyncStore {
             receivedCents: s.receivedCents,
             customerId: s.customerId,
             device: s.device,
+            orderId: s.orderId,
           ),
         );
     for (var i = 0; i < s.lines.length; i++) {
@@ -506,6 +582,9 @@ class DriftRepository implements StoreRepository, SyncStore {
       b.insertAll(db.layawayPaymentsTable, state.layawayPayments.map(_layawayPaymentRow));
       b.insertAll(db.batchesTable, state.batches.map(_batchRow));
       b.insertAll(db.batchOrdersTable, state.batchOrders.map(_batchOrderRow));
+      b.insertAll(db.diningTablesTable, state.tables.map(_tableRow));
+      b.insertAll(db.ordersTable, state.orders.map(_orderRow));
+      b.insertAll(db.orderItemsTable, state.orderItems.map(_orderItemRow));
     });
     for (final s in state.sales) {
       await _insertSale(s);
@@ -662,6 +741,30 @@ class DriftRepository implements StoreRepository, SyncStore {
     ]);
   });
 
+  @override
+  Future<void> upsertTable(DiningTable table) => db.transaction(() async {
+    await db.into(db.diningTablesTable).insertOnConflictUpdate(_tableRow(table));
+    await _enqueue([
+      (table: 'restaurant_tables', rows: [tableToRemote(table)]),
+    ]);
+  });
+
+  @override
+  Future<void> upsertOrder(RestaurantOrder order) => db.transaction(() async {
+    await db.into(db.ordersTable).insertOnConflictUpdate(_orderRow(order));
+    await _enqueue([
+      (table: 'orders', rows: [orderToRemote(order)]),
+    ]);
+  });
+
+  @override
+  Future<void> upsertOrderItems(List<OrderItem> items) => db.transaction(() async {
+    for (final i in items) {
+      await db.into(db.orderItemsTable).insertOnConflictUpdate(_orderItemRow(i));
+    }
+    await _enqueue([(table: 'order_items', rows: items.map(orderItemToRemote).toList())]);
+  });
+
   // ---------- Sincronización ----------
 
   @override
@@ -701,6 +804,9 @@ class DriftRepository implements StoreRepository, SyncStore {
         (table: 'layaway_payments', rows: s.layawayPayments.map(layawayPaymentToRemote).toList()),
       if (s.batches.isNotEmpty) (table: 'batches', rows: s.batches.map(batchToRemote).toList()),
       if (s.batchOrders.isNotEmpty) (table: 'batch_orders', rows: s.batchOrders.map(batchOrderToRemote).toList()),
+      if (s.tables.isNotEmpty) (table: 'restaurant_tables', rows: s.tables.map(tableToRemote).toList()),
+      if (s.orders.isNotEmpty) (table: 'orders', rows: s.orders.map(orderToRemote).toList()),
+      if (s.orderItems.isNotEmpty) (table: 'order_items', rows: s.orderItems.map(orderItemToRemote).toList()),
     ];
     for (final change in modules) {
       await _enqueue([change]);
@@ -789,6 +895,12 @@ class DriftRepository implements StoreRepository, SyncStore {
           await db.into(db.batchesTable).insertOnConflictUpdate(batchFromRemote(r));
         case 'batch_orders':
           await db.into(db.batchOrdersTable).insertOnConflictUpdate(batchOrderFromRemote(r));
+        case 'restaurant_tables':
+          await db.into(db.diningTablesTable).insertOnConflictUpdate(tableFromRemote(r));
+        case 'orders':
+          await db.into(db.ordersTable).insertOnConflictUpdate(orderFromRemote(r));
+        case 'order_items':
+          await db.into(db.orderItemsTable).insertOnConflictUpdate(orderItemFromRemote(r));
       }
     }
   });

@@ -51,6 +51,9 @@ abstract class SyncRemote {
   Future<void> revokeInvite(String inviteId);
   Future<void> removeMember(String memberId);
 
+  /// Avisa cuando otro teléfono cambia comandas o platillos (Supabase Realtime).
+  Stream<void> live(String businessId);
+
   Future<void> upsert(String table, String businessId, List<RemoteRow> rows);
   Future<List<RemoteRow>> changes(
     String table,
@@ -238,6 +241,24 @@ class SupabaseRemote implements SyncRemote {
   @override
   Future<void> createBusiness({required String id, required String name}) =>
       _guard(() => client.rpc('create_business', params: {'p_name': name, 'p_id': id}));
+
+  @override
+  Stream<void> live(String businessId) {
+    late final RealtimeChannel channel;
+    final controller = StreamController<void>(onCancel: () => client.removeChannel(channel));
+    channel = client.channel('negocio-$businessId');
+    for (final table in ['orders', 'order_items']) {
+      channel.onPostgresChanges(
+        event: PostgresChangeEvent.all,
+        schema: 'public',
+        table: table,
+        filter: PostgresChangeFilter(type: PostgresChangeFilterType.eq, column: 'business_id', value: businessId),
+        callback: (_) => controller.add(null),
+      );
+    }
+    channel.subscribe();
+    return controller.stream;
+  }
 
   @override
   Future<void> upsert(String table, String businessId, List<RemoteRow> rows) => _guard(() async {

@@ -11,6 +11,7 @@ Proyecto de Supabase **proyecto-Gavilan** (`jveklinfbptnxmtavnez`, región us-ea
 | [0003_sync.sql](../pos-backend/supabase/migrations/0003_sync.sql) | `pos_sync` | Columnas para la app, `synced_at` con la hora del servidor, `create_business` con id y candado del plan |
 | [0004_modules_sync.sql](../pos-backend/supabase/migrations/0004_modules_sync.sql) | `pos_modules_sync` | `synced_at` en pacas, apartados y tandas, y turno de caja en ventas de paca y abonos de apartado |
 | [0005_team.sql](../pos-backend/supabase/migrations/0005_team.sql) | `pos_team` | Invitaciones con código (`business_invites`), funciones del equipo y sin altas ni cambios directos en `business_members` |
+| [0006_restaurant_sync.sql](../pos-backend/supabase/migrations/0006_restaurant_sync.sql) | `pos_restaurant_sync` | `synced_at` en mesas, comandas y platillos; orden de las mesas, nombre de la comanda para llevar, hora de cierre y hora en que se sirvió |
 
 Toda migración nueva va en `pos-backend/supabase/migrations/` con número consecutivo y se registra aquí.
 
@@ -105,6 +106,7 @@ La app guarda todo en SQLite dentro del teléfono (`gavilan_app/lib/data/databas
 | `lots` y `lot_sales` | Pacas y lotes, y lo cobrado de cada una (versión 3) |
 | `layaways` y `layaway_payments` | Apartados, anticipos y abonos (versión 3) |
 | `batches` y `batch_orders` | Tandas y sus pedidos (versión 3) |
+| `restaurant_tables`, `orders` y `order_items` | Mesas, comandas y platillos con su estado en cocina (versión 5). `sales.order_id` dice qué comanda se cobró |
 | `outbox` | Fila de pendientes por subir (versión 2) |
 
 - Las fechas se guardan como texto ISO, que conserva los milisegundos.
@@ -119,7 +121,8 @@ No hay servicios externos: la app habla directo con Supabase (`gavilan_app/lib/s
 - **Fila de pendientes (`outbox`):** con sesión iniciada, cada cambio local se anota en la misma transacción, ya con la forma de las filas de Supabase. Sale de la fila solo cuando el servidor lo confirmó. Si un cambio se rechaza, la subida se detiene ahí: lo que sigue puede depender de él.
 - **Subida:** upsert por `id`, con `business_id`. Repetir una subida no duplica nada.
 - **Bajada:** por tabla, filas con `synced_at` mayor al último visto, menos 5 minutos de repaso. Solo se baja cuando ya no queda nada pendiente por subir.
-- **Cuándo corre:** al abrir, cada minuto, unos segundos después de cada cambio y al volver la red.
+- **Cuándo corre:** al abrir, cada minuto, unos segundos después de cada cambio y al volver la red. Lo del restaurante sale a los 0.3 segundos.
+- **Realtime:** cada teléfono enlazado escucha `orders` y `order_items` de su negocio. Cuando otro teléfono los cambia, baja solo las tablas del restaurante. Así la cocina recibe la comanda en un segundo o dos.
 - **Existencias:** el teléfono sube movimientos (`inventory_movements`) y el servidor suma con su trigger. Al dar de alta un producto se sube su existencia inicial; después, solo movimientos.
 - **Enlace del teléfono con la cuenta:**
   - La cuenta no tiene negocio y el teléfono sí: se crea con el mismo id y se sube todo.

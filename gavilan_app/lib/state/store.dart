@@ -7,6 +7,7 @@ import 'package:uuid/uuid.dart';
 import '../data/repository.dart';
 import '../domain/models.dart';
 import '../domain/plan.dart';
+import '../domain/restaurant.dart';
 import 'app_state.dart';
 import 'seed.dart';
 import 'sync.dart';
@@ -41,6 +42,9 @@ class StoreState {
     this.layawayPayments = const [],
     this.batches = const [],
     this.batchOrders = const [],
+    this.tables = const [],
+    this.orders = const [],
+    this.orderItems = const [],
   });
 
   /// Id del negocio; es el mismo en el teléfono y en Supabase.
@@ -61,6 +65,9 @@ class StoreState {
   final List<LayawayPayment> layawayPayments;
   final List<Tanda> batches;
   final List<BatchOrder> batchOrders;
+  final List<DiningTable> tables;
+  final List<RestaurantOrder> orders;
+  final List<OrderItem> orderItems;
   final int nextFolio;
 
   /// Sin negocio todavía (primer arranque o después de borrar todo).
@@ -132,6 +139,48 @@ class StoreState {
   }
 
   int get totalOnCreditCents => debtors.fold(0, (a, d) => a + d.balanceCents);
+
+  // ---------- Restaurante ----------
+
+  List<DiningTable> get activeTables =>
+      tables.where((t) => t.active).toList()..sort((a, b) => a.position.compareTo(b.position));
+
+  DiningTable? tableById(String id) => tables.where((t) => t.id == id).firstOrNull;
+
+  RestaurantOrder? orderById(String id) => orders.where((o) => o.id == id).firstOrNull;
+
+  List<RestaurantOrder> get openOrders =>
+      orders.where((o) => o.isOpen).toList()..sort((a, b) => a.createdAt.compareTo(b.createdAt));
+
+  RestaurantOrder? openOrderOfTable(String tableId) => openOrders.where((o) => o.tableId == tableId).lastOrNull;
+
+  List<OrderItem> itemsOfOrder(String orderId) => orderItems.where((i) => i.orderId == orderId).toList();
+
+  int totalOfOrder(String orderId) => itemsOfOrder(orderId).fold(0, (a, i) => a + i.totalCents);
+
+  /// "Mesa 4" o "Para llevar · Juan".
+  String orderTitle(RestaurantOrder o) => o.takeout
+      ? (o.label == null || o.label!.isEmpty ? 'Para llevar' : 'Para llevar · ${o.label}')
+      : (tableById(o.tableId!)?.name ?? 'Mesa');
+
+  /// Lo que cocina tiene que hacer o entregar: enviado, sin servir ni cancelar.
+  List<OrderItem> kitchenItemsOf(String orderId) => itemsOfOrder(orderId)
+      .where(
+        (i) =>
+            i.sent &&
+            (i.status == KitchenStatus.pendiente ||
+                i.status == KitchenStatus.preparando ||
+                i.status == KitchenStatus.listo),
+      )
+      .toList();
+
+  /// Comandas con algo en cocina, la que lleva más tiempo esperando primero.
+  List<RestaurantOrder> get kitchenOrders {
+    DateTime firstSent(RestaurantOrder o) =>
+        kitchenItemsOf(o.id).map((i) => i.sentAt!).reduce((a, b) => a.isBefore(b) ? a : b);
+    return orders.where((o) => o.status != OrderStatus.cancelada && kitchenItemsOf(o.id).isNotEmpty).toList()
+      ..sort((a, b) => firstSent(a).compareTo(firstSent(b)));
+  }
 
   // ---------- Pacas y lotes ----------
 
@@ -246,6 +295,9 @@ class StoreState {
     List<LayawayPayment>? layawayPayments,
     List<Tanda>? batches,
     List<BatchOrder>? batchOrders,
+    List<DiningTable>? tables,
+    List<RestaurantOrder>? orders,
+    List<OrderItem>? orderItems,
     int? nextFolio,
   }) => StoreState(
     businessId: businessId ?? this.businessId,
@@ -263,6 +315,9 @@ class StoreState {
     layawayPayments: layawayPayments ?? this.layawayPayments,
     batches: batches ?? this.batches,
     batchOrders: batchOrders ?? this.batchOrders,
+    tables: tables ?? this.tables,
+    orders: orders ?? this.orders,
+    orderItems: orderItems ?? this.orderItems,
     nextFolio: nextFolio ?? this.nextFolio,
   );
 }
@@ -284,22 +339,23 @@ class StoreNotifier extends Notifier<StoreState> {
   StoreState build() => ref.read(initialDataProvider)?.store ?? StoreState.blank;
 
   /// Guarda en orden, una escritura tras otra. Si falla se reporta sin tumbar la app.
-  void _save(Future<void> Function(StoreRepository repo) write) {
+  /// Con [urgent] se respalda casi al momento: la cocina está esperando la comanda.
+  void _save(Future<void> Function(StoreRepository repo) write, {bool urgent = false}) {
     final repo = ref.read(repositoryProvider);
     _version++;
-    _writes = _writes.then((_) => write(repo)).then((_) => ref.read(syncProvider.notifier).nudge()).catchError((
-      Object e,
-      StackTrace st,
-    ) {
-      FlutterError.reportError(
-        FlutterErrorDetails(
-          exception: e,
-          stack: st,
-          library: 'gavilan',
-          context: ErrorDescription('al guardar en el teléfono'),
-        ),
-      );
-    });
+    _writes = _writes
+        .then((_) => write(repo))
+        .then((_) => ref.read(syncProvider.notifier).nudge(urgent: urgent))
+        .catchError((Object e, StackTrace st) {
+          FlutterError.reportError(
+            FlutterErrorDetails(
+              exception: e,
+              stack: st,
+              library: 'gavilan',
+              context: ErrorDescription('al guardar en el teléfono'),
+            ),
+          );
+        });
   }
 
   DateTime _now() => _clock();
@@ -377,6 +433,7 @@ class StoreNotifier extends Notifier<StoreState> {
     PayMethod? method,
     int? receivedCents,
     String? customerId,
+    String? orderId,
   }) {
     assert(lines.isNotEmpty);
     assert(kind == SaleKind.pagada || customerId != null);
@@ -392,6 +449,7 @@ class StoreNotifier extends Notifier<StoreState> {
       receivedCents: kind == SaleKind.pagada ? receivedCents : null,
       customerId: customerId,
       device: ref.read(repositoryProvider).deviceCode,
+      orderId: orderId,
     );
     final sold = <String, double>{};
     for (final l in lines) {
@@ -575,6 +633,189 @@ class StoreNotifier extends Notifier<StoreState> {
   void _setLayaway(Layaway updated) {
     state = state.copyWith(layaways: [for (final l in state.layaways) l.id == updated.id ? updated : l]);
     _save((r) => r.upsertLayaway(updated));
+  }
+
+  // ---------- Restaurante ----------
+
+  /// Agrega mesas numeradas después de las que ya hay ("Mesa 5", "Mesa 6"...).
+  void addTables(int count) {
+    // Sigue después del número más alto que se vea, aunque se hayan quitado mesas.
+    final last = state.activeTables
+        .map((t) => int.tryParse(RegExp(r'^Mesa (\d+)$').firstMatch(t.name)?.group(1) ?? '') ?? 0)
+        .fold(0, (a, n) => n > a ? n : a);
+    var position = state.tables.fold(0, (a, t) => t.position > a ? t.position : a);
+    final created = [
+      for (var i = 1; i <= count; i++) DiningTable(id: newId(), name: 'Mesa ${last + i}', position: ++position),
+    ];
+    state = state.copyWith(tables: [...state.tables, ...created]);
+    for (final t in created) {
+      _save((r) => r.upsertTable(t));
+    }
+  }
+
+  void renameTable(String id, String name) => _setTable(state.tableById(id)?.copyWith(name: name.trim()));
+
+  /// Quita la mesa de la pantalla. Las comandas que tuvo se quedan.
+  void removeTable(String id) => _setTable(state.tableById(id)?.copyWith(active: false));
+
+  void _setTable(DiningTable? table) {
+    if (table == null) return;
+    state = state.copyWith(tables: [for (final t in state.tables) t.id == table.id ? table : t]);
+    _save((r) => r.upsertTable(table));
+  }
+
+  /// Abre la cuenta de una mesa (o un pedido para llevar si no hay mesa).
+  RestaurantOrder openOrder({String? tableId, String? label}) {
+    if (tableId != null) {
+      final existing = state.openOrderOfTable(tableId);
+      if (existing != null) return existing;
+    }
+    final order = RestaurantOrder(
+      id: newId(),
+      tableId: tableId,
+      label: label?.trim().isEmpty ?? true ? null : label!.trim(),
+      createdAt: _now(),
+    );
+    state = state.copyWith(orders: [...state.orders, order]);
+    _save((r) => r.upsertOrder(order), urgent: true);
+    return order;
+  }
+
+  /// Suma un platillo a la comanda. Si ya hay uno igual sin mandar a cocina, sube la cantidad.
+  OrderItem addOrderItem(String orderId, Product product, {String? notes}) {
+    final note = notes?.trim().isEmpty ?? true ? null : notes!.trim();
+    final same = state
+        .itemsOfOrder(orderId)
+        .where((i) => !i.sent && !i.cancelled && i.productId == product.id && i.notes == note)
+        .firstOrNull;
+    final item =
+        same?.copyWith(qty: same.qty + 1) ??
+        OrderItem(
+          id: newId(),
+          orderId: orderId,
+          productId: product.id,
+          name: product.name,
+          qty: 1,
+          unitCents: product.priceCents,
+          notes: note,
+          createdAt: _now(),
+        );
+    _setItems([item]);
+    return item;
+  }
+
+  /// Cambia la cantidad de un platillo que aún no se manda. En cero se cancela.
+  void setItemQty(String itemId, double qty) {
+    final item = state.orderItems.where((i) => i.id == itemId).firstOrNull;
+    if (item == null || item.sent) return;
+    _setItems([qty <= 0 ? item.copyWith(status: KitchenStatus.cancelado) : item.copyWith(qty: qty)]);
+  }
+
+  void setItemNotes(String itemId, String notes) {
+    final item = state.orderItems.where((i) => i.id == itemId).firstOrNull;
+    if (item == null || item.sent) return;
+    _setItems([
+      OrderItem(
+        id: item.id,
+        orderId: item.orderId,
+        productId: item.productId,
+        name: item.name,
+        qty: item.qty,
+        unitCents: item.unitCents,
+        notes: notes.trim().isEmpty ? null : notes.trim(),
+        createdAt: item.createdAt,
+      ),
+    ]);
+  }
+
+  /// Manda a cocina lo que el mesero ya anotó. Devuelve cuántos platillos salieron.
+  int sendToKitchen(String orderId) {
+    final now = _now();
+    final pending = [
+      for (final i in state.itemsOfOrder(orderId))
+        if (!i.sent && !i.cancelled) i.copyWith(sentAt: now),
+    ];
+    if (pending.isNotEmpty) _setItems(pending);
+    return pending.length;
+  }
+
+  /// Cocina avanza un platillo; el mesero lo marca servido.
+  void setItemStatus(String itemId, KitchenStatus status) {
+    final item = state.orderItems.where((i) => i.id == itemId).firstOrNull;
+    if (item == null) return;
+    final now = _now();
+    _setItems([
+      item.copyWith(
+        status: status,
+        readyAt: status == KitchenStatus.listo ? now : null,
+        servedAt: status == KitchenStatus.servido ? now : null,
+      ),
+    ]);
+  }
+
+  /// Todo lo de una comanda que sigue en cocina, listo de una vez.
+  void markOrderReady(String orderId) {
+    final now = _now();
+    final items = [
+      for (final i in state.kitchenItemsOf(orderId))
+        if (i.status != KitchenStatus.listo) i.copyWith(status: KitchenStatus.listo, readyAt: now),
+    ];
+    if (items.isNotEmpty) _setItems(items);
+  }
+
+  void _setItems(List<OrderItem> items) {
+    final byId = {for (final i in items) i.id: i};
+    final known = state.orderItems.map((i) => i.id).toSet();
+    state = state.copyWith(
+      orderItems: [
+        for (final i in state.orderItems) byId[i.id] ?? i,
+        for (final i in items)
+          if (!known.contains(i.id)) i,
+      ],
+    );
+    _save((r) => r.upsertOrderItems(items), urgent: true);
+  }
+
+  /// Cancela la cuenta completa (se fueron sin pedir, se equivocaron de mesa).
+  void cancelOrder(String orderId) {
+    final order = state.orderById(orderId);
+    if (order == null || !order.isOpen) return;
+    final items = [
+      for (final i in state.itemsOfOrder(orderId))
+        if (!i.cancelled && i.status != KitchenStatus.servido) i.copyWith(status: KitchenStatus.cancelado),
+    ];
+    if (items.isNotEmpty) _setItems(items);
+    _closeOrder(order.close(OrderStatus.cancelada, _now()));
+  }
+
+  /// Cobra la cuenta: se vuelve una venta normal (corte, fiado, ticket) y la mesa queda libre.
+  Sale chargeOrder(
+    String orderId, {
+    required SaleKind kind,
+    PayMethod? method,
+    int? receivedCents,
+    String? customerId,
+  }) {
+    final order = state.orderById(orderId)!;
+    final lines = [
+      for (final i in state.itemsOfOrder(orderId))
+        if (!i.cancelled) SaleLine(key: i.id, productId: i.productId, name: i.name, unitCents: i.unitCents, qty: i.qty),
+    ];
+    final sale = checkout(
+      lines: lines,
+      kind: kind,
+      method: method,
+      receivedCents: receivedCents,
+      customerId: customerId,
+      orderId: orderId,
+    );
+    _closeOrder(order.close(OrderStatus.cerrada, _now()));
+    return sale;
+  }
+
+  void _closeOrder(RestaurantOrder order) {
+    state = state.copyWith(orders: [for (final o in state.orders) o.id == order.id ? order : o]);
+    _save((r) => r.upsertOrder(order), urgent: true);
   }
 
   // ---------- Pedidos por tanda ----------

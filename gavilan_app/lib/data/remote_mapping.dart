@@ -1,6 +1,7 @@
 import 'package:uuid/uuid.dart';
 
 import '../domain/models.dart';
+import '../domain/restaurant.dart';
 import 'database.dart';
 
 // Traducción entre los modelos de la app y las filas de Supabase (proyecto-Gavilan).
@@ -114,6 +115,7 @@ List<RemoteChange> saleToRemote(Sale s, {Set<String> stockTracked = const {}}) {
     'customer_id': s.customerId,
     'folio': '${s.folio}',
     'device_id': s.device,
+    'order_id': s.orderId,
     'status': s.kind == SaleKind.fiada ? 'credit' : 'paid',
     'subtotal': _pesos(s.totalCents),
     'discount': 0,
@@ -201,6 +203,7 @@ SaleRow saleFromRemote(RemoteRow r) => SaleRow(
   receivedCents: _centsOrNull(r['received_amount']),
   customerId: r['customer_id'] as String?,
   device: r['device_id'] as String?,
+  orderId: r['order_id'] as String?,
 );
 
 SaleLineRow saleLineFromRemote(RemoteRow r) => SaleLineRow(
@@ -364,4 +367,80 @@ BatchOrderRow batchOrderFromRemote(RemoteRow r) => BatchOrderRow(
   createdAt: _date(r['created_at']),
   delivery: _deliveryIn[r['delivery_status']] ?? DeliveryStatus.pendiente,
   paid: r['pay_status'] == 'paid',
+);
+
+// ---------- Restaurante ----------
+
+const _orderStatusOut = {
+  OrderStatus.abierta: 'open',
+  OrderStatus.cerrada: 'closed',
+  OrderStatus.cancelada: 'cancelled',
+};
+final _orderStatusIn = {for (final e in _orderStatusOut.entries) e.value: e.key};
+
+const _kitchenOut = {
+  KitchenStatus.pendiente: 'pending',
+  KitchenStatus.preparando: 'preparing',
+  KitchenStatus.listo: 'ready',
+  KitchenStatus.servido: 'served',
+  KitchenStatus.cancelado: 'cancelled',
+};
+final _kitchenIn = {for (final e in _kitchenOut.entries) e.value: e.key};
+
+RemoteRow tableToRemote(DiningTable t) => {'id': t.id, 'name': t.name, 'position': t.position, 'is_active': t.active};
+
+RemoteRow orderToRemote(RestaurantOrder o) => {
+  'id': o.id,
+  'table_id': o.tableId,
+  'order_type': o.takeout ? 'takeout' : 'dine_in',
+  'status': _orderStatusOut[o.status],
+  'label': o.label,
+  'created_at': _iso(o.createdAt),
+  'closed_at': o.closedAt == null ? null : _iso(o.closedAt!),
+};
+
+RemoteRow orderItemToRemote(OrderItem i) => {
+  'id': i.id,
+  'order_id': i.orderId,
+  'product_id': i.productId,
+  'name_snapshot': i.name,
+  'qty': i.qty,
+  'unit_price': _pesos(i.unitCents),
+  'notes': i.notes,
+  'status': _kitchenOut[i.status],
+  'created_at': _iso(i.createdAt),
+  'sent_at': i.sentAt == null ? null : _iso(i.sentAt!),
+  'ready_at': i.readyAt == null ? null : _iso(i.readyAt!),
+  'served_at': i.servedAt == null ? null : _iso(i.servedAt!),
+};
+
+DiningTableRow tableFromRemote(RemoteRow r) => DiningTableRow(
+  id: r['id']! as String,
+  name: r['name']! as String,
+  position: (r['position'] as num?)?.toInt() ?? 0,
+  active: (r['is_active'] as bool?) ?? true,
+);
+
+OrderRow orderFromRemote(RemoteRow r) => OrderRow(
+  id: r['id']! as String,
+  tableId: r['table_id'] as String?,
+  label: r['label'] as String?,
+  status: _orderStatusIn[r['status']] ?? OrderStatus.abierta,
+  createdAt: _date(r['created_at']),
+  closedAt: _dateOrNull(r['closed_at']),
+);
+
+OrderItemRow orderItemFromRemote(RemoteRow r) => OrderItemRow(
+  id: r['id']! as String,
+  orderId: r['order_id']! as String,
+  productId: r['product_id'] as String?,
+  name: r['name_snapshot']! as String,
+  qty: _double(r['qty']),
+  unitCents: _cents(r['unit_price']),
+  notes: r['notes'] as String?,
+  status: _kitchenIn[r['status']] ?? KitchenStatus.pendiente,
+  createdAt: _date(r['created_at']),
+  sentAt: _dateOrNull(r['sent_at']),
+  readyAt: _dateOrNull(r['ready_at']),
+  servedAt: _dateOrNull(r['served_at']),
 );

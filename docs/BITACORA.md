@@ -313,3 +313,38 @@ Se abren desde **Más → Módulos** con el plan Emprendedor o superior. Los tre
   - Formulario "Unirme a un negocio" con el campo del código.
   - "Equipo y roles" sin cuenta pide respaldar primero.
 - **No probado:** el flujo con dos cuentas reales. No se crean cuentas desde aquí; lo prueba el usuario con su celular y otro.
+
+### Restaurante: mesas, comandas y cocina
+- **Migración `0006_restaurant_sync`:** `synced_at` en `restaurant_tables`, `orders` y `order_items`, orden de las mesas, nombre de la comanda para llevar, hora de cierre y hora en que se sirvió.
+- **En el teléfono:** la base pasa a la versión 5 con mesas, comandas y platillos, y la venta guarda la comanda que se cobró.
+- **Más → Mesas y cocina** (plan Negocio):
+  - **Mesas:** cuadrícula de mesas. Libre en papel; ocupada en ocre, con el total, los minutos y cuántos platillos están listos. El dueño agrega mesas (+1, +2, +4, +6), las renombra o las quita (con confirmación).
+  - **Para llevar:** comanda a nombre de alguien.
+  - **Comanda:**
+    - Se elige lo que piden en una lista con buscador. La comanda se crea hasta que se anota el primer platillo.
+    - Se ajusta la cantidad y se agregan indicaciones ("bien fría").
+    - "A cocina" manda lo pendiente. Lo que se agrega después sale en otra tanda.
+    - Cuando cocina avisa, el mesero toca "Servir".
+    - "Cobrar" usa la misma hoja de pago del mostrador: efectivo, tarjeta, transferencia o fiado. La venta entra al corte, sale el ticket y la mesa queda libre.
+    - También se puede cancelar la cuenta.
+  - **Cocina:** una tarjeta por comanda, la que lleva más tiempo primero, con los minutos en ocre (8 min) o rojo (15 min). Tocar un platillo lo pasa de "En cola" a "Preparando" y a "Listo"; también hay "Todo listo". Cada comanda nueva suena y vibra.
+- **Al instante entre celulares:** lo del restaurante se sube a los 0.3 segundos y los demás teléfonos lo bajan al recibir el aviso de Supabase Realtime.
+- **Equipo:** ya se invita a meseros y cocina. A ellos la app les abre directo en mesas o cocina, sin caja ni inventario, y no pueden cobrar.
+
+### Verificación
+- 46 pruebas pasan. Las nuevas cubren:
+  - Mesas numeradas sin repetir.
+  - Comanda completa: juntar platillos iguales, no mandar dos veces, cocina, servir y cobrar con efecto en el corte.
+  - Cancelar.
+  - Guardar y volver a abrir.
+  - Mesero y cocina en dos teléfonos: la cocina recibe la comanda sola por el aviso y el mesero ve el "Listo".
+- **En el emulador:** 6 mesas, Mesa 2 con 2 Cocas ("bien fría") y un café.
+  - A cocina, preparando, todo listo.
+  - La mesa muestra "2 listos". Servir y cobrar con $100: cambio de $29 y ticket con folio UJ-0043.
+  - La mesa quedó libre.
+  - Para llevar a nombre de Juan.
+- **Arreglado en la revisión:**
+  - Quitar mesa ahora pide confirmación (un toque la borraba).
+  - "Servido" se confundía con un estado: ahora el botón dice "Servir".
+  - El botón "Agregar" se cortaba.
+- **No probado:** Realtime con dos celulares reales; en las pruebas se simula el aviso.
