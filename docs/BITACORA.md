@@ -417,3 +417,18 @@ Se abren desde **Más → Módulos** con el plan Emprendedor o superior. Los tre
   - "piezas" de huevo: ahora dice kg.
 - La consola del navegador quedó sin errores.
 - **No probado:** la entrada con una cuenta real. No se usan contraseñas desde aquí; lo prueba el usuario.
+
+### Mostrador en la computadora
+- **La misma app en el navegador:** se compila con `flutter build web`. Guarda los datos en el navegador (`sqlite3.wasm` y `drift_worker.js` en `web/`; si no hay OPFS usa IndexedDB) y se conecta a Supabase igual que el celular: respaldo, equipo, mesas y cocina al instante.
+- **Acomodo de caja registradora** desde 900 px: menú lateral, catálogo y la cuenta (`CartPanel`) fija a la derecha. El renglón de la cuenta (`CartLineRow`) es el mismo en la hoja del celular y en el panel.
+- **Lector láser USB:** en Cobrar, las teclas rápidas que terminan en Enter se buscan como código de barras, aunque no esté seleccionado el buscador. Si alguien escribe en un campo, ese campo manda.
+- Las otras pestañas quedan a 820 px centradas, las hojas a 640 px y las mesas reparten columnas según el ancho.
+
+### Verificación
+- `flutter analyze` sin avisos y 47 pruebas pasan. `flutter build web --release` compila.
+- En el navegador a 1280 px, con la tienda de ejemplo:
+  - Se agregaron productos con el ratón y se cobró en efectivo con cambio (folio con el código del equipo).
+  - Al recargar la página, la venta seguía: bajaron las existencias y el corte la contó.
+  - Un código de barras tecleado rápido con Enter agregó la Coca a la cuenta.
+- Se quitó el gavilán repetido del encabezado en la computadora.
+- **No probado:** un lector USB físico (se simularon sus teclas) ni entrar con una cuenta real desde el navegador.

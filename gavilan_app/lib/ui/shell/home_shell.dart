@@ -39,31 +39,49 @@ class _HomeShellState extends ConsumerState<HomeShell> {
     if (ref.watch(permissionsProvider).restaurantOnly) {
       return RestaurantScreen(embedded: true, kitchen: ref.watch(syncProvider).role == MemberRole.kitchen);
     }
-    return Scaffold(
-      body: SafeArea(
-        bottom: false,
-        // Al cambiar de pestaña la pantalla aparece con un desvanecido corto.
-        child: TweenAnimationBuilder<double>(
-          key: ValueKey(_tab),
-          tween: Tween(begin: 0, end: 1),
-          duration: const Duration(milliseconds: 240),
-          curve: Curves.easeOutCubic,
-          builder: (context, t, child) => Opacity(
-            opacity: 0.35 + 0.65 * t,
-            child: Transform.translate(offset: Offset(0, 8 * (1 - t)), child: child),
-          ),
-          child: IndexedStack(
-            index: _tab,
-            children: [
-              const CobrarScreen(),
-              const FiadosScreen(),
-              const InventarioScreen(),
-              CajaScreen(onGoToCobrar: () => _go(0)),
-              const MasScreen(),
-            ],
-          ),
-        ),
+    final wide = MediaQuery.sizeOf(context).width >= wideLayout;
+    // En la computadora, las pestañas que son listas no se estiran de lado a lado.
+    Widget narrow(Widget child) => wide
+        ? Align(
+            alignment: Alignment.topCenter,
+            child: ConstrainedBox(constraints: const BoxConstraints(maxWidth: 820), child: child),
+          )
+        : child;
+    final pages = TweenAnimationBuilder<double>(
+      key: ValueKey(_tab),
+      tween: Tween(begin: 0, end: 1),
+      duration: const Duration(milliseconds: 240),
+      curve: Curves.easeOutCubic,
+      builder: (context, t, child) => Opacity(
+        opacity: 0.35 + 0.65 * t,
+        child: Transform.translate(offset: Offset(0, 8 * (1 - t)), child: child),
       ),
+      child: IndexedStack(
+        index: _tab,
+        children: [
+          CobrarScreen(active: _tab == 0),
+          narrow(const FiadosScreen()),
+          narrow(const InventarioScreen()),
+          narrow(CajaScreen(onGoToCobrar: () => _go(0))),
+          narrow(const MasScreen()),
+        ],
+      ),
+    );
+
+    // Computadora: menú a la izquierda, como un punto de venta de mostrador.
+    if (wide) {
+      return Scaffold(
+        body: Row(
+          children: [
+            _SideNav(tabs: _tabs, selected: _tab, onSelect: _go),
+            Expanded(child: SafeArea(child: pages)),
+          ],
+        ),
+      );
+    }
+
+    return Scaffold(
+      body: SafeArea(bottom: false, child: pages),
       bottomNavigationBar: Container(
         decoration: const BoxDecoration(
           color: GColors.superficie,
@@ -141,6 +159,57 @@ class _NavItem extends StatelessWidget {
           child: Text(label),
         ),
       ],
+    );
+  }
+}
+
+/// Menú lateral de la computadora: el gavilán arriba y las pestañas en columna.
+class _SideNav extends StatelessWidget {
+  const _SideNav({required this.tabs, required this.selected, required this.onSelect});
+
+  final List<(IconData, String)> tabs;
+  final int selected;
+  final ValueChanged<int> onSelect;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      width: 104,
+      decoration: const BoxDecoration(
+        color: GColors.superficie,
+        border: Border(right: BorderSide(color: GColors.linea)),
+      ),
+      child: SafeArea(
+        child: Column(
+          children: [
+            const SizedBox(height: 16),
+            Image.asset('assets/hawk/gavilan.png', width: 64, semanticLabel: 'Gavilán'),
+            const SizedBox(height: 22),
+            for (var i = 0; i < tabs.length; i++)
+              Padding(
+                padding: const EdgeInsets.symmetric(vertical: 4),
+                child: Semantics(
+                  button: true,
+                  selected: selected == i,
+                  label: tabs[i].$2,
+                  excludeSemantics: true,
+                  child: MouseRegion(
+                    cursor: SystemMouseCursors.click,
+                    child: GestureDetector(
+                      behavior: HitTestBehavior.opaque,
+                      onTap: () => onSelect(i),
+                      child: SizedBox(
+                        width: 104,
+                        height: 64,
+                        child: _NavItem(icon: tabs[i].$1, label: tabs[i].$2, selected: selected == i),
+                      ),
+                    ),
+                  ),
+                ),
+              ),
+          ],
+        ),
+      ),
     );
   }
 }

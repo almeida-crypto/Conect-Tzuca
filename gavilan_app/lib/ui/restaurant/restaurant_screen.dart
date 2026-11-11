@@ -204,7 +204,8 @@ class _TablesView extends ConsumerWidget {
               ),
             ),
           GridView.count(
-            crossAxisCount: 3,
+            // 3 en el celular; más columnas en pantallas anchas, con mesas de unos 170 px.
+            crossAxisCount: (MediaQuery.sizeOf(context).width / 170).floor().clamp(3, 8),
             shrinkWrap: true,
             physics: const NeverScrollableScrollPhysics(),
             mainAxisSpacing: 10,

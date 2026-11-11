@@ -38,6 +38,12 @@ Cada color tiene su versión suave (`marcaSuave`, `cenoteSuave`, `izamalSuave`, 
 - Barra de pestañas blanca: el icono activo se asienta en una pastilla achiote suave.
 - Hojas inferiores con esquinas de 24 px y asa para arrastrar.
 
+## Computadora (900 px o más)
+- Menú a la izquierda (104 px, blanco) con el gavilán arriba; el encabezado ya no lo repite.
+- Cobrar: catálogo de 3 a 4 columnas y la cuenta fija a la derecha (380 px) con −/+, Vaciar, TOTAL y Cobrar.
+- Las demás pestañas no se estiran: máximo 820 px, centradas. Las hojas inferiores, máximo 640 px.
+- Mesas: las columnas crecen con el ancho (de 3 a 8).
+
 ## Animaciones
 - Cambio de pestaña: desvanecido y leve deslizamiento (240 ms).
 - Pantallas nuevas: transición de Android moderno (`FadeForwardsPageTransitionsBuilder`).

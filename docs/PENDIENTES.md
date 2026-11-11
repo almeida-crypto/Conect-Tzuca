@@ -25,7 +25,7 @@ Prioridad: **Alta** = sin esto no se puede usar con un negocio real · **Media**
 - [ ] **Baja** · Pagos mixtos (`sale_payments`) y devoluciones en la sincronización.
 - [x] **Alta** · Primer arranque: bienvenida con el nombre del negocio, o probar con la tiendita de ejemplo. En Más se puede borrar todo y empezar de nuevo. *26/10/2026*
 - [ ] **Media** · Guía para dar de alta el primer producto cuando el negocio está vacío.
-- [ ] **Media** · En el navegador (vista previa) los datos no se guardan. Si hace falta, agregar `sqlite3.wasm` y `drift_worker.js` a `web/`.
+- [x] **Media** · En el navegador los datos se guardan (`sqlite3.wasm` y `drift_worker.js` en `web/`) y se respaldan en Supabase igual que en el celular. *11/11/2026*
 - [x] **Alta** · Indicador real en el encabezado: Sin internet, Sin respaldo, Por subir, Respaldado o Revisar respaldo. *26/10/2026*
 - [x] **Media** · Folios que no chocan entre teléfonos: cada uno tiene su clave ("K7-0043") y su propia numeración. *09/11/2026*
 - [ ] **Media** · Probar que un cajero del negocio A no vea nada del negocio B (RLS con usuarios reales). Las funciones del equipo ya se probaron en el servidor con un usuario simulado.
@@ -80,7 +80,9 @@ Prioridad: **Alta** = sin esto no se puede usar con un negocio real · **Media**
 - [ ] **Media** · Publicar el panel en Vercel. Necesita que el usuario cree una cuenta gratuita.
 - [ ] **Media** · Panel: catálogo tipo Excel (editar productos, precios y existencias en bloque).
 - [ ] **Baja** · Panel: descargar los reportes en Excel o PDF, elegir un rango de fechas libre y reportes por cajero o por teléfono.
-- [ ] **Baja** · Panel: cobro en la computadora con lector USB.
+- [x] **Media** · Mostrador en la computadora: la misma app abierta en el navegador cobra, fía, lleva inventario, caja, mesas y equipo. Menú a la izquierda, la cuenta siempre a la derecha y lector láser USB sin tocar nada. *11/11/2026*
+- [ ] **Media** · Publicar el mostrador web (la app compilada con `flutter build web`) junto al panel, por ejemplo en `/mostrador`.
+- [ ] **Baja** · Mostrador web: atajos de teclado (F2 cobrar, Esc vaciar) e imprimir el ticket desde el navegador.
 
 ## Seguridad y ajustes de base de datos
 - [ ] **Media** · Activar en Supabase Auth la protección contra contraseñas filtradas (Authentication → Policies). Es un ajuste de seguridad del panel; lo hace el dueño del proyecto.

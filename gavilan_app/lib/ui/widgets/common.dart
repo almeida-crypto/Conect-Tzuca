@@ -41,8 +41,11 @@ class BusinessHeader extends ConsumerWidget {
       padding: const EdgeInsets.fromLTRB(16, 10, 16, 12),
       child: Row(
         children: [
-          Image.asset('assets/hawk/gavilan.png', width: 54, semanticLabel: 'Gavilán'),
-          const SizedBox(width: 10),
+          // En la computadora el gavilán ya va en el menú de la izquierda.
+          if (MediaQuery.sizeOf(context).width < 900) ...[
+            Image.asset('assets/hawk/gavilan.png', width: 54, semanticLabel: 'Gavilán'),
+            const SizedBox(width: 10),
+          ],
           Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,

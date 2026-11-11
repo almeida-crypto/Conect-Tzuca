@@ -25,22 +25,19 @@ Future<void> main() async {
     }
   });
 
-  // En el teléfono todo se guarda en SQLite y se respalda en Supabase si hay cuenta.
-  // En el navegador (solo vista previa) se trabaja en memoria, sin respaldo.
-  final StoreRepository repository = kIsWeb ? MemoryRepository() : DriftRepository(GavilanDb.onDevice());
+  // Todo se guarda en SQLite (en el teléfono, o en el navegador con sqlite3.wasm) y se respalda
+  // en Supabase si hay cuenta. Así la computadora es un mostrador más del negocio.
+  final StoreRepository repository = DriftRepository(GavilanDb.onDevice());
   final loaded = await repository.load();
 
-  SyncRemote? remote;
-  if (!kIsWeb) {
-    // No necesita internet: recupera la sesión guardada y la renueva cuando hay señal.
-    // Los enlaces de los correos los abre AuthLinkListener, que sabe a qué pantalla llevar.
-    await Supabase.initialize(
-      url: SupabaseConfig.url,
-      publishableKey: SupabaseConfig.publishableKey,
-      authOptions: const FlutterAuthClientOptions(detectSessionInUri: false),
-    );
-    remote = SupabaseRemote(Supabase.instance.client);
-  }
+  // No necesita internet: recupera la sesión guardada y la renueva cuando hay señal.
+  // Los enlaces de los correos los abre AuthLinkListener, que sabe a qué pantalla llevar.
+  await Supabase.initialize(
+    url: SupabaseConfig.url,
+    publishableKey: SupabaseConfig.publishableKey,
+    authOptions: const FlutterAuthClientOptions(detectSessionInUri: false),
+  );
+  final SyncRemote remote = SupabaseRemote(Supabase.instance.client);
 
   runApp(
     ProviderScope(

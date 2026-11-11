@@ -67,7 +67,7 @@ class _WelcomeScreenState extends ConsumerState<WelcomeScreen> {
                   Semantics(header: true, child: Text('Bienvenido a Gavilán', style: GText.title())),
                   const SizedBox(height: 6),
                   Text(
-                    'Tu caja, tus fiados y tu inventario en el celular. Funciona sin internet.',
+                    'Tu caja, tus fiados y tu inventario en el celular o la computadora. Funciona sin internet.',
                     style: GText.sans(size: 14, weight: FontWeight.w400, color: GColors.tintaSuave),
                   ),
                   const SizedBox(height: 22),

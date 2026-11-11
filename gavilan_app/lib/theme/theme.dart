@@ -116,6 +116,8 @@ ThemeData buildGavilanTheme() {
       surfaceTintColor: Colors.transparent,
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.vertical(top: Radius.circular(GShape.radiusSheet))),
       showDragHandle: true,
+      // En la computadora las hojas no se estiran de lado a lado.
+      constraints: BoxConstraints(maxWidth: 640),
       dragHandleColor: GColors.linea,
     ),
     snackBarTheme: SnackBarThemeData(

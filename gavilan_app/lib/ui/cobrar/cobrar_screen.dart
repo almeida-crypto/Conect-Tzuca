@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../core/money.dart';
@@ -16,8 +17,14 @@ import 'cart_sheet.dart';
 import 'pay_sheet.dart';
 import 'quick_sale_sheet.dart';
 
+/// Ancho desde el que la app se acomoda como punto de venta de computadora.
+const wideLayout = 900.0;
+
 class CobrarScreen extends ConsumerStatefulWidget {
-  const CobrarScreen({super.key});
+  const CobrarScreen({super.key, this.active = true});
+
+  /// Es la pestaña a la vista: solo entonces escucha al lector de códigos.
+  final bool active;
 
   @override
   ConsumerState<CobrarScreen> createState() => _CobrarScreenState();
@@ -27,10 +34,44 @@ class _CobrarScreenState extends ConsumerState<CobrarScreen> {
   final _search = TextEditingController();
   String _query = '';
 
+  // Lector láser USB: "escribe" el código muy rápido y termina con Enter.
+  final _scanned = StringBuffer();
+  DateTime _lastKey = DateTime(2000);
+
+  @override
+  void initState() {
+    super.initState();
+    HardwareKeyboard.instance.addHandler(_onKey);
+  }
+
   @override
   void dispose() {
+    HardwareKeyboard.instance.removeHandler(_onKey);
     _search.dispose();
     super.dispose();
+  }
+
+  /// Junta las teclas que llegan seguidas (menos de 60 ms entre una y otra) aunque ningún campo
+  /// esté seleccionado. Si se está escribiendo en un campo, ese campo se encarga.
+  bool _onKey(KeyEvent e) {
+    if (e is! KeyDownEvent || !widget.active || !(ModalRoute.of(context)?.isCurrent ?? false)) return false;
+    final focus = FocusManager.instance.primaryFocus?.context;
+    if (focus != null && focus.findAncestorWidgetOfExactType<EditableText>() != null) return false;
+    final now = DateTime.now();
+    if (now.difference(_lastKey).inMilliseconds > 60) _scanned.clear();
+    _lastKey = now;
+    if (e.logicalKey == LogicalKeyboardKey.enter || e.logicalKey == LogicalKeyboardKey.numpadEnter) {
+      final code = _scanned.toString();
+      _scanned.clear();
+      if (code.length >= 4) {
+        _submitCode(code);
+        return true;
+      }
+      return false;
+    }
+    final ch = e.character;
+    if (ch != null && ch.length == 1 && RegExp(r'[0-9A-Za-z\-]').hasMatch(ch)) _scanned.write(ch);
+    return false;
   }
 
   /// Un lector de códigos USB "escribe" el código y da Enter: aquí lo buscamos.
@@ -70,85 +111,97 @@ class _CobrarScreenState extends ConsumerState<CobrarScreen> {
         .where((p) => q.isEmpty || p.name.toLowerCase().contains(q) || (p.barcode?.contains(q) ?? false))
         .toList();
 
-    return Stack(
+    final wide = MediaQuery.sizeOf(context).width >= wideLayout;
+    final catalog = Column(
       children: [
-        Column(
-          children: [
-            const BusinessHeader(),
-            const OfflineNote(),
-            if (store.openSession == null) _ClosedCashBanner(onOpen: () => showOpenCashDialog(context, ref)),
-            Padding(
-              padding: const EdgeInsets.fromLTRB(16, 0, 16, 12),
-              child: Row(
-                children: [
-                  Expanded(
-                    child: TextField(
-                      controller: _search,
-                      onChanged: (v) => setState(() => _query = v),
-                      onSubmitted: _submitCode,
-                      textInputAction: TextInputAction.search,
-                      decoration: InputDecoration(
-                        hintText: 'Buscar o escribir código',
-                        prefixIcon: const Icon(Icons.search_rounded, size: 22),
-                        suffixIcon: _query.isEmpty
-                            ? null
-                            : IconButton(
-                                tooltip: 'Borrar búsqueda',
-                                icon: const Icon(Icons.close, size: 18),
-                                onPressed: () {
-                                  _search.clear();
-                                  setState(() => _query = '');
-                                },
-                              ),
-                      ),
-                    ),
-                  ),
-                  const SizedBox(width: 8),
-                  _SquareButton(
-                    icon: Icons.qr_code_scanner,
-                    tooltip: 'Escanear con la cámara',
-                    onTap: () => Navigator.of(context).push(MaterialPageRoute(builder: (_) => const ScanScreen())),
-                  ),
-                  const SizedBox(width: 8),
-                  _SquareButton(
-                    icon: Icons.dialpad,
-                    tooltip: 'Venta rápida por monto',
-                    light: true,
-                    onTap: () => showQuickSaleSheet(context),
-                  ),
-                ],
-              ),
-            ),
-            Expanded(
-              child: products.isEmpty
-                  ? _EmptyCatalog(searching: q.isNotEmpty)
-                  : LayoutBuilder(
-                      builder: (context, box) {
-                        final cols = (box.maxWidth / 180).floor().clamp(2, 6);
-                        return GridView.builder(
-                          padding: const EdgeInsets.fromLTRB(16, 2, 16, 200),
-                          gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
-                            crossAxisCount: cols,
-                            mainAxisSpacing: 10,
-                            crossAxisSpacing: 10,
-                            mainAxisExtent: 80,
+        const BusinessHeader(),
+        const OfflineNote(),
+        if (store.openSession == null) _ClosedCashBanner(onOpen: () => showOpenCashDialog(context, ref)),
+        Padding(
+          padding: const EdgeInsets.fromLTRB(16, 0, 16, 12),
+          child: Row(
+            children: [
+              Expanded(
+                child: TextField(
+                  controller: _search,
+                  onChanged: (v) => setState(() => _query = v),
+                  onSubmitted: _submitCode,
+                  textInputAction: TextInputAction.search,
+                  decoration: InputDecoration(
+                    hintText: 'Buscar o escribir código',
+                    prefixIcon: const Icon(Icons.search_rounded, size: 22),
+                    suffixIcon: _query.isEmpty
+                        ? null
+                        : IconButton(
+                            tooltip: 'Borrar búsqueda',
+                            icon: const Icon(Icons.close, size: 18),
+                            onPressed: () {
+                              _search.clear();
+                              setState(() => _query = '');
+                            },
                           ),
-                          itemCount: products.length,
-                          itemBuilder: (context, i) {
-                            final p = products[i];
-                            final inCart = cart.where((l) => l.productId == p.id).fold(0.0, (a, l) => a + l.qty);
-                            return _ProductTile(
-                              product: p,
-                              qty: inCart,
-                              onTap: () => ref.read(cartProvider.notifier).addProduct(p),
-                            );
-                          },
+                  ),
+                ),
+              ),
+              const SizedBox(width: 8),
+              _SquareButton(
+                icon: Icons.qr_code_scanner,
+                tooltip: 'Escanear con la cámara',
+                onTap: () => Navigator.of(context).push(MaterialPageRoute(builder: (_) => const ScanScreen())),
+              ),
+              const SizedBox(width: 8),
+              _SquareButton(
+                icon: Icons.dialpad,
+                tooltip: 'Venta rápida por monto',
+                light: true,
+                onTap: () => showQuickSaleSheet(context),
+              ),
+            ],
+          ),
+        ),
+        Expanded(
+          child: products.isEmpty
+              ? _EmptyCatalog(searching: q.isNotEmpty)
+              : LayoutBuilder(
+                  builder: (context, box) {
+                    final cols = (box.maxWidth / 180).floor().clamp(2, 6);
+                    return GridView.builder(
+                      padding: EdgeInsets.fromLTRB(16, 2, 16, wide ? 24 : 200),
+                      gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+                        crossAxisCount: cols,
+                        mainAxisSpacing: 10,
+                        crossAxisSpacing: 10,
+                        mainAxisExtent: 80,
+                      ),
+                      itemCount: products.length,
+                      itemBuilder: (context, i) {
+                        final p = products[i];
+                        final inCart = cart.where((l) => l.productId == p.id).fold(0.0, (a, l) => a + l.qty);
+                        return _ProductTile(
+                          product: p,
+                          qty: inCart,
+                          onTap: () => ref.read(cartProvider.notifier).addProduct(p),
                         );
                       },
-                    ),
-            ),
-          ],
+                    );
+                  },
+                ),
         ),
+      ],
+    );
+
+    // Computadora: catálogo a la izquierda y la cuenta siempre a la vista a la derecha.
+    if (wide) {
+      return Row(
+        children: [
+          Expanded(child: catalog),
+          SizedBox(width: 380, child: CartPanel(onPay: _startPayment)),
+        ],
+      );
+    }
+    return Stack(
+      children: [
+        catalog,
         Positioned(left: 0, right: 0, bottom: 0, child: _CartStrip(onPay: _startPayment)),
       ],
     );
