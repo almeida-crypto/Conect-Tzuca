@@ -137,6 +137,15 @@ ThemeData buildGavilanTheme() {
       ),
     ),
     listTileTheme: const ListTileThemeData(iconColor: GColors.tintaSuave),
+    chipTheme: ChipThemeData(
+      backgroundColor: GColors.superficie,
+      selectedColor: GColors.marcaSuave,
+      checkmarkColor: GColors.marca,
+      side: const BorderSide(color: GColors.linea),
+      shape: const StadiumBorder(),
+      labelStyle: GText.sans(size: 13.5, weight: FontWeight.w600),
+      iconTheme: const IconThemeData(color: GColors.marca),
+    ),
     progressIndicatorTheme: const ProgressIndicatorThemeData(color: GColors.marca),
     popupMenuTheme: PopupMenuThemeData(
       color: GColors.superficie,

@@ -346,8 +346,17 @@ class $DiningTablesTableTable extends DiningTablesTable with TableInfo<$DiningTa
     defaultConstraints: GeneratedColumn.constraintIsAlways('CHECK ("active" IN (0, 1))'),
     defaultValue: const Constant(true),
   );
+  static const VerificationMeta _zoneMeta = const VerificationMeta('zone');
   @override
-  List<GeneratedColumn> get $columns => [id, name, position, active];
+  late final GeneratedColumn<String> zone = GeneratedColumn<String>(
+    'zone',
+    aliasedName,
+    true,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+  );
+  @override
+  List<GeneratedColumn> get $columns => [id, name, position, active, zone];
   @override
   String get aliasedName => _alias ?? actualTableName;
   @override
@@ -373,6 +382,9 @@ class $DiningTablesTableTable extends DiningTablesTable with TableInfo<$DiningTa
     if (data.containsKey('active')) {
       context.handle(_activeMeta, active.isAcceptableOrUnknown(data['active']!, _activeMeta));
     }
+    if (data.containsKey('zone')) {
+      context.handle(_zoneMeta, zone.isAcceptableOrUnknown(data['zone']!, _zoneMeta));
+    }
     return context;
   }
 
@@ -386,6 +398,7 @@ class $DiningTablesTableTable extends DiningTablesTable with TableInfo<$DiningTa
       name: attachedDatabase.typeMapping.read(DriftSqlType.string, data['${effectivePrefix}name'])!,
       position: attachedDatabase.typeMapping.read(DriftSqlType.int, data['${effectivePrefix}position'])!,
       active: attachedDatabase.typeMapping.read(DriftSqlType.bool, data['${effectivePrefix}active'])!,
+      zone: attachedDatabase.typeMapping.read(DriftSqlType.string, data['${effectivePrefix}zone']),
     );
   }
 
@@ -400,7 +413,8 @@ class DiningTableRow extends DataClass implements Insertable<DiningTableRow> {
   final String name;
   final int position;
   final bool active;
-  const DiningTableRow({required this.id, required this.name, required this.position, required this.active});
+  final String? zone;
+  const DiningTableRow({required this.id, required this.name, required this.position, required this.active, this.zone});
   @override
   Map<String, Expression> toColumns(bool nullToAbsent) {
     final map = <String, Expression>{};
@@ -408,6 +422,9 @@ class DiningTableRow extends DataClass implements Insertable<DiningTableRow> {
     map['name'] = Variable<String>(name);
     map['position'] = Variable<int>(position);
     map['active'] = Variable<bool>(active);
+    if (!nullToAbsent || zone != null) {
+      map['zone'] = Variable<String>(zone);
+    }
     return map;
   }
 
@@ -417,6 +434,7 @@ class DiningTableRow extends DataClass implements Insertable<DiningTableRow> {
       name: Value(name),
       position: Value(position),
       active: Value(active),
+      zone: zone == null && nullToAbsent ? const Value.absent() : Value(zone),
     );
   }
 
@@ -427,6 +445,7 @@ class DiningTableRow extends DataClass implements Insertable<DiningTableRow> {
       name: serializer.fromJson<String>(json['name']),
       position: serializer.fromJson<int>(json['position']),
       active: serializer.fromJson<bool>(json['active']),
+      zone: serializer.fromJson<String?>(json['zone']),
     );
   }
   @override
@@ -437,14 +456,22 @@ class DiningTableRow extends DataClass implements Insertable<DiningTableRow> {
       'name': serializer.toJson<String>(name),
       'position': serializer.toJson<int>(position),
       'active': serializer.toJson<bool>(active),
+      'zone': serializer.toJson<String?>(zone),
     };
   }
 
-  DiningTableRow copyWith({String? id, String? name, int? position, bool? active}) => DiningTableRow(
+  DiningTableRow copyWith({
+    String? id,
+    String? name,
+    int? position,
+    bool? active,
+    Value<String?> zone = const Value.absent(),
+  }) => DiningTableRow(
     id: id ?? this.id,
     name: name ?? this.name,
     position: position ?? this.position,
     active: active ?? this.active,
+    zone: zone.present ? zone.value : this.zone,
   );
   DiningTableRow copyWithCompanion(DiningTablesTableCompanion data) {
     return DiningTableRow(
@@ -452,6 +479,7 @@ class DiningTableRow extends DataClass implements Insertable<DiningTableRow> {
       name: data.name.present ? data.name.value : this.name,
       position: data.position.present ? data.position.value : this.position,
       active: data.active.present ? data.active.value : this.active,
+      zone: data.zone.present ? data.zone.value : this.zone,
     );
   }
 
@@ -461,13 +489,14 @@ class DiningTableRow extends DataClass implements Insertable<DiningTableRow> {
           ..write('id: $id, ')
           ..write('name: $name, ')
           ..write('position: $position, ')
-          ..write('active: $active')
+          ..write('active: $active, ')
+          ..write('zone: $zone')
           ..write(')'))
         .toString();
   }
 
   @override
-  int get hashCode => Object.hash(id, name, position, active);
+  int get hashCode => Object.hash(id, name, position, active, zone);
   @override
   bool operator ==(Object other) =>
       identical(this, other) ||
@@ -475,7 +504,8 @@ class DiningTableRow extends DataClass implements Insertable<DiningTableRow> {
           other.id == this.id &&
           other.name == this.name &&
           other.position == this.position &&
-          other.active == this.active);
+          other.active == this.active &&
+          other.zone == this.zone);
 }
 
 class DiningTablesTableCompanion extends UpdateCompanion<DiningTableRow> {
@@ -483,12 +513,14 @@ class DiningTablesTableCompanion extends UpdateCompanion<DiningTableRow> {
   final Value<String> name;
   final Value<int> position;
   final Value<bool> active;
+  final Value<String?> zone;
   final Value<int> rowid;
   const DiningTablesTableCompanion({
     this.id = const Value.absent(),
     this.name = const Value.absent(),
     this.position = const Value.absent(),
     this.active = const Value.absent(),
+    this.zone = const Value.absent(),
     this.rowid = const Value.absent(),
   });
   DiningTablesTableCompanion.insert({
@@ -496,6 +528,7 @@ class DiningTablesTableCompanion extends UpdateCompanion<DiningTableRow> {
     required String name,
     this.position = const Value.absent(),
     this.active = const Value.absent(),
+    this.zone = const Value.absent(),
     this.rowid = const Value.absent(),
   }) : id = Value(id),
        name = Value(name);
@@ -504,6 +537,7 @@ class DiningTablesTableCompanion extends UpdateCompanion<DiningTableRow> {
     Expression<String>? name,
     Expression<int>? position,
     Expression<bool>? active,
+    Expression<String>? zone,
     Expression<int>? rowid,
   }) {
     return RawValuesInsertable({
@@ -511,6 +545,7 @@ class DiningTablesTableCompanion extends UpdateCompanion<DiningTableRow> {
       if (name != null) 'name': name,
       if (position != null) 'position': position,
       if (active != null) 'active': active,
+      if (zone != null) 'zone': zone,
       if (rowid != null) 'rowid': rowid,
     });
   }
@@ -520,6 +555,7 @@ class DiningTablesTableCompanion extends UpdateCompanion<DiningTableRow> {
     Value<String>? name,
     Value<int>? position,
     Value<bool>? active,
+    Value<String?>? zone,
     Value<int>? rowid,
   }) {
     return DiningTablesTableCompanion(
@@ -527,6 +563,7 @@ class DiningTablesTableCompanion extends UpdateCompanion<DiningTableRow> {
       name: name ?? this.name,
       position: position ?? this.position,
       active: active ?? this.active,
+      zone: zone ?? this.zone,
       rowid: rowid ?? this.rowid,
     );
   }
@@ -546,6 +583,9 @@ class DiningTablesTableCompanion extends UpdateCompanion<DiningTableRow> {
     if (active.present) {
       map['active'] = Variable<bool>(active.value);
     }
+    if (zone.present) {
+      map['zone'] = Variable<String>(zone.value);
+    }
     if (rowid.present) {
       map['rowid'] = Variable<int>(rowid.value);
     }
@@ -559,6 +599,7 @@ class DiningTablesTableCompanion extends UpdateCompanion<DiningTableRow> {
           ..write('name: $name, ')
           ..write('position: $position, ')
           ..write('active: $active, ')
+          ..write('zone: $zone, ')
           ..write('rowid: $rowid')
           ..write(')'))
         .toString();
@@ -6884,6 +6925,7 @@ typedef $$DiningTablesTableTableCreateCompanionBuilder = DiningTablesTableCompan
   required String name,
   Value<int> position,
   Value<bool> active,
+  Value<String?> zone,
   Value<int> rowid,
 });
 typedef $$DiningTablesTableTableUpdateCompanionBuilder = DiningTablesTableCompanion Function({
@@ -6891,6 +6933,7 @@ typedef $$DiningTablesTableTableUpdateCompanionBuilder = DiningTablesTableCompan
   Value<String> name,
   Value<int> position,
   Value<bool> active,
+  Value<String?> zone,
   Value<int> rowid,
 });
 
@@ -6911,6 +6954,8 @@ class $$DiningTablesTableTableFilterComposer extends Composer<_$GavilanDb, $Dini
 
   ColumnFilters<bool> get active =>
       $composableBuilder(column: $table.active, builder: (column) => ColumnFilters(column));
+
+  ColumnFilters<String> get zone => $composableBuilder(column: $table.zone, builder: (column) => ColumnFilters(column));
 }
 
 class $$DiningTablesTableTableOrderingComposer extends Composer<_$GavilanDb, $DiningTablesTableTable> {
@@ -6931,6 +6976,9 @@ class $$DiningTablesTableTableOrderingComposer extends Composer<_$GavilanDb, $Di
 
   ColumnOrderings<bool> get active =>
       $composableBuilder(column: $table.active, builder: (column) => ColumnOrderings(column));
+
+  ColumnOrderings<String> get zone =>
+      $composableBuilder(column: $table.zone, builder: (column) => ColumnOrderings(column));
 }
 
 class $$DiningTablesTableTableAnnotationComposer extends Composer<_$GavilanDb, $DiningTablesTableTable> {
@@ -6948,6 +6996,8 @@ class $$DiningTablesTableTableAnnotationComposer extends Composer<_$GavilanDb, $
   GeneratedColumn<int> get position => $composableBuilder(column: $table.position, builder: (column) => column);
 
   GeneratedColumn<bool> get active => $composableBuilder(column: $table.active, builder: (column) => column);
+
+  GeneratedColumn<String> get zone => $composableBuilder(column: $table.zone, builder: (column) => column);
 }
 
 class $$DiningTablesTableTableTableManager
@@ -6973,20 +7023,38 @@ class $$DiningTablesTableTableTableManager
           createFilteringComposer: () => $$DiningTablesTableTableFilterComposer($db: db, $table: table),
           createOrderingComposer: () => $$DiningTablesTableTableOrderingComposer($db: db, $table: table),
           createComputedFieldComposer: () => $$DiningTablesTableTableAnnotationComposer($db: db, $table: table),
-          updateCompanionCallback: ({
-            Value<String> id = const Value.absent(),
-            Value<String> name = const Value.absent(),
-            Value<int> position = const Value.absent(),
-            Value<bool> active = const Value.absent(),
-            Value<int> rowid = const Value.absent(),
-          }) => DiningTablesTableCompanion(id: id, name: name, position: position, active: active, rowid: rowid),
-          createCompanionCallback: ({
-            required String id,
-            required String name,
-            Value<int> position = const Value.absent(),
-            Value<bool> active = const Value.absent(),
-            Value<int> rowid = const Value.absent(),
-          }) => DiningTablesTableCompanion.insert(id: id, name: name, position: position, active: active, rowid: rowid),
+          updateCompanionCallback:
+              ({
+                Value<String> id = const Value.absent(),
+                Value<String> name = const Value.absent(),
+                Value<int> position = const Value.absent(),
+                Value<bool> active = const Value.absent(),
+                Value<String?> zone = const Value.absent(),
+                Value<int> rowid = const Value.absent(),
+              }) => DiningTablesTableCompanion(
+                id: id,
+                name: name,
+                position: position,
+                active: active,
+                zone: zone,
+                rowid: rowid,
+              ),
+          createCompanionCallback:
+              ({
+                required String id,
+                required String name,
+                Value<int> position = const Value.absent(),
+                Value<bool> active = const Value.absent(),
+                Value<String?> zone = const Value.absent(),
+                Value<int> rowid = const Value.absent(),
+              }) => DiningTablesTableCompanion.insert(
+                id: id,
+                name: name,
+                position: position,
+                active: active,
+                zone: zone,
+                rowid: rowid,
+              ),
           withReferenceMapper: (p0) => p0
               .map(
                 (e) => (

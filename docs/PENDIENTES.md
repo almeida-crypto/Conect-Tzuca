@@ -57,6 +57,7 @@ Prioridad: **Alta** = sin esto no se puede usar con un negocio real · **Media**
 - [ ] **Baja** · Decidir si lo cobrado de las tandas entra al corte de caja (hoy no entra: muchas tandas se cobran fuera del mostrador).
 - [x] **Media** · Restaurante: mesas, comandas, pantalla de cocina al instante (Realtime), para llevar y cobro por mesa. Meseros y cocina se invitan al equipo y la app les abre directo en mesas o cocina. *09/11/2026*
 - [ ] **Media** · Probar el restaurante con dos celulares reales (mesero y cocina) para medir cuánto tarda en llegar la comanda.
+- [x] **Media** · Zonas de mesas (Planta baja, Segunda planta, Terraza): cada zona con su numeración, mesas agrupadas y nombre completo en cocina. *11/11/2026*
 - [ ] **Baja** · Restaurante: dividir la cuenta, pasar una cuenta a otra mesa, imprimir la comanda en cocina y poner la mesa en el ticket.
 - [ ] **Baja** · Platillos que no se venden en mostrador (que solo salgan en el restaurante) y modificadores con precio (extra queso).
 - [x] **Media** · Equipo y roles: el dueño invita cajeros y administradores con un código; el cajero no cambia el catálogo. *09/11/2026*

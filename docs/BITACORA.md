@@ -376,3 +376,23 @@ Se abren desde **Más → Módulos** con el plan Emprendedor o superior. Los tre
 - **Verificación:**
   - 46 pruebas pasan. Se arreglaron dos desbordes que encontraron: la ficha con nombre de dos renglones y el aviso de cuenta vacía.
   - En el emulador se revisaron las cinco pestañas, cobrar, el ticket, Más, mesas, comanda, cocina (grabada para ver la animación) y apartados.
+
+## 11 de noviembre de 2026 · Sesión 6
+
+- El usuario probó el diseño 2 en su celular y le gustó.
+
+### Zonas de mesas
+- **Migración `0007_table_zones`:** columna `zone` en `restaurant_tables`. La base local pasa a la versión 6.
+- **Zonas:** "Planta baja", "Segunda planta", "Terraza" o la que quiera el negocio.
+  - Cada zona lleva su propia numeración (Mesa 1 en la terraza y Mesa 1 en planta baja).
+  - En la pantalla de mesas se agrupan con su título y cuántas están libres ("Terraza · 6 de 6 libres").
+  - La cocina ve el nombre completo: "Mesa 1 · Terraza".
+- **Acomodar mesas:** se elige "Agregar en" una zona (o se crea una nueva) y se agregan +1, +2, +4 o +6. Al tocar una mesa se cambia su nombre o su zona.
+- **Tiempos largos legibles:** "2 h 5 min" o "3 días" en lugar de "2309 min".
+
+### Verificación
+- 47 pruebas pasan. Cubren numeración por zona, orden de los grupos, nombre en cocina, cambiar de zona y que la zona llegue a otro teléfono.
+- **En el emulador:**
+  - La base pasó de la versión 5 a la 6 sin perder mesas ni cuentas abiertas.
+  - Se creó la zona Terraza con 6 mesas.
+  - La confirmación de "Quitar mesa" evitó un borrado por un toque accidental.

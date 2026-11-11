@@ -387,7 +387,13 @@ const _kitchenOut = {
 };
 final _kitchenIn = {for (final e in _kitchenOut.entries) e.value: e.key};
 
-RemoteRow tableToRemote(DiningTable t) => {'id': t.id, 'name': t.name, 'position': t.position, 'is_active': t.active};
+RemoteRow tableToRemote(DiningTable t) => {
+  'id': t.id,
+  'name': t.name,
+  'position': t.position,
+  'is_active': t.active,
+  'zone': t.zone,
+};
 
 RemoteRow orderToRemote(RestaurantOrder o) => {
   'id': o.id,
@@ -419,6 +425,7 @@ DiningTableRow tableFromRemote(RemoteRow r) => DiningTableRow(
   name: r['name']! as String,
   position: (r['position'] as num?)?.toInt() ?? 0,
   active: (r['is_active'] as bool?) ?? true,
+  zone: r['zone'] as String?,
 );
 
 OrderRow orderFromRemote(RemoteRow r) => OrderRow(

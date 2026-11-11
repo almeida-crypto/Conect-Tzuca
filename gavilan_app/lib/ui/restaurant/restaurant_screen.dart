@@ -21,6 +21,15 @@ import 'order_screen.dart';
 /// Minutos desde [since], para "hace 12 min".
 int minutesSince(DateTime since) => DateTime.now().difference(since).inMinutes;
 
+/// "12 min", "2 h 5 min", "3 días": se lee bien aunque una cuenta lleve mucho abierta.
+String elapsedLabel(DateTime since) {
+  final m = minutesSince(since);
+  if (m < 60) return '$m min';
+  if (m < 24 * 60) return m % 60 == 0 ? '${m ~/ 60} h' : '${m ~/ 60} h ${m % 60} min';
+  final d = m ~/ (24 * 60);
+  return d == 1 ? '1 día' : '$d días';
+}
+
 /// Mesas y cocina: los meseros abren cuentas y mandan comandas; la cocina las ve al instante.
 class RestaurantScreen extends ConsumerStatefulWidget {
   const RestaurantScreen({super.key, this.kitchen = false, this.embedded = false});
@@ -178,7 +187,22 @@ class _TablesView extends ConsumerWidget {
             expand: true,
             onPressed: () => showGSheet<void>(context, (_) => const _TablesSheet()),
           ),
-        if (tables.isNotEmpty)
+        for (final zone in store.zones) ...[
+          // Con una sola zona (o ninguna) no hace falta título.
+          if (store.zones.length > 1)
+            Padding(
+              padding: const EdgeInsets.fromLTRB(2, 14, 2, 8),
+              child: Row(
+                children: [
+                  Text(zone ?? 'Sin zona', style: GText.sans(size: 15, weight: FontWeight.w800)),
+                  const SizedBox(width: 8),
+                  Text(
+                    _freeLabel(store, zone),
+                    style: GText.sans(size: 12.5, weight: FontWeight.w600, color: GColors.tintaTenue),
+                  ),
+                ],
+              ),
+            ),
           GridView.count(
             crossAxisCount: 3,
             shrinkWrap: true,
@@ -186,8 +210,9 @@ class _TablesView extends ConsumerWidget {
             mainAxisSpacing: 10,
             crossAxisSpacing: 10,
             childAspectRatio: 1,
-            children: [for (final t in tables) _TableCard(table: t, order: store.openOrderOfTable(t.id))],
+            children: [for (final t in store.tablesIn(zone)) _TableCard(table: t, order: store.openOrderOfTable(t.id))],
           ),
+        ],
         const SizedBox(height: 14),
         GButton(
           label: 'Para llevar',
@@ -205,6 +230,13 @@ class _TablesView extends ConsumerWidget {
       ],
     );
   }
+}
+
+/// "3 de 5 libres".
+String _freeLabel(StoreState store, String? zone) {
+  final all = store.tablesIn(zone);
+  final free = all.where((t) => store.openOrderOfTable(t.id) == null).length;
+  return '$free de ${all.length} ${all.length == 1 ? 'libre' : 'libres'}';
 }
 
 class _TableCard extends ConsumerWidget {
@@ -265,7 +297,7 @@ class _TableCard extends ConsumerWidget {
               )
             else ...[
               Text(money(store.totalOfOrder(o.id)), style: GText.amount(size: 17)),
-              Text('${minutesSince(o.createdAt)} min', style: GText.muted(size: 12)),
+              Text(elapsedLabel(o.createdAt), style: GText.muted(size: 12)),
             ],
             if (ready > 0) ...[const SizedBox(height: 5), _ReadyPill(count: ready)],
           ],
@@ -338,7 +370,7 @@ class _OrderTile extends StatelessWidget {
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Text(title, style: GText.sans(size: 15, weight: FontWeight.w700)),
-              Text('hace ${minutesSince(order.createdAt)} min', style: GText.muted(size: 12.5)),
+              Text('hace ${elapsedLabel(order.createdAt)}', style: GText.muted(size: 12.5)),
             ],
           ),
         ),
@@ -348,38 +380,112 @@ class _OrderTile extends StatelessWidget {
   );
 }
 
-/// Agregar, renombrar y quitar mesas.
-class _TablesSheet extends ConsumerWidget {
+/// Agregar, renombrar, cambiar de zona y quitar mesas.
+class _TablesSheet extends ConsumerStatefulWidget {
   const _TablesSheet();
 
-  Future<void> _rename(BuildContext context, WidgetRef ref, DiningTable t) async {
-    final name = TextEditingController(text: t.name);
+  @override
+  ConsumerState<_TablesSheet> createState() => _TablesSheetState();
+}
+
+class _TablesSheetState extends ConsumerState<_TablesSheet> {
+  /// Zona donde caen las mesas nuevas (null = sin zona).
+  String? _zone;
+
+  StoreNotifier get _store => ref.read(storeProvider.notifier);
+
+  Future<String?> _askZone({String? initial}) async {
+    final name = TextEditingController(text: initial ?? '');
     final ok = await showDialog<bool>(
       context: context,
       builder: (ctx) => AlertDialog(
-        title: const Text('Nombre de la mesa'),
+        title: const Text('Nombre de la zona'),
         content: TextField(
           controller: name,
           autofocus: true,
           textCapitalization: TextCapitalization.sentences,
-          decoration: const InputDecoration(hintText: 'Terraza 2'),
+          decoration: const InputDecoration(hintText: 'Terraza, Segunda planta, Aire libre…'),
           onSubmitted: (_) => Navigator.of(ctx).pop(true),
         ),
         actions: [
           TextButton(onPressed: () => Navigator.of(ctx).pop(false), child: const Text('Cancelar')),
-          TextButton(onPressed: () => Navigator.of(ctx).pop(true), child: const Text('Guardar')),
+          TextButton(onPressed: () => Navigator.of(ctx).pop(true), child: const Text('Listo')),
         ],
       ),
     );
-    if (ok == true && name.text.trim().isNotEmpty) ref.read(storeProvider.notifier).renameTable(t.id, name.text);
+    final value = name.text.trim();
+    name.dispose();
+    return ok == true && value.isNotEmpty ? value : null;
+  }
+
+  Future<void> _edit(DiningTable t) async {
+    final name = TextEditingController(text: t.name);
+    String? zone = t.zone;
+    final zones = ref.read(storeProvider).zones.whereType<String>().toList();
+    final ok = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => StatefulBuilder(
+        builder: (ctx, setLocal) => AlertDialog(
+          title: const Text('Mesa'),
+          content: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              TextField(
+                controller: name,
+                autofocus: true,
+                textCapitalization: TextCapitalization.sentences,
+                decoration: const InputDecoration(labelText: 'Nombre', hintText: 'Mesa 4, Barra, Jardín 2'),
+              ),
+              const SizedBox(height: 14),
+              Text('Zona', style: GText.label()),
+              const SizedBox(height: 6),
+              Wrap(
+                spacing: 6,
+                runSpacing: 6,
+                children: [
+                  for (final z in <String?>[null, ...zones])
+                    ChoiceChip(
+                      label: Text(z ?? 'Sin zona'),
+                      selected: zone == z,
+                      onSelected: (_) => setLocal(() => zone = z),
+                    ),
+                  ActionChip(
+                    avatar: const Icon(Icons.add_rounded, size: 18),
+                    label: const Text('Nueva'),
+                    onPressed: () async {
+                      final created = await _askZone();
+                      if (created != null) setLocal(() => zone = created);
+                    },
+                  ),
+                ],
+              ),
+              if (zone != null && !zones.contains(zone))
+                Padding(
+                  padding: const EdgeInsets.only(top: 6),
+                  child: Text('Zona nueva: $zone', style: GText.muted(size: 12.5)),
+                ),
+            ],
+          ),
+          actions: [
+            TextButton(onPressed: () => Navigator.of(ctx).pop(false), child: const Text('Cancelar')),
+            TextButton(onPressed: () => Navigator.of(ctx).pop(true), child: const Text('Guardar')),
+          ],
+        ),
+      ),
+    );
+    if (ok == true) {
+      if (name.text.trim().isNotEmpty && name.text.trim() != t.name) _store.renameTable(t.id, name.text);
+      if (zone != t.zone) _store.moveTable(t.id, zone);
+    }
     name.dispose();
   }
 
-  Future<void> _remove(BuildContext context, WidgetRef ref, DiningTable t) async {
+  Future<void> _remove(DiningTable t) async {
     final ok = await showDialog<bool>(
       context: context,
       builder: (ctx) => AlertDialog(
-        title: Text('¿Quitar ${t.name}?'),
+        title: Text('¿Quitar ${t.fullName}?'),
         content: Text(
           'Ya no aparecerá en las mesas. Lo que se vendió en ella se queda.',
           style: GText.sans(size: 14, weight: FontWeight.w400),
@@ -396,44 +502,83 @@ class _TablesSheet extends ConsumerWidget {
         ],
       ),
     );
-    if (ok == true) ref.read(storeProvider.notifier).removeTable(t.id);
+    if (ok == true) _store.removeTable(t.id);
   }
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
+  Widget build(BuildContext context) {
     final store = ref.watch(storeProvider);
+    final zones = store.zones.whereType<String>().toList();
+    // Una zona recién inventada todavía no tiene mesas: se muestra como opción igual.
+    final options = <String?>[null, ...zones, if (_zone != null && !zones.contains(_zone)) _zone];
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
         const SheetHeader('Mesas'),
-        Text('Agregar', style: GText.label()),
-        const SizedBox(height: 6),
+        Text('AGREGAR EN', style: GText.label()),
+        const SizedBox(height: 8),
+        Wrap(
+          spacing: 6,
+          runSpacing: 6,
+          children: [
+            for (final z in options)
+              ChoiceChip(
+                label: Text(z ?? 'Sin zona'),
+                selected: _zone == z,
+                onSelected: (_) => setState(() => _zone = z),
+              ),
+            ActionChip(
+              avatar: const Icon(Icons.add_rounded, size: 18),
+              label: const Text('Nueva zona'),
+              onPressed: () async {
+                final created = await _askZone();
+                if (created != null) setState(() => _zone = created);
+              },
+            ),
+          ],
+        ),
+        const SizedBox(height: 10),
         Row(
           children: [
             for (final n in [1, 2, 4, 6]) ...[
               Expanded(
-                child: GChip(label: '+$n', selected: false, onTap: () => ref.read(storeProvider.notifier).addTables(n)),
+                child: GChip(
+                  label: '+$n',
+                  selected: false,
+                  onTap: () => _store.addTables(n, zone: _zone),
+                ),
               ),
               if (n != 6) const SizedBox(width: 8),
             ],
           ],
         ),
-        const SizedBox(height: 12),
-        for (final t in store.activeTables)
-          ListTile(
-            contentPadding: EdgeInsets.zero,
-            title: Text(t.name, style: GText.sans(size: 15)),
-            onTap: () => _rename(context, ref, t),
-            trailing: IconButton(
-              tooltip: 'Quitar mesa',
-              icon: const Icon(Icons.delete_outline),
-              color: GColors.rojo,
-              // Con la cuenta abierta no se puede quitar.
-              onPressed: store.openOrderOfTable(t.id) == null ? () => _remove(context, ref, t) : null,
+        const SizedBox(height: 14),
+        for (final zone in store.zones) ...[
+          if (store.zones.length > 1)
+            Padding(
+              padding: const EdgeInsets.only(top: 8, bottom: 2),
+              child: Text((zone ?? 'Sin zona').toUpperCase(), style: GText.label()),
             ),
-          ),
+          for (final t in store.tablesIn(zone))
+            ListTile(
+              contentPadding: EdgeInsets.zero,
+              title: Text(t.name, style: GText.sans(size: 15, weight: FontWeight.w600)),
+              subtitle: t.zone == null ? null : Text(t.zone!, style: GText.muted()),
+              onTap: () => _edit(t),
+              trailing: IconButton(
+                tooltip: 'Quitar mesa',
+                icon: const Icon(Icons.delete_outline_rounded),
+                color: GColors.rojo,
+                // Con la cuenta abierta no se puede quitar.
+                onPressed: store.openOrderOfTable(t.id) == null ? () => _remove(t) : null,
+              ),
+            ),
+        ],
         if (store.activeTables.isNotEmpty)
-          Text('Toca una mesa para cambiarle el nombre.', style: GText.muted(size: 12.5)),
+          Padding(
+            padding: const EdgeInsets.only(top: 6),
+            child: Text('Toca una mesa para cambiarle el nombre o la zona.', style: GText.muted(size: 12.5)),
+          ),
       ],
     );
   }
@@ -580,7 +725,7 @@ class _KitchenTicketState extends ConsumerState<_KitchenTicket> with SingleTicke
                         ),
                 ),
                 Text(
-                  '$waited min',
+                  elapsedLabel(firstSent),
                   style: GText.figures(size: 14, weight: FontWeight.w700, color: waitColor),
                 ),
               ],

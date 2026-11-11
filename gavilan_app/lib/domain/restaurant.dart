@@ -17,15 +17,26 @@ enum KitchenStatus {
 }
 
 class DiningTable {
-  const DiningTable({required this.id, required this.name, this.position = 0, this.active = true});
+  const DiningTable({required this.id, required this.name, this.position = 0, this.active = true, this.zone});
 
   final String id;
   final String name;
   final int position;
   final bool active;
 
-  DiningTable copyWith({String? name, bool? active}) =>
-      DiningTable(id: id, name: name ?? this.name, position: position, active: active ?? this.active);
+  /// "Planta baja", "Segunda planta", "Terraza". null = sin zona.
+  final String? zone;
+
+  /// "Mesa 1 · Terraza", para la cocina y el ticket.
+  String get fullName => zone == null ? name : '$name · $zone';
+
+  DiningTable copyWith({String? name, bool? active, String? zone, bool clearZone = false}) => DiningTable(
+    id: id,
+    name: name ?? this.name,
+    position: position,
+    active: active ?? this.active,
+    zone: clearZone ? null : (zone ?? this.zone),
+  );
 }
 
 /// Una comanda: la cuenta abierta de una mesa o un pedido para llevar.

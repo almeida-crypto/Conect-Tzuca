@@ -417,9 +417,9 @@ class DriftRepository implements StoreRepository, SyncStore {
   );
 
   static DiningTable _table(DiningTableRow r) =>
-      DiningTable(id: r.id, name: r.name, position: r.position, active: r.active);
+      DiningTable(id: r.id, name: r.name, position: r.position, active: r.active, zone: r.zone);
   static DiningTableRow _tableRow(DiningTable t) =>
-      DiningTableRow(id: t.id, name: t.name, position: t.position, active: t.active);
+      DiningTableRow(id: t.id, name: t.name, position: t.position, active: t.active, zone: t.zone);
 
   static RestaurantOrder _order(OrderRow r) => RestaurantOrder(
     id: r.id,

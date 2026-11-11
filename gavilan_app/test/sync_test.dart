@@ -394,12 +394,14 @@ void main() {
     final waiter = await phone(device: 'K7');
     await _setUpShop(waiter);
     waiter.store.addTables(4);
+    waiter.store.addTables(1, zone: 'Terraza');
     await waiter.login('mary@correo.mx');
     await waiter.settle();
 
     final kitchen = await phone(device: 'R3');
     await kitchen.login('mary@correo.mx');
-    expect(kitchen.state.activeTables, hasLength(4));
+    expect(kitchen.state.activeTables, hasLength(5));
+    expect(kitchen.state.tablesIn('Terraza').single.fullName, 'Mesa 1 · Terraza');
 
     final mesa = waiter.state.activeTables[2];
     final order = waiter.store.openOrder(tableId: mesa.id);

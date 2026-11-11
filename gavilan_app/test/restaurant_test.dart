@@ -35,6 +35,35 @@ void main() {
     expect(state().activeTables.last.name, 'Mesa 6');
   });
 
+  test('zonas: cada una con su numeración, agrupadas y con nombre completo en cocina', () {
+    store().addTables(2);
+    store().addTables(2, zone: 'Terraza');
+    store().addTables(1, zone: 'Segunda planta');
+    store().addTables(1, zone: 'Terraza');
+    expect(state().zones, [null, 'Terraza', 'Segunda planta']);
+    expect(state().tablesIn('Terraza').map((t) => t.name), ['Mesa 1', 'Mesa 2', 'Mesa 3']);
+    expect(state().tablesIn(null).map((t) => t.name), ['Mesa 1', 'Mesa 2']);
+    // Agrupadas: primero sin zona, luego cada zona en el orden en que se creó.
+    expect(state().activeTables.map((t) => t.fullName), [
+      'Mesa 1',
+      'Mesa 2',
+      'Mesa 1 · Terraza',
+      'Mesa 2 · Terraza',
+      'Mesa 3 · Terraza',
+      'Mesa 1 · Segunda planta',
+    ]);
+
+    final terraza = state().tablesIn('Terraza').first;
+    final order = store().openOrder(tableId: terraza.id);
+    expect(state().orderTitle(order), 'Mesa 1 · Terraza');
+
+    // Cambiar de zona y quitar la zona.
+    store().moveTable(terraza.id, 'Segunda planta');
+    expect(state().tablesIn('Segunda planta'), hasLength(2));
+    store().moveTable(terraza.id, '  ');
+    expect(state().tableById(terraza.id)!.zone, isNull);
+  });
+
   test('comanda: anotar, mandar a cocina, preparar, servir y cobrar', () {
     store().addTables(2);
     final mesa = state().activeTables.first;
@@ -101,7 +130,8 @@ void main() {
     final n = phone.read(storeProvider.notifier);
     n.loadDemo();
     n.addTables(2);
-    final mesa = phone.read(storeProvider).activeTables.last;
+    n.addTables(1, zone: 'Terraza');
+    final mesa = phone.read(storeProvider).tablesIn(null).last;
     final order = n.openOrder(tableId: mesa.id);
     final coca = phone.read(storeProvider).products.first;
     n.addOrderItem(order.id, coca, notes: 'bien fría');
@@ -113,7 +143,7 @@ void main() {
       overrides: [repositoryProvider.overrideWithValue(repo), initialDataProvider.overrideWithValue(await repo.load())],
     );
     final s = phone.read(storeProvider);
-    expect(s.activeTables.map((t) => t.name), ['Mesa 1', 'Mesa 2']);
+    expect(s.activeTables.map((t) => t.fullName), ['Mesa 1', 'Mesa 2', 'Mesa 1 · Terraza']);
     expect(s.openOrderOfTable(mesa.id)!.id, order.id);
     final item = s.itemsOfOrder(order.id).single;
     expect(item.notes, 'bien fría');

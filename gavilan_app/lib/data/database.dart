@@ -270,6 +270,7 @@ class DiningTablesTable extends Table {
   TextColumn get name => text()();
   IntColumn get position => integer().withDefault(const Constant(0))();
   BoolColumn get active => boolean().withDefault(const Constant(true))();
+  TextColumn get zone => text().nullable()();
 
   @override
   Set<Column> get primaryKey => {id};
@@ -342,7 +343,7 @@ class GavilanDb extends _$GavilanDb {
   factory GavilanDb.onDevice() => GavilanDb(driftDatabase(name: 'gavilan'));
 
   @override
-  int get schemaVersion => 5;
+  int get schemaVersion => 6;
 
   @override
   MigrationStrategy get migration => MigrationStrategy(
@@ -371,6 +372,8 @@ class GavilanDb extends _$GavilanDb {
         }
         await m.addColumn(salesTable, salesTable.orderId);
       }
+      // v6: zonas de mesas.
+      if (from < 6 && from >= 5) await m.addColumn(diningTablesTable, diningTablesTable.zone);
     },
   );
 }

@@ -142,8 +142,26 @@ class StoreState {
 
   // ---------- Restaurante ----------
 
-  List<DiningTable> get activeTables =>
-      tables.where((t) => t.active).toList()..sort((a, b) => a.position.compareTo(b.position));
+  /// Zonas en el orden en que se crearon; las mesas sin zona van primero.
+  List<String?> get zones {
+    final byPosition = tables.where((t) => t.active).toList()..sort((a, b) => a.position.compareTo(b.position));
+    final seen = <String?>[];
+    for (final t in byPosition) {
+      if (!seen.contains(t.zone)) seen.add(t.zone);
+    }
+    return [if (seen.contains(null)) null, ...seen.whereType<String>()];
+  }
+
+  /// Mesas activas agrupadas por zona y, dentro de cada zona, en su orden.
+  List<DiningTable> get activeTables {
+    final order = zones;
+    return tables.where((t) => t.active).toList()..sort((a, b) {
+      final z = order.indexOf(a.zone).compareTo(order.indexOf(b.zone));
+      return z != 0 ? z : a.position.compareTo(b.position);
+    });
+  }
+
+  List<DiningTable> tablesIn(String? zone) => activeTables.where((t) => t.zone == zone).toList();
 
   DiningTable? tableById(String id) => tables.where((t) => t.id == id).firstOrNull;
 
@@ -161,7 +179,7 @@ class StoreState {
   /// "Mesa 4" o "Para llevar · Juan".
   String orderTitle(RestaurantOrder o) => o.takeout
       ? (o.label == null || o.label!.isEmpty ? 'Para llevar' : 'Para llevar · ${o.label}')
-      : (tableById(o.tableId!)?.name ?? 'Mesa');
+      : (tableById(o.tableId!)?.fullName ?? 'Mesa');
 
   /// Lo que cocina tiene que hacer o entregar: enviado, sin servir ni cancelar.
   List<OrderItem> kitchenItemsOf(String orderId) => itemsOfOrder(orderId)
@@ -638,14 +656,18 @@ class StoreNotifier extends Notifier<StoreState> {
   // ---------- Restaurante ----------
 
   /// Agrega mesas numeradas después de las que ya hay ("Mesa 5", "Mesa 6"...).
-  void addTables(int count) {
-    // Sigue después del número más alto que se vea, aunque se hayan quitado mesas.
-    final last = state.activeTables
+  /// Cada zona lleva su propia numeración: "Mesa 1" en planta baja y "Mesa 1" en la terraza.
+  void addTables(int count, {String? zone}) {
+    final where = zone?.trim().isEmpty ?? true ? null : zone!.trim();
+    // Sigue después del número más alto que se vea en la zona, aunque se hayan quitado mesas.
+    final last = state
+        .tablesIn(where)
         .map((t) => int.tryParse(RegExp(r'^Mesa (\d+)$').firstMatch(t.name)?.group(1) ?? '') ?? 0)
         .fold(0, (a, n) => n > a ? n : a);
     var position = state.tables.fold(0, (a, t) => t.position > a ? t.position : a);
     final created = [
-      for (var i = 1; i <= count; i++) DiningTable(id: newId(), name: 'Mesa ${last + i}', position: ++position),
+      for (var i = 1; i <= count; i++)
+        DiningTable(id: newId(), name: 'Mesa ${last + i}', position: ++position, zone: where),
     ];
     state = state.copyWith(tables: [...state.tables, ...created]);
     for (final t in created) {
@@ -654,6 +676,12 @@ class StoreNotifier extends Notifier<StoreState> {
   }
 
   void renameTable(String id, String name) => _setTable(state.tableById(id)?.copyWith(name: name.trim()));
+
+  /// Cambia la mesa de zona (vacío = sin zona).
+  void moveTable(String id, String? zone) {
+    final where = zone?.trim().isEmpty ?? true ? null : zone!.trim();
+    _setTable(state.tableById(id)?.copyWith(zone: where, clearZone: where == null));
+  }
 
   /// Quita la mesa de la pantalla. Las comandas que tuvo se quedan.
   void removeTable(String id) => _setTable(state.tableById(id)?.copyWith(active: false));
