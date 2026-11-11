@@ -42,3 +42,6 @@ Decisiones ya tomadas, con su razón. Antes de cambiar alguna, revisa por qué s
 | 36 | Al cobrar, la comanda se vuelve una **venta normal** (con `order_id`) | El corte, los fiados, el ticket y los folios funcionan igual que en el mostrador | 09/11/2026 |
 | 37 | Meseros y cocina no cobran; la app les abre directo en mesas o cocina | En Supabase solo dueño, administrador y cajero registran ventas; así nadie ve botones que no le sirven | 09/11/2026 |
 | 38 | **Diseño 2:** fondo claro, tarjetas blancas y tres colores con un trabajo cada uno (achiote, cenote, Izamal); el beige, los bordes de tecla y la letra de máquina se quitan | A conocidos del usuario no les convenció el interior: se veía raro, poco llamativo y "de IA". El inicio se queda igual porque sí gustó | 09/11/2026 |
+| 39 | El panel web es una página que corre en el navegador y lee Supabase directo (con RLS), sin servidor propio | Menos piezas que mantener; los permisos ya los pone la base. Se publica gratis en Vercel | 11/11/2026 |
+| 40 | Solo dueño y administradores ven los reportes del panel | Las ventas y la ganancia son información del dueño | 11/11/2026 |
+| 41 | La ganancia se calcula solo con lo que tiene costo capturado, y el panel dice qué parte es | Muchos productos no tienen costo; contarlos como ganancia total engañaría | 11/11/2026 |

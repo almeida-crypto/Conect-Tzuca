@@ -396,3 +396,24 @@ Se abren desde **Más → Módulos** con el plan Emprendedor o superior. Los tre
   - La base pasó de la versión 5 a la 6 sin perder mesas ni cuentas abiertas.
   - Se creó la zona Terraza con 6 mesas.
   - La confirmación de "Quitar mesa" evitó un borrado por un toque accidental.
+
+### Panel web: reportes de ventas
+- **Carpeta `panel-web/`:** Next.js 16 con React 19 y Tailwind 4. Entra con la misma cuenta de la app; solo dueño y administradores ven los reportes.
+- **Lee de Supabase:** ventas, renglones (con costo), abonos de fiados, cortes cerrados, saldos (`customer_balances`, que respeta RLS) y productos por acabarse. Pide de 1000 en 1000.
+- **Pantalla:**
+  - Periodos: hoy, 7 días, 30 días, este mes y mes pasado.
+  - Cifras: vendido, ventas y ticket promedio (con ▲▼ contra el periodo anterior) y ganancia.
+  - Columnas de ventas por día y por hora: detalle al pasar el mouse o con el teclado, "Ver tabla" y el mejor momento marcado.
+  - Barras de formas de pago y de lo más vendido (piezas o kg), cortes de caja con su diferencia, quién debe y por acabarse.
+- **Diseño:** colores y letra de la app. Tarjetas que entran escalonadas y barras que se llenan. Se adapta a celular.
+- **"Ver con datos de ejemplo":** una tiendita de abarrotes inventada, con más ventas temprano y al salir del trabajo. Sirve para enseñarlo sin cuenta.
+
+### Verificación
+- Compila (`next build`) y pasa TypeScript y ESLint.
+- En el navegador, con los datos de ejemplo, se revisó en escritorio y en celular. Se arreglaron:
+  - "7 De Noviembre" (ahora solo la primera letra en mayúscula).
+  - Letras diminutas en la gráfica de media columna: ahora mide su ancho real.
+  - Encabezado y flechas que se partían en celular.
+  - "piezas" de huevo: ahora dice kg.
+- La consola del navegador quedó sin errores.
+- **No probado:** la entrada con una cuenta real. No se usan contraseñas desde aquí; lo prueba el usuario.

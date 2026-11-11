@@ -1,0 +1,75 @@
+@import "tailwindcss";
+
+/* Paleta Gavilán (la misma de la app: gavilan_app/lib/theme/colors.dart). */
+@theme {
+  --color-fondo: #f5f4f1;
+  --color-superficie: #ffffff;
+  --color-hundido: #edebe7;
+  --color-linea: #e3e0da;
+  --color-tinta: #1b1a19;
+  --color-tinta-suave: #66625d;
+  --color-tinta-tenue: #9c978f;
+  --color-marca: #e2582b;
+  --color-marca-oscura: #b8431b;
+  --color-marca-suave: #fce9e1;
+  --color-cenote: #0e7a70;
+  /* Un paso más vivo del cenote para las barras de las gráficas. */
+  --color-cenote-vivo: #0a8f82;
+  --color-cenote-suave: #ddf1ee;
+  --color-izamal: #f2ae1c;
+  --color-izamal-suave: #fdf1d4;
+  --color-rojo: #cc2f2f;
+  --color-rojo-suave: #fbe5e3;
+  --font-sans: var(--font-archivo), system-ui, sans-serif;
+}
+
+body {
+  background: var(--color-fondo);
+  color: var(--color-tinta);
+  font-family: var(--font-sans);
+}
+
+.tabular {
+  font-variant-numeric: tabular-nums;
+}
+
+/* Aparece deslizándose desde abajo, como las listas de la app. */
+@keyframes entrar {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+.entrar {
+  animation: entrar 0.45s cubic-bezier(0.2, 0.8, 0.2, 1) both;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .entrar {
+    animation: none;
+  }
+}
+
+/* Las barras se llenan al aparecer, como en el inventario de la app. */
+@keyframes llenar {
+  from {
+    transform: scaleX(0);
+  }
+  to {
+    transform: scaleX(1);
+  }
+}
+.bar-grow {
+  transform-origin: left;
+  animation: llenar 0.7s cubic-bezier(0.2, 0.8, 0.2, 1) both;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .bar-grow {
+    animation: none;
+  }
+}

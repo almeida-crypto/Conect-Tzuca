@@ -75,8 +75,12 @@ Prioridad: **Alta** = sin esto no se puede usar con un negocio real · **Media**
 - [ ] **Alta** · Pasar proyecto-Gavilan a plan Pro de Supabase antes de tener clientes: el gratis se pausa tras 7 días sin actividad. Ya pasó una vez (09/11/2026) y se reactivó a mano; mientras está pausado, ningún teléfono respalda.
 
 ## Etapa 5 · Panel web (Next.js)
-- [ ] **Baja** · Definir el alcance mínimo: reportes, catálogo tipo Excel y cobro con lector USB.
-- [ ] **Baja** · Crear el proyecto conectado al mismo Supabase.
+- [x] **Media** · Panel web (`panel-web/`, Next.js 16) conectado al mismo Supabase, con reportes de ventas: cifras con comparación, ventas por día y por hora, formas de pago, lo más vendido, cortes, quién debe y por acabarse. Tiene datos de ejemplo. *11/11/2026*
+- [ ] **Media** · Que el usuario entre al panel con su cuenta y revise sus números reales.
+- [ ] **Media** · Publicar el panel en Vercel. Necesita que el usuario cree una cuenta gratuita.
+- [ ] **Media** · Panel: catálogo tipo Excel (editar productos, precios y existencias en bloque).
+- [ ] **Baja** · Panel: descargar los reportes en Excel o PDF, elegir un rango de fechas libre y reportes por cajero o por teléfono.
+- [ ] **Baja** · Panel: cobro en la computadora con lector USB.
 
 ## Seguridad y ajustes de base de datos
 - [ ] **Media** · Activar en Supabase Auth la protección contra contraseñas filtradas (Authentication → Policies). Es un ajuste de seguridad del panel; lo hace el dueño del proyecto.
