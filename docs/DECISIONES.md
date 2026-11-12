@@ -58,3 +58,6 @@ Decisiones ya tomadas, con su razón. Antes de cambiar alguna, revisa por qué s
 | 52 | Al cobrar una mesa se toma el costo de compra del producto en ese momento | El mesero no tiene el costo; quien cobra sí, y sin esto la ganancia del restaurante saldría en cero | 12/11/2026 |
 | 53 | La cocina conserva el permiso de INSERT en `order_items` y un trigger impide altas nuevas y fija todo salvo el estado | La app sube con upsert y Postgres revisa el permiso de INSERT aunque el renglón exista; además, una copia vieja en la tableta de cocina no puede regresar cantidades | 12/11/2026 |
 | 54 | La lista de inicio no guarda precios: el número de ejemplo es solo una pista ("ej. 20") y cada producto marcado necesita su precio | Cada tienda tiene sus precios; uno inventado cobraría mal sin que nadie lo note | 12/11/2026 |
+| 55 | Solo se cancelan ventas del turno abierto | Cambiar un turno ya cerrado movería un corte que ya se contó y se firmó | 12/11/2026 |
+| 56 | Cancelar ventas lo hacen dueño y administradores, no el cajero | Cancelar regresa dinero de la caja: es la puerta más común para que falte efectivo | 12/11/2026 |
+| 57 | La deuda de una venta fiada cancelada se quita con un renglón propio (`reversal` / "Venta cancelada"), no con un abono | Un abono contaría como dinero que entró a la caja | 12/11/2026 |

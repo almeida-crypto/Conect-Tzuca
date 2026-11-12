@@ -4559,6 +4559,24 @@ class $SalesTableTable extends SalesTable with TableInfo<$SalesTableTable, SaleR
     type: DriftSqlType.string,
     requiredDuringInsert: false,
   );
+  static const VerificationMeta _cancelledAtMeta = const VerificationMeta('cancelledAt');
+  @override
+  late final GeneratedColumn<DateTime> cancelledAt = GeneratedColumn<DateTime>(
+    'cancelled_at',
+    aliasedName,
+    true,
+    type: DriftSqlType.dateTime,
+    requiredDuringInsert: false,
+  );
+  static const VerificationMeta _cancelReasonMeta = const VerificationMeta('cancelReason');
+  @override
+  late final GeneratedColumn<String> cancelReason = GeneratedColumn<String>(
+    'cancel_reason',
+    aliasedName,
+    true,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+  );
   @override
   List<GeneratedColumn> get $columns => [
     id,
@@ -4571,6 +4589,8 @@ class $SalesTableTable extends SalesTable with TableInfo<$SalesTableTable, SaleR
     customerId,
     device,
     orderId,
+    cancelledAt,
+    cancelReason,
   ];
   @override
   String get aliasedName => _alias ?? actualTableName;
@@ -4614,6 +4634,12 @@ class $SalesTableTable extends SalesTable with TableInfo<$SalesTableTable, SaleR
     if (data.containsKey('order_id')) {
       context.handle(_orderIdMeta, orderId.isAcceptableOrUnknown(data['order_id']!, _orderIdMeta));
     }
+    if (data.containsKey('cancelled_at')) {
+      context.handle(_cancelledAtMeta, cancelledAt.isAcceptableOrUnknown(data['cancelled_at']!, _cancelledAtMeta));
+    }
+    if (data.containsKey('cancel_reason')) {
+      context.handle(_cancelReasonMeta, cancelReason.isAcceptableOrUnknown(data['cancel_reason']!, _cancelReasonMeta));
+    }
     return context;
   }
 
@@ -4637,6 +4663,8 @@ class $SalesTableTable extends SalesTable with TableInfo<$SalesTableTable, SaleR
       customerId: attachedDatabase.typeMapping.read(DriftSqlType.string, data['${effectivePrefix}customer_id']),
       device: attachedDatabase.typeMapping.read(DriftSqlType.string, data['${effectivePrefix}device']),
       orderId: attachedDatabase.typeMapping.read(DriftSqlType.string, data['${effectivePrefix}order_id']),
+      cancelledAt: attachedDatabase.typeMapping.read(DriftSqlType.dateTime, data['${effectivePrefix}cancelled_at']),
+      cancelReason: attachedDatabase.typeMapping.read(DriftSqlType.string, data['${effectivePrefix}cancel_reason']),
     );
   }
 
@@ -4667,6 +4695,8 @@ class SaleRow extends DataClass implements Insertable<SaleRow> {
   final String? customerId;
   final String? device;
   final String? orderId;
+  final DateTime? cancelledAt;
+  final String? cancelReason;
   const SaleRow({
     required this.id,
     required this.folio,
@@ -4678,6 +4708,8 @@ class SaleRow extends DataClass implements Insertable<SaleRow> {
     this.customerId,
     this.device,
     this.orderId,
+    this.cancelledAt,
+    this.cancelReason,
   });
   @override
   Map<String, Expression> toColumns(bool nullToAbsent) {
@@ -4706,6 +4738,12 @@ class SaleRow extends DataClass implements Insertable<SaleRow> {
     if (!nullToAbsent || orderId != null) {
       map['order_id'] = Variable<String>(orderId);
     }
+    if (!nullToAbsent || cancelledAt != null) {
+      map['cancelled_at'] = Variable<DateTime>(cancelledAt);
+    }
+    if (!nullToAbsent || cancelReason != null) {
+      map['cancel_reason'] = Variable<String>(cancelReason);
+    }
     return map;
   }
 
@@ -4721,6 +4759,8 @@ class SaleRow extends DataClass implements Insertable<SaleRow> {
       customerId: customerId == null && nullToAbsent ? const Value.absent() : Value(customerId),
       device: device == null && nullToAbsent ? const Value.absent() : Value(device),
       orderId: orderId == null && nullToAbsent ? const Value.absent() : Value(orderId),
+      cancelledAt: cancelledAt == null && nullToAbsent ? const Value.absent() : Value(cancelledAt),
+      cancelReason: cancelReason == null && nullToAbsent ? const Value.absent() : Value(cancelReason),
     );
   }
 
@@ -4737,6 +4777,8 @@ class SaleRow extends DataClass implements Insertable<SaleRow> {
       customerId: serializer.fromJson<String?>(json['customerId']),
       device: serializer.fromJson<String?>(json['device']),
       orderId: serializer.fromJson<String?>(json['orderId']),
+      cancelledAt: serializer.fromJson<DateTime?>(json['cancelledAt']),
+      cancelReason: serializer.fromJson<String?>(json['cancelReason']),
     );
   }
   @override
@@ -4753,6 +4795,8 @@ class SaleRow extends DataClass implements Insertable<SaleRow> {
       'customerId': serializer.toJson<String?>(customerId),
       'device': serializer.toJson<String?>(device),
       'orderId': serializer.toJson<String?>(orderId),
+      'cancelledAt': serializer.toJson<DateTime?>(cancelledAt),
+      'cancelReason': serializer.toJson<String?>(cancelReason),
     };
   }
 
@@ -4767,6 +4811,8 @@ class SaleRow extends DataClass implements Insertable<SaleRow> {
     Value<String?> customerId = const Value.absent(),
     Value<String?> device = const Value.absent(),
     Value<String?> orderId = const Value.absent(),
+    Value<DateTime?> cancelledAt = const Value.absent(),
+    Value<String?> cancelReason = const Value.absent(),
   }) => SaleRow(
     id: id ?? this.id,
     folio: folio ?? this.folio,
@@ -4778,6 +4824,8 @@ class SaleRow extends DataClass implements Insertable<SaleRow> {
     customerId: customerId.present ? customerId.value : this.customerId,
     device: device.present ? device.value : this.device,
     orderId: orderId.present ? orderId.value : this.orderId,
+    cancelledAt: cancelledAt.present ? cancelledAt.value : this.cancelledAt,
+    cancelReason: cancelReason.present ? cancelReason.value : this.cancelReason,
   );
   SaleRow copyWithCompanion(SalesTableCompanion data) {
     return SaleRow(
@@ -4791,6 +4839,8 @@ class SaleRow extends DataClass implements Insertable<SaleRow> {
       customerId: data.customerId.present ? data.customerId.value : this.customerId,
       device: data.device.present ? data.device.value : this.device,
       orderId: data.orderId.present ? data.orderId.value : this.orderId,
+      cancelledAt: data.cancelledAt.present ? data.cancelledAt.value : this.cancelledAt,
+      cancelReason: data.cancelReason.present ? data.cancelReason.value : this.cancelReason,
     );
   }
 
@@ -4806,14 +4856,28 @@ class SaleRow extends DataClass implements Insertable<SaleRow> {
           ..write('receivedCents: $receivedCents, ')
           ..write('customerId: $customerId, ')
           ..write('device: $device, ')
-          ..write('orderId: $orderId')
+          ..write('orderId: $orderId, ')
+          ..write('cancelledAt: $cancelledAt, ')
+          ..write('cancelReason: $cancelReason')
           ..write(')'))
         .toString();
   }
 
   @override
-  int get hashCode =>
-      Object.hash(id, folio, createdAt, kind, sessionId, method, receivedCents, customerId, device, orderId);
+  int get hashCode => Object.hash(
+    id,
+    folio,
+    createdAt,
+    kind,
+    sessionId,
+    method,
+    receivedCents,
+    customerId,
+    device,
+    orderId,
+    cancelledAt,
+    cancelReason,
+  );
   @override
   bool operator ==(Object other) =>
       identical(this, other) ||
@@ -4827,7 +4891,9 @@ class SaleRow extends DataClass implements Insertable<SaleRow> {
           other.receivedCents == this.receivedCents &&
           other.customerId == this.customerId &&
           other.device == this.device &&
-          other.orderId == this.orderId);
+          other.orderId == this.orderId &&
+          other.cancelledAt == this.cancelledAt &&
+          other.cancelReason == this.cancelReason);
 }
 
 class SalesTableCompanion extends UpdateCompanion<SaleRow> {
@@ -4841,6 +4907,8 @@ class SalesTableCompanion extends UpdateCompanion<SaleRow> {
   final Value<String?> customerId;
   final Value<String?> device;
   final Value<String?> orderId;
+  final Value<DateTime?> cancelledAt;
+  final Value<String?> cancelReason;
   final Value<int> rowid;
   const SalesTableCompanion({
     this.id = const Value.absent(),
@@ -4853,6 +4921,8 @@ class SalesTableCompanion extends UpdateCompanion<SaleRow> {
     this.customerId = const Value.absent(),
     this.device = const Value.absent(),
     this.orderId = const Value.absent(),
+    this.cancelledAt = const Value.absent(),
+    this.cancelReason = const Value.absent(),
     this.rowid = const Value.absent(),
   });
   SalesTableCompanion.insert({
@@ -4866,6 +4936,8 @@ class SalesTableCompanion extends UpdateCompanion<SaleRow> {
     this.customerId = const Value.absent(),
     this.device = const Value.absent(),
     this.orderId = const Value.absent(),
+    this.cancelledAt = const Value.absent(),
+    this.cancelReason = const Value.absent(),
     this.rowid = const Value.absent(),
   }) : id = Value(id),
        folio = Value(folio),
@@ -4882,6 +4954,8 @@ class SalesTableCompanion extends UpdateCompanion<SaleRow> {
     Expression<String>? customerId,
     Expression<String>? device,
     Expression<String>? orderId,
+    Expression<DateTime>? cancelledAt,
+    Expression<String>? cancelReason,
     Expression<int>? rowid,
   }) {
     return RawValuesInsertable({
@@ -4895,6 +4969,8 @@ class SalesTableCompanion extends UpdateCompanion<SaleRow> {
       if (customerId != null) 'customer_id': customerId,
       if (device != null) 'device': device,
       if (orderId != null) 'order_id': orderId,
+      if (cancelledAt != null) 'cancelled_at': cancelledAt,
+      if (cancelReason != null) 'cancel_reason': cancelReason,
       if (rowid != null) 'rowid': rowid,
     });
   }
@@ -4910,6 +4986,8 @@ class SalesTableCompanion extends UpdateCompanion<SaleRow> {
     Value<String?>? customerId,
     Value<String?>? device,
     Value<String?>? orderId,
+    Value<DateTime?>? cancelledAt,
+    Value<String?>? cancelReason,
     Value<int>? rowid,
   }) {
     return SalesTableCompanion(
@@ -4923,6 +5001,8 @@ class SalesTableCompanion extends UpdateCompanion<SaleRow> {
       customerId: customerId ?? this.customerId,
       device: device ?? this.device,
       orderId: orderId ?? this.orderId,
+      cancelledAt: cancelledAt ?? this.cancelledAt,
+      cancelReason: cancelReason ?? this.cancelReason,
       rowid: rowid ?? this.rowid,
     );
   }
@@ -4960,6 +5040,12 @@ class SalesTableCompanion extends UpdateCompanion<SaleRow> {
     if (orderId.present) {
       map['order_id'] = Variable<String>(orderId.value);
     }
+    if (cancelledAt.present) {
+      map['cancelled_at'] = Variable<DateTime>(cancelledAt.value);
+    }
+    if (cancelReason.present) {
+      map['cancel_reason'] = Variable<String>(cancelReason.value);
+    }
     if (rowid.present) {
       map['rowid'] = Variable<int>(rowid.value);
     }
@@ -4979,6 +5065,8 @@ class SalesTableCompanion extends UpdateCompanion<SaleRow> {
           ..write('customerId: $customerId, ')
           ..write('device: $device, ')
           ..write('orderId: $orderId, ')
+          ..write('cancelledAt: $cancelledAt, ')
+          ..write('cancelReason: $cancelReason, ')
           ..write('rowid: $rowid')
           ..write(')'))
         .toString();
@@ -8988,6 +9076,8 @@ typedef $$SalesTableTableCreateCompanionBuilder = SalesTableCompanion Function({
   Value<String?> customerId,
   Value<String?> device,
   Value<String?> orderId,
+  Value<DateTime?> cancelledAt,
+  Value<String?> cancelReason,
   Value<int> rowid,
 });
 typedef $$SalesTableTableUpdateCompanionBuilder = SalesTableCompanion Function({
@@ -9001,6 +9091,8 @@ typedef $$SalesTableTableUpdateCompanionBuilder = SalesTableCompanion Function({
   Value<String?> customerId,
   Value<String?> device,
   Value<String?> orderId,
+  Value<DateTime?> cancelledAt,
+  Value<String?> cancelReason,
   Value<int> rowid,
 });
 
@@ -9039,6 +9131,12 @@ class $$SalesTableTableFilterComposer extends Composer<_$GavilanDb, $SalesTableT
 
   ColumnFilters<String> get orderId =>
       $composableBuilder(column: $table.orderId, builder: (column) => ColumnFilters(column));
+
+  ColumnFilters<DateTime> get cancelledAt =>
+      $composableBuilder(column: $table.cancelledAt, builder: (column) => ColumnFilters(column));
+
+  ColumnFilters<String> get cancelReason =>
+      $composableBuilder(column: $table.cancelReason, builder: (column) => ColumnFilters(column));
 }
 
 class $$SalesTableTableOrderingComposer extends Composer<_$GavilanDb, $SalesTableTable> {
@@ -9077,6 +9175,12 @@ class $$SalesTableTableOrderingComposer extends Composer<_$GavilanDb, $SalesTabl
 
   ColumnOrderings<String> get orderId =>
       $composableBuilder(column: $table.orderId, builder: (column) => ColumnOrderings(column));
+
+  ColumnOrderings<DateTime> get cancelledAt =>
+      $composableBuilder(column: $table.cancelledAt, builder: (column) => ColumnOrderings(column));
+
+  ColumnOrderings<String> get cancelReason =>
+      $composableBuilder(column: $table.cancelReason, builder: (column) => ColumnOrderings(column));
 }
 
 class $$SalesTableTableAnnotationComposer extends Composer<_$GavilanDb, $SalesTableTable> {
@@ -9109,6 +9213,12 @@ class $$SalesTableTableAnnotationComposer extends Composer<_$GavilanDb, $SalesTa
   GeneratedColumn<String> get device => $composableBuilder(column: $table.device, builder: (column) => column);
 
   GeneratedColumn<String> get orderId => $composableBuilder(column: $table.orderId, builder: (column) => column);
+
+  GeneratedColumn<DateTime> get cancelledAt =>
+      $composableBuilder(column: $table.cancelledAt, builder: (column) => column);
+
+  GeneratedColumn<String> get cancelReason =>
+      $composableBuilder(column: $table.cancelReason, builder: (column) => column);
 }
 
 class $$SalesTableTableTableManager
@@ -9146,6 +9256,8 @@ class $$SalesTableTableTableManager
                 Value<String?> customerId = const Value.absent(),
                 Value<String?> device = const Value.absent(),
                 Value<String?> orderId = const Value.absent(),
+                Value<DateTime?> cancelledAt = const Value.absent(),
+                Value<String?> cancelReason = const Value.absent(),
                 Value<int> rowid = const Value.absent(),
               }) => SalesTableCompanion(
                 id: id,
@@ -9158,6 +9270,8 @@ class $$SalesTableTableTableManager
                 customerId: customerId,
                 device: device,
                 orderId: orderId,
+                cancelledAt: cancelledAt,
+                cancelReason: cancelReason,
                 rowid: rowid,
               ),
           createCompanionCallback:
@@ -9172,6 +9286,8 @@ class $$SalesTableTableTableManager
                 Value<String?> customerId = const Value.absent(),
                 Value<String?> device = const Value.absent(),
                 Value<String?> orderId = const Value.absent(),
+                Value<DateTime?> cancelledAt = const Value.absent(),
+                Value<String?> cancelReason = const Value.absent(),
                 Value<int> rowid = const Value.absent(),
               }) => SalesTableCompanion.insert(
                 id: id,
@@ -9184,6 +9300,8 @@ class $$SalesTableTableTableManager
                 customerId: customerId,
                 device: device,
                 orderId: orderId,
+                cancelledAt: cancelledAt,
+                cancelReason: cancelReason,
                 rowid: rowid,
               ),
           withReferenceMapper: (p0) => p0

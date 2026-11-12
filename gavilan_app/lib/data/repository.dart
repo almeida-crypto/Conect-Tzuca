@@ -31,6 +31,7 @@ abstract class StoreRepository {
   Future<void> clear();
 
   Future<void> upsertProduct(Product product, {required bool isNew});
+
   /// Cambia la existencia. [adjustment]: corrección a mano (conteo), no mercancía que llegó.
   Future<void> addStock(Product updated, double delta, {bool adjustment = false});
   Future<void> recordSale({
@@ -39,6 +40,9 @@ abstract class StoreRepository {
     CreditEntry? charge,
     required int nextFolio,
   });
+
+  /// Guarda una venta cancelada: lo que regresó al inventario y, si fue fiada, lo que se le quita al cliente.
+  Future<void> cancelSale({required Sale sale, required List<Product> restocked, CreditEntry? reversal});
   Future<void> upsertCustomer(Customer customer);
   Future<void> insertCredit(CreditEntry entry);
   Future<void> upsertSession(CashSession session);
@@ -110,6 +114,8 @@ class MemoryRepository implements StoreRepository {
     CreditEntry? charge,
     required int nextFolio,
   }) async {}
+  @override
+  Future<void> cancelSale({required Sale sale, required List<Product> restocked, CreditEntry? reversal}) async {}
   @override
   Future<void> upsertCustomer(Customer customer) async {}
   @override
@@ -260,6 +266,8 @@ class DriftRepository implements StoreRepository, SyncStore {
             customerId: s.customerId,
             device: s.device,
             orderId: s.orderId,
+            cancelledAt: s.cancelledAt,
+            cancelReason: s.cancelReason,
           ),
       ],
       credit: [
@@ -527,6 +535,8 @@ class DriftRepository implements StoreRepository, SyncStore {
             customerId: s.customerId,
             device: s.device,
             orderId: s.orderId,
+            cancelledAt: s.cancelledAt,
+            cancelReason: s.cancelReason,
           ),
         );
     for (var i = 0; i < s.lines.length; i++) {
@@ -637,6 +647,43 @@ class DriftRepository implements StoreRepository, SyncStore {
       ),
     ]);
   });
+
+  @override
+  Future<void> cancelSale({required Sale sale, required List<Product> restocked, CreditEntry? reversal}) =>
+      db.transaction(() async {
+        await _insertSale(sale);
+        for (final p in restocked) {
+          await db.into(db.productsTable).insertOnConflictUpdate(_productRow(p));
+        }
+        if (reversal != null) await db.into(db.creditEntriesTable).insertOnConflictUpdate(_creditRow(reversal));
+        final at = sale.cancelledAt ?? DateTime.now();
+        final back = <String, double>{};
+        for (final l in sale.lines) {
+          if (l.productId != null && restocked.any((p) => p.id == l.productId)) {
+            back[l.productId!] = (back[l.productId!] ?? 0) + l.qty;
+          }
+        }
+        await _enqueue([
+          // Solo el renglón de la venta (con estado "cancelled"); sus renglones no cambian.
+          saleToRemote(sale).first,
+          if (back.isNotEmpty)
+            (
+              table: 'inventory_movements',
+              rows: [
+                for (final e in back.entries)
+                  stockToRemote(
+                    id: stableId('${sale.id}/return/${e.key}'),
+                    productId: e.key,
+                    change: e.value,
+                    reason: 'return',
+                    refId: sale.id,
+                    at: at,
+                  ),
+              ],
+            ),
+          if (reversal != null) (table: 'credit_entries', rows: [creditToRemote(reversal)]),
+        ]);
+      });
 
   @override
   Future<void> recordSale({

@@ -162,9 +162,11 @@ class _DebtorDetail extends ConsumerWidget {
                 const SizedBox(width: 10),
                 Expanded(
                   child: Text(
-                    e.type == CreditType.cargo
-                        ? 'Compra fiada'
-                        : 'Abono${e.method == null ? '' : ' (${e.method!.label.toLowerCase()})'}',
+                    switch (e.type) {
+                      CreditType.cargo => 'Compra fiada',
+                      CreditType.cancelacion => 'Venta cancelada',
+                      CreditType.abono => 'Abono${e.method == null ? '' : ' (${e.method!.label.toLowerCase()})'}',
+                    },
                     style: GText.sans(size: 13, weight: FontWeight.w400),
                   ),
                 ),

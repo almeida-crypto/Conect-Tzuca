@@ -242,10 +242,16 @@ class StoreState {
       batchOrders.where((o) => o.batchId == batchId).toList()..sort((a, b) => a.createdAt.compareTo(b.createdAt));
 
   /// Lo que dejó cada producto vendido en el turno: precio, costo y ganancia.
-  ProfitReport profitFor(CashSession session) => profitOf(sales.where((s) => s.sessionId == session.id));
+  ProfitReport profitFor(CashSession session) =>
+      profitOf(sales.where((s) => s.sessionId == session.id && !s.cancelled));
+
+  /// Ventas de un turno, la más reciente primero (las canceladas también, marcadas).
+  List<Sale> salesOf(CashSession session) =>
+      sales.where((s) => s.sessionId == session.id).toList()..sort((a, b) => b.createdAt.compareTo(a.createdAt));
 
   CashSummary summaryFor(CashSession session) {
-    final sessionSales = sales.where((s) => s.sessionId == session.id);
+    // Una venta cancelada no cuenta: su dinero se le regresó al cliente (o se le quitó la deuda).
+    final sessionSales = sales.where((s) => s.sessionId == session.id && !s.cancelled);
     var cash = 0, other = 0, onCredit = 0, count = 0;
     for (final s in sessionSales) {
       count++;
@@ -508,6 +514,45 @@ class StoreNotifier extends Notifier<StoreState> {
     );
     _save((r) => r.recordSale(sale: sale, changedProducts: changed, charge: charge, nextFolio: nextFolio));
     return sale;
+  }
+
+  /// Cancela una venta del turno abierto: lo vendido regresa al inventario, deja de contar en la caja y,
+  /// si fue fiada, se le quita esa deuda al cliente. Devuelve la venta cancelada (null si no se pudo).
+  Sale? cancelSale(String saleId, {required String reason}) {
+    final sale = state.sales.where((s) => s.id == saleId).firstOrNull;
+    final open = state.openSession;
+    if (sale == null || sale.cancelled || open == null || sale.sessionId != open.id) return null;
+    final now = _now();
+    final cancelled = sale.cancel(now, reason.trim().isEmpty ? 'Cancelada' : reason.trim());
+
+    final back = <String, double>{};
+    for (final l in sale.lines) {
+      if (l.productId != null) back[l.productId!] = (back[l.productId!] ?? 0) + l.qty;
+    }
+    final restocked = [
+      for (final p in state.products)
+        if (p.trackStock && back.containsKey(p.id)) p.copyWith(stock: p.stock + back[p.id]!),
+    ];
+    final byId = {for (final p in restocked) p.id: p};
+    final products = [for (final p in state.products) byId[p.id] ?? p];
+    final reversal = sale.kind == SaleKind.fiada && sale.customerId != null
+        ? CreditEntry(
+            id: newId(),
+            customerId: sale.customerId!,
+            type: CreditType.cancelacion,
+            amountCents: sale.totalCents,
+            createdAt: now,
+            saleId: sale.id,
+            sessionId: open.id,
+          )
+        : null;
+    state = state.copyWith(
+      sales: [for (final s in state.sales) s.id == saleId ? cancelled : s],
+      products: products,
+      credit: reversal == null ? state.credit : [...state.credit, reversal],
+    );
+    _save((r) => r.cancelSale(sale: cancelled, restocked: restocked, reversal: reversal));
+    return cancelled;
   }
 
   // ---------- Clientes y fiados ----------

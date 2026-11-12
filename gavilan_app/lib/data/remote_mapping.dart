@@ -75,7 +75,11 @@ RemoteRow creditToRemote(CreditEntry e) => {
   'id': e.id,
   'customer_id': e.customerId,
   'sale_id': e.saleId,
-  'type': e.type == CreditType.cargo ? 'charge' : 'payment',
+  'type': switch (e.type) {
+    CreditType.cargo => 'charge',
+    CreditType.abono => 'payment',
+    CreditType.cancelacion => 'reversal',
+  },
   'amount': _pesos(e.amountCents),
   'method': _methodOut[e.method],
   'cash_session_id': e.sessionId,
@@ -116,7 +120,8 @@ List<RemoteChange> saleToRemote(Sale s, {Set<String> stockTracked = const {}}) {
     'folio': '${s.folio}',
     'device_id': s.device,
     'order_id': s.orderId,
-    'status': s.kind == SaleKind.fiada ? 'credit' : 'paid',
+    'status': s.cancelled ? 'cancelled' : (s.kind == SaleKind.fiada ? 'credit' : 'paid'),
+    'notes': s.cancelReason,
     'subtotal': _pesos(s.totalCents),
     'discount': 0,
     'total': _pesos(s.totalCents),
@@ -197,7 +202,12 @@ SaleRow saleFromRemote(RemoteRow r) => SaleRow(
   id: r['id']! as String,
   folio: int.tryParse('${r['folio']}') ?? 0,
   createdAt: _date(r['created_at']),
-  kind: r['status'] == 'credit' ? SaleKind.fiada : SaleKind.pagada,
+  // Una venta cancelada ya no dice si fue fiada: lo era si no tiene forma de pago y sí cliente.
+  kind: r['status'] == 'credit' || (r['status'] == 'cancelled' && r['pay_method'] == null && r['customer_id'] != null)
+      ? SaleKind.fiada
+      : SaleKind.pagada,
+  cancelledAt: r['status'] == 'cancelled' ? _date(r['updated_at'] ?? r['created_at']) : null,
+  cancelReason: r['status'] == 'cancelled' ? r['notes'] as String? : null,
   sessionId: r['cash_session_id'] as String?,
   method: _method(r['pay_method']),
   receivedCents: _centsOrNull(r['received_amount']),
@@ -220,7 +230,11 @@ SaleLineRow saleLineFromRemote(RemoteRow r) => SaleLineRow(
 CreditRow creditFromRemote(RemoteRow r) => CreditRow(
   id: r['id']! as String,
   customerId: r['customer_id']! as String,
-  type: r['type'] == 'charge' ? CreditType.cargo : CreditType.abono,
+  type: switch (r['type']) {
+    'charge' => CreditType.cargo,
+    'reversal' => CreditType.cancelacion,
+    _ => CreditType.abono,
+  },
   amountCents: _cents(r['amount']),
   createdAt: _date(r['created_at']),
   saleId: r['sale_id'] as String?,

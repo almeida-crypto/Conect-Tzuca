@@ -49,7 +49,9 @@ Prioridad: **Alta** = sin esto no se puede usar con un negocio real · **Media**
 - [x] **Media** · Fuentes Archivo y Space Mono dentro de la app (`assets/google_fonts/`, licencia OFL): se ven bien sin internet desde el primer arranque. *01/11/2026*
 - [ ] **Baja** · Celular como escáner inalámbrico de la laptop (Supabase Realtime).
 - [ ] **Baja** · Generador de etiquetas con código de barras en PDF.
-- [ ] **Baja** · Descuentos por venta y devoluciones.
+- [x] **Alta** · Ventas del turno (lista con cada ticket) y cancelar una venta del turno abierto: regresa al inventario, deja de contar en la caja y la ganancia, y si fue fiada le quita la deuda al cliente. Solo dueño y administradores. *12/11/2026*
+- [ ] **Media** · Devolver solo una parte de una venta (un producto de varios) y cancelar ventas de turnos ya cerrados.
+- [ ] **Baja** · Descuentos por venta.
 
 ## Etapa 3 · Módulos por giro
 - [x] **Media** · Apartados: anticipo, abonos, fecha límite con aviso de vencido, liquidación automática, cancelación y comprobante por WhatsApp. *31/10/2026*

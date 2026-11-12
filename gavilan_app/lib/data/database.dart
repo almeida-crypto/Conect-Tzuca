@@ -57,6 +57,8 @@ class SalesTable extends Table {
   TextColumn get customerId => text().nullable()();
   TextColumn get device => text().nullable()();
   TextColumn get orderId => text().nullable()();
+  DateTimeColumn get cancelledAt => dateTime().nullable()();
+  TextColumn get cancelReason => text().nullable()();
 
   @override
   Set<Column> get primaryKey => {id};
@@ -349,7 +351,7 @@ class GavilanDb extends _$GavilanDb {
   );
 
   @override
-  int get schemaVersion => 6;
+  int get schemaVersion => 7;
 
   @override
   MigrationStrategy get migration => MigrationStrategy(
@@ -380,6 +382,10 @@ class GavilanDb extends _$GavilanDb {
       }
       // v6: zonas de mesas.
       if (from < 6 && from >= 5) await m.addColumn(diningTablesTable, diningTablesTable.zone);
+      if (from < 7) {
+        await m.addColumn(salesTable, salesTable.cancelledAt);
+        await m.addColumn(salesTable, salesTable.cancelReason);
+      }
     },
   );
 }

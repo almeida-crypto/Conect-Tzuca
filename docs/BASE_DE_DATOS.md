@@ -13,6 +13,7 @@ Proyecto de Supabase **proyecto-Gavilan** (`jveklinfbptnxmtavnez`, región us-ea
 | [0005_team.sql](../pos-backend/supabase/migrations/0005_team.sql) | `pos_team` | Invitaciones con código (`business_invites`), funciones del equipo y sin altas ni cambios directos en `business_members` |
 | [0006_restaurant_sync.sql](../pos-backend/supabase/migrations/0006_restaurant_sync.sql) | `pos_restaurant_sync` | `synced_at` en mesas, comandas y platillos; orden de las mesas, nombre de la comanda para llevar, hora de cierre y hora en que se sirvió |
 | [0007_table_zones.sql](../pos-backend/supabase/migrations/0007_table_zones.sql) | `pos_table_zones` | Zona de cada mesa (`restaurant_tables.zone`) |
+| [0010_cancel_sales.sql](../pos-backend/supabase/migrations/0010_cancel_sales.sql) | `0010_cancel_sales` | Ventas canceladas: `sales.status = 'cancelled'` con el motivo en `notes`, lo vendido regresa con un movimiento `return` y la deuda de una venta fiada se quita con `credit_entries.type = 'reversal'` (nuevo valor de `ledger_type`) |
 | [0009_kitchen_status_only.sql](../pos-backend/supabase/migrations/0009_kitchen_status_only.sql) | `0009_kitchen_status_only` | La cocina no abre ni cambia cuentas, no agrega platillos y en los que existen solo cambia el estado (trigger `kitchen_status_only`) |
 | [0008_hide_cost.sql](../pos-backend/supabase/migrations/0008_hide_cost.sql) | `0008_hide_cost` | El costo de compra solo lo ven dueño, admin y cajero: `products` y `sale_items` se leen solo con esos roles, y todos bajan los productos con `pull_products` |
 

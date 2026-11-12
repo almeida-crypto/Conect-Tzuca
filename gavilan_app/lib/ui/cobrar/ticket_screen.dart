@@ -11,15 +11,19 @@ import '../../domain/models.dart';
 import '../../domain/plan.dart';
 import '../../state/app_state.dart';
 import '../../state/store.dart';
+import '../../state/sync.dart';
 import '../../theme/colors.dart';
 import '../../theme/theme.dart';
 import '../widgets/buttons.dart';
 
-/// Ticket de la venta con sello PAGADO o FIADO.
+/// Ticket de la venta con sello PAGADO, FIADO o CANCELADA.
 class TicketScreen extends ConsumerStatefulWidget {
-  const TicketScreen({super.key, required this.saleId});
+  const TicketScreen({super.key, required this.saleId, this.fromHistory = false});
 
   final String saleId;
+
+  /// Se abrió desde la lista de ventas (no recién cobrada): el botón dice "Volver".
+  final bool fromHistory;
 
   @override
   ConsumerState<TicketScreen> createState() => _TicketScreenState();
@@ -29,6 +33,15 @@ class _TicketScreenState extends ConsumerState<TicketScreen> {
   /// Lo que queda dentro de esta llave es lo que se manda como imagen.
   final _ticketKey = GlobalKey();
 
+  Future<void> _confirmCancel(Sale sale, String? customerName) async {
+    final reason = await showCancelSaleDialog(context, sale, customerName: customerName);
+    if (reason == null || !mounted) return;
+    final done = ref.read(storeProvider.notifier).cancelSale(sale.id, reason: reason);
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(content: Text(done == null ? 'No se pudo cancelar: el turno ya se cerró' : 'Venta cancelada')),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final store = ref.watch(storeProvider);
@@ -37,6 +50,9 @@ class _TicketScreenState extends ConsumerState<TicketScreen> {
     final customer = sale.customerId == null ? null : store.customerById(sale.customerId!);
     final balance = customer == null ? null : store.balanceOf(customer.id);
     final paid = sale.kind == SaleKind.pagada;
+    final open = store.openSession;
+    final canCancel =
+        !sale.cancelled && open != null && sale.sessionId == open.id && ref.watch(permissionsProvider).cancelSales;
     final text = ticketText(
       business: store.businessName,
       sale: sale,
@@ -73,7 +89,10 @@ class _TicketScreenState extends ConsumerState<TicketScreen> {
           appBar: AppBar(
             backgroundColor: GColors.fondo,
             surfaceTintColor: Colors.transparent,
-            title: Text(paid ? 'Venta cobrada' : 'Venta fiada', style: GText.sans(size: 17, weight: FontWeight.w800)),
+            title: Text(
+              sale.cancelled ? 'Venta cancelada' : (paid ? 'Venta cobrada' : 'Venta fiada'),
+              style: GText.sans(size: 17, weight: FontWeight.w800),
+            ),
           ),
           body: SafeArea(
             child: ListView(
@@ -122,6 +141,11 @@ class _TicketScreenState extends ConsumerState<TicketScreen> {
                                   _row('Cliente', customer?.name ?? ''),
                                   _row('Saldo pendiente', money(balance ?? 0)),
                                 ],
+                                if (sale.cancelled) ...[
+                                  const _Dashed(),
+                                  _row('CANCELADA', timeLabel(sale.cancelledAt!), bold: true),
+                                  Text(sale.cancelReason ?? '', style: GText.mono(size: 11.5)),
+                                ],
                                 if (plan.limits.watermark) ...[
                                   const SizedBox(height: 12),
                                   Text(
@@ -134,7 +158,11 @@ class _TicketScreenState extends ConsumerState<TicketScreen> {
                                 const SizedBox(height: 70),
                               ],
                             ),
-                            Positioned(right: 4, bottom: 10, child: _Stamp(paid: paid)),
+                            Positioned(
+                              right: 4,
+                              bottom: 10,
+                              child: _Stamp(paid: paid, cancelled: sale.cancelled),
+                            ),
                           ],
                         ),
                       ),
@@ -176,16 +204,25 @@ class _TicketScreenState extends ConsumerState<TicketScreen> {
                         ),
                         const SizedBox(height: 4),
                         GButton(
-                          label: 'Nueva venta',
+                          label: widget.fromHistory ? 'Volver' : 'Nueva venta',
                           kind: GButtonKind.outline,
                           expand: true,
                           onPressed: () => Navigator.of(context).pop(),
                         ),
+                        if (canCancel)
+                          TextButton.icon(
+                            onPressed: () => _confirmCancel(sale, customer?.name),
+                            icon: const Icon(Icons.undo_rounded, size: 18, color: GColors.rojo),
+                            label: Text(
+                              'Cancelar esta venta',
+                              style: GText.sans(size: 13.5, weight: FontWeight.w700, color: GColors.rojo),
+                            ),
+                          ),
                         if (canPrintTicket)
                           Padding(
                             padding: const EdgeInsets.only(top: 10),
                             child: Text(
-                              'Enter: nueva venta · P: imprimir',
+                              widget.fromHistory ? 'Enter: volver · P: imprimir' : 'Enter: nueva venta · P: imprimir',
                               textAlign: TextAlign.center,
                               style: GText.muted(size: 12),
                             ),
@@ -242,13 +279,14 @@ class _Dashed extends StatelessWidget {
 
 /// Sello que "cae" sobre el ticket.
 class _Stamp extends StatelessWidget {
-  const _Stamp({required this.paid});
+  const _Stamp({required this.paid, this.cancelled = false});
 
   final bool paid;
+  final bool cancelled;
 
   @override
   Widget build(BuildContext context) {
-    final color = paid ? GColors.cenote : GColors.rojo;
+    final color = cancelled ? GColors.tintaSuave : (paid ? GColors.cenote : GColors.rojo);
     return TweenAnimationBuilder<double>(
       tween: Tween(begin: 0, end: 1),
       duration: const Duration(milliseconds: 450),
@@ -267,10 +305,71 @@ class _Stamp extends StatelessWidget {
           borderRadius: BorderRadius.circular(3),
         ),
         child: Text(
-          paid ? 'PAGADO' : 'FIADO',
+          cancelled ? 'CANCELADA' : (paid ? 'PAGADO' : 'FIADO'),
           style: GText.sans(size: 24, weight: FontWeight.w800, color: color).copyWith(letterSpacing: 2),
         ),
       ),
     );
   }
+}
+
+/// Pregunta por qué se cancela la venta y explica qué va a pasar. Devuelve el motivo, o null si no se cancela.
+Future<String?> showCancelSaleDialog(BuildContext context, Sale sale, {String? customerName}) {
+  const reasons = ['Se cobró mal', 'El cliente se arrepintió', 'Producto en mal estado', 'Otro'];
+  var picked = reasons.first;
+  final total = money(sale.totalCents);
+  final effect = switch ((sale.kind, sale.method)) {
+    (SaleKind.fiada, _) => 'Se le quitan $total de la deuda${customerName == null ? '' : ' a $customerName'}.',
+    (_, PayMethod.efectivo) => 'Devuélvele $total al cliente: ya no cuentan en la caja.',
+    (_, final m) => 'Devuélvele $total por ${m?.label.toLowerCase() ?? 'el mismo medio'}. La app solo lo anota.',
+  };
+  return showDialog<String>(
+    context: context,
+    builder: (ctx) => StatefulBuilder(
+      builder: (ctx, setState) => AlertDialog(
+        title: Text('¿Cancelar la venta ${sale.folioLabel}?', style: GText.sans(size: 18, weight: FontWeight.w800)),
+        content: SizedBox(
+          width: 380,
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              Text('¿Por qué?', style: GText.sans(size: 13, weight: FontWeight.w700)),
+              const SizedBox(height: 8),
+              Wrap(
+                spacing: 6,
+                runSpacing: 6,
+                children: [
+                  for (final r in reasons)
+                    GChip(label: r, selected: picked == r, onTap: () => setState(() => picked = r)),
+                ],
+              ),
+              const SizedBox(height: 14),
+              Container(
+                padding: const EdgeInsets.all(12),
+                decoration: BoxDecoration(
+                  color: GColors.rojoSuave,
+                  borderRadius: BorderRadius.circular(GShape.radiusSmall),
+                ),
+                child: Text(
+                  '$effect Lo vendido regresa al inventario.',
+                  style: GText.sans(size: 13.5, weight: FontWeight.w600, color: GColors.rojo),
+                ),
+              ),
+            ],
+          ),
+        ),
+        actions: [
+          TextButton(onPressed: () => Navigator.of(ctx).pop(), child: const Text('No, dejarla')),
+          TextButton(
+            onPressed: () => Navigator.of(ctx).pop(picked),
+            child: Text(
+              'Sí, cancelar',
+              style: GText.sans(size: 14, weight: FontWeight.w800, color: GColors.rojo),
+            ),
+          ),
+        ],
+      ),
+    ),
+  );
 }

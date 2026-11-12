@@ -12,6 +12,7 @@ import '../widgets/buttons.dart';
 import '../widgets/common.dart';
 import 'cash_dialogs.dart';
 import 'profit_card.dart';
+import 'sales_screen.dart';
 
 /// Corte de caja: lo que debe haber en el cajón, calculado de las ventas, abonos y gastos del turno.
 class CajaScreen extends ConsumerStatefulWidget {
@@ -164,6 +165,18 @@ class _CajaScreenState extends ConsumerState<CajaScreen> {
               ),
             ),
           ],
+        ),
+      ),
+      // Lista de ventas del turno: ver tickets, mandarlos otra vez o cancelar una venta.
+      Padding(
+        padding: const EdgeInsets.fromLTRB(16, 8, 16, 0),
+        child: GButton(
+          label: 'Ventas del turno (${s.salesCount})',
+          icon: Icons.receipt_long_rounded,
+          kind: GButtonKind.outline,
+          expand: true,
+          onPressed: () =>
+              Navigator.of(context).push(MaterialPageRoute<void>(builder: (_) => SalesScreen(sessionId: session.id))),
         ),
       ),
       if (gastos.isNotEmpty)
@@ -469,6 +482,18 @@ Future<void> showCutDetail(BuildContext context, CashSession session) {
               color: diff < 0 ? GColors.rojo : GColors.cenote,
             ),
             _Ledger('Total vendido', summary.totalSoldCents, total: true),
+            Align(
+              alignment: Alignment.centerLeft,
+              child: TextButton.icon(
+                onPressed: () =>
+                    Navigator.of(ctx).push(MaterialPageRoute<void>(builder: (_) => SalesScreen(sessionId: session.id))),
+                icon: const Icon(Icons.receipt_long_rounded, size: 18, color: GColors.marca),
+                label: Text(
+                  'Ver las ventas de este turno',
+                  style: GText.sans(size: 13.5, weight: FontWeight.w700, color: GColors.marca),
+                ),
+              ),
+            ),
             if (ref.watch(permissionsProvider).seeProfit)
               ProfitCard(report: store.profitFor(session), margin: const EdgeInsets.only(top: 14)),
           ],

@@ -532,3 +532,29 @@ Se abren desde **Más → Módulos** con el plan Emprendedor o superior. Los tre
   - Al marcar Agua 1.5 L sin precio la avisa en rojo.
   - Con precio, agregó 2 productos y ya salen en Cobrar.
 - Se cambió el ejemplo de precio a "ej. 20" porque parecía un precio puesto.
+
+### Ventas del turno y cancelar una venta
+- **Ventas del turno** (botón en Caja y en cada corte anterior): lista con hora, productos, folio, forma de pago y total, la más reciente arriba. Tocar una abre su ticket para mandarlo o imprimirlo otra vez ("Volver" en lugar de "Nueva venta").
+- **Cancelar esta venta** (en el ticket, solo dueño y administradores, solo del turno abierto):
+  - Se elige el motivo: se cobró mal, el cliente se arrepintió, producto en mal estado u otro.
+  - El aviso dice qué pasa: devolver el efectivo, o lo cobrado con tarjeta o transferencia, o quitar la deuda.
+  - Lo vendido regresa al inventario.
+  - La venta deja de contar en la caja, en la ganancia y en el panel.
+  - El ticket queda con sello gris CANCELADA, la hora y el motivo, también en el texto y en lo impreso.
+  - En Fiados aparece "Venta cancelada".
+- **Datos:**
+  - Local: esquema 7 con `cancelledAt` y `cancelReason` en ventas.
+  - Supabase (migración 0010):
+    - `status = 'cancelled'` con el motivo en `notes`.
+    - Un movimiento `return` por producto.
+    - `reversal` en `credit_entries`, que la vista de saldos ya resta.
+
+### Verificación
+- `flutter analyze` sin avisos y 65 pruebas pasan, 6 nuevas en `test/cancel_sale_test.dart`:
+  - Efectivo: inventario, caja y ganancia.
+  - Fiado: deuda en cero sin contar como abono.
+  - Turno cerrado.
+  - Ida y vuelta con Supabase.
+  - Se conserva al reabrir.
+  - Flujo en pantalla.
+- Capturas generadas con Flutter (no se subieron): lista con la venta cancelada tachada, diálogo con el motivo y el aviso, y ticket con el sello CANCELADA.

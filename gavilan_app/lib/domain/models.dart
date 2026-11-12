@@ -106,6 +106,8 @@ class Sale {
     this.customerId,
     this.device,
     this.orderId,
+    this.cancelledAt,
+    this.cancelReason,
   });
 
   final String id;
@@ -124,6 +126,29 @@ class Sale {
   /// Comanda del restaurante que se cobró con esta venta.
   final String? orderId;
 
+  /// Cuándo se canceló (null si sigue vigente) y por qué.
+  final DateTime? cancelledAt;
+  final String? cancelReason;
+
+  bool get cancelled => cancelledAt != null;
+
+  /// La misma venta, cancelada: deja de contar en la caja, la ganancia y lo vendido.
+  Sale cancel(DateTime at, String reason) => Sale(
+    id: id,
+    folio: folio,
+    createdAt: createdAt,
+    lines: lines,
+    kind: kind,
+    sessionId: sessionId,
+    method: method,
+    receivedCents: receivedCents,
+    customerId: customerId,
+    device: device,
+    orderId: orderId,
+    cancelledAt: at,
+    cancelReason: reason,
+  );
+
   /// "K7-0043": cada teléfono lleva su propia numeración.
   String get folioLabel => '${device ?? 'A'}-${folio.toString().padLeft(4, '0')}';
 
@@ -139,7 +164,8 @@ class Customer {
   final String? phone;
 }
 
-enum CreditType { cargo, abono }
+/// cargo: compró fiado. abono: pagó. cancelacion: se canceló una venta fiada y se le quita esa deuda.
+enum CreditType { cargo, abono, cancelacion }
 
 class CreditEntry {
   const CreditEntry({

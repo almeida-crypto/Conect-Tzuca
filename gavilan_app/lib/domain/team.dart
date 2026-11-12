@@ -40,6 +40,9 @@ class Permissions {
   /// Cobrar ventas y cuentas de mesa (en la nube, meseros y cocina no registran ventas).
   bool get charge => _boss || role == MemberRole.cashier;
 
+  /// Cancelar ventas: regresa dinero y mercancía, así que lo decide el dueño o un administrador.
+  bool get cancelSales => _boss;
+
   /// Ver costos y ganancia (en el corte): es información del dueño.
   bool get seeProfit => _boss;
 

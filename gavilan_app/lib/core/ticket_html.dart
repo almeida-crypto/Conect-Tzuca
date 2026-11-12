@@ -57,7 +57,8 @@ String ticketHtml({
 <div class="sub">Folio ${_esc(sale.folioLabel)} · ${_esc(dateTimeLabel(sale.createdAt))}</div>
 <table>
 $rows</table>
-<div class="sello">${paid ? 'PAGADO' : 'FIADO'}</div>
+<div class="sello">${sale.cancelled ? 'CANCELADA' : (paid ? 'PAGADO' : 'FIADO')}</div>
+${sale.cancelled ? '<div class="pie">${_esc(sale.cancelReason ?? '')}</div>' : ''}
 <div class="pie">¡Gracias por su compra!</div>
 ${watermark ? '<div class="pie">Hecho con Gavilán</div>' : ''}
 </div></body></html>''';

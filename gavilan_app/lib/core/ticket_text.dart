@@ -32,6 +32,11 @@ String ticketText({
     b.writeln('A cuenta de ${customerName ?? 'cliente'}');
     if (newBalanceCents != null) b.writeln('Saldo pendiente: ${money(newBalanceCents)}');
   }
+  if (sale.cancelled) {
+    b
+      ..writeln('')
+      ..writeln('*VENTA CANCELADA* (${sale.cancelReason ?? ''})');
+  }
   if (watermark) {
     b
       ..writeln('')
