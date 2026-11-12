@@ -29,7 +29,10 @@ Future<void> showShortcutsHelp(BuildContext context) {
                 padding: const EdgeInsets.symmetric(vertical: 5),
                 child: Row(
                   children: [
-                    SizedBox(width: 96, child: Align(alignment: Alignment.centerLeft, child: KeyCap(k))),
+                    SizedBox(
+                      width: 96,
+                      child: Align(alignment: Alignment.centerLeft, child: KeyCap(k)),
+                    ),
                     Expanded(child: Text(what, style: GText.sans(size: 14))),
                   ],
                 ),
@@ -58,7 +61,10 @@ class KeyCap extends StatelessWidget {
         border: Border.all(color: GColors.linea),
         boxShadow: const [BoxShadow(color: GColors.linea, offset: Offset(0, 2))],
       ),
-      child: Text(label, style: GText.sans(size: 12, weight: FontWeight.w800, color: GColors.tintaSuave)),
+      child: Text(
+        label,
+        style: GText.sans(size: 12, weight: FontWeight.w800, color: GColors.tintaSuave),
+      ),
     );
   }
 }

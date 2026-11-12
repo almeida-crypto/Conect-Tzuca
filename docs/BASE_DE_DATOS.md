@@ -13,6 +13,7 @@ Proyecto de Supabase **proyecto-Gavilan** (`jveklinfbptnxmtavnez`, región us-ea
 | [0005_team.sql](../pos-backend/supabase/migrations/0005_team.sql) | `pos_team` | Invitaciones con código (`business_invites`), funciones del equipo y sin altas ni cambios directos en `business_members` |
 | [0006_restaurant_sync.sql](../pos-backend/supabase/migrations/0006_restaurant_sync.sql) | `pos_restaurant_sync` | `synced_at` en mesas, comandas y platillos; orden de las mesas, nombre de la comanda para llevar, hora de cierre y hora en que se sirvió |
 | [0007_table_zones.sql](../pos-backend/supabase/migrations/0007_table_zones.sql) | `pos_table_zones` | Zona de cada mesa (`restaurant_tables.zone`) |
+| [0009_kitchen_status_only.sql](../pos-backend/supabase/migrations/0009_kitchen_status_only.sql) | `0009_kitchen_status_only` | La cocina no abre ni cambia cuentas, no agrega platillos y en los que existen solo cambia el estado (trigger `kitchen_status_only`) |
 | [0008_hide_cost.sql](../pos-backend/supabase/migrations/0008_hide_cost.sql) | `0008_hide_cost` | El costo de compra solo lo ven dueño, admin y cajero: `products` y `sale_items` se leen solo con esos roles, y todos bajan los productos con `pull_products` |
 
 Toda migración nueva va en `pos-backend/supabase/migrations/` con número consecutivo y se registra aquí.
@@ -55,6 +56,7 @@ Las existencias se calculan desde `inventory_movements`: un trigger actualiza `p
 | `new_invite_code()` | Interna: genera el código con `gen_random_bytes`. Nadie la puede llamar por la API |
 | `apply_stock_movement()` | Trigger que actualiza existencias. No se puede llamar por la API |
 | `set_updated_at()` | Trigger de `updated_at` |
+| `kitchen_status_only()` | Trigger en `order_items`: si quien escribe es cocina, rechaza platillos nuevos y deja todo igual salvo el estado y sus horas. No se puede llamar por la API |
 | `pull_products(negocio, desde, salto, cuántos)` | Baja los productos que cambiaron. A meseros y cocina les llegan con `cost` vacío; a dueño, admin y cajero, completos. La app la usa en lugar de leer `products` directo |
 
 ## Roles y permisos (RLS)
@@ -70,7 +72,8 @@ Roles: `owner` (dueño), `admin`, `cashier` (cajero), `waiter` (mesero) y `kitch
 | Mesas | Miembros | Dueño y admin |
 | Renglones de venta (`sale_items`, traen el costo) | Dueño, admin y cajero | Dueño, admin y cajero |
 | Ventas, caja, fiados, apartados, lotes y tandas | Miembros | Dueño, admin y cajero |
-| Pedidos y cocina | Miembros | Todos los roles |
+| Cuentas de mesa (`orders`) | Miembros | Dueño, admin, cajero y mesero |
+| Platillos (`order_items`) | Miembros | Dueño, admin, cajero y mesero; cocina solo cambia el estado |
 
 No hay permiso de `DELETE` en ninguna tabla: todo se borra con `deleted_at`.
 
@@ -88,7 +91,6 @@ Aparte queda el aviso de "protección contra contraseñas filtradas". Es un ajus
 
 ## Pendientes de la base
 
-- Que cocina solo cambie el estado de los pedidos.
 - Validar los límites de cada plan con triggers.
 - Políticas de Storage para fotos.
 - Reglas de sincronización de PowerSync.

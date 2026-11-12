@@ -6,12 +6,15 @@ import '../../core/money.dart';
 import '../../domain/models.dart';
 import '../../state/app_state.dart';
 import '../../state/store.dart';
+import '../../state/sync.dart';
 import '../../theme/colors.dart';
 import '../../theme/theme.dart';
 import '../caja/cash_dialogs.dart';
 import '../widgets/buttons.dart';
 import '../widgets/common.dart';
 import '../scan/scan_screen.dart';
+import '../inventario/first_products.dart';
+import '../inventario/product_form.dart';
 import '../widgets/product_icons.dart';
 import 'cart_sheet.dart';
 import 'pay_sheet.dart';
@@ -118,7 +121,10 @@ class _CobrarScreenState extends ConsumerState<CobrarScreen> {
   }
 
   void _setQuery(String value) {
-    _search.value = TextEditingValue(text: value, selection: TextSelection.collapsed(offset: value.length));
+    _search.value = TextEditingValue(
+      text: value,
+      selection: TextSelection.collapsed(offset: value.length),
+    );
     setState(() => _query = value);
   }
 
@@ -162,9 +168,27 @@ class _CobrarScreenState extends ConsumerState<CobrarScreen> {
       ref.read(cartProvider.notifier).addProduct(matches.single);
       _setQuery('');
     } else if (matches.isEmpty) {
+      // Un código de barras que todavía no conocemos: se ofrece darlo de alta ahí mismo.
+      final isCode = RegExp(r'^\d{6,}$').hasMatch(text);
+      final canAdd = isCode && ref.read(permissionsProvider).editCatalog;
       ScaffoldMessenger.of(context)
         ..hideCurrentSnackBar()
-        ..showSnackBar(SnackBar(content: Text('No hay producto con "$text"')));
+        ..showSnackBar(
+          SnackBar(
+            content: Text(isCode ? 'El código $text no está en tus productos' : 'No hay producto con "$text"'),
+            action: canAdd ? SnackBarAction(label: 'Darlo de alta', onPressed: () => _addUnknown(text)) : null,
+          ),
+        );
+    }
+  }
+
+  /// Alta del producto con el código ya escrito; al guardarlo se agrega a la cuenta.
+  Future<void> _addUnknown(String code) async {
+    if (!await ensureRoomForProduct(context, ref) || !mounted) return;
+    final saved = await showProductForm(context, initialBarcode: code);
+    if (saved != null && mounted) {
+      ref.read(cartProvider.notifier).addProduct(saved);
+      _setQuery('');
     }
   }
 
@@ -236,7 +260,13 @@ class _CobrarScreenState extends ConsumerState<CobrarScreen> {
           ),
         ),
         Expanded(
-          child: products.isEmpty
+          child: products.isEmpty && q.isEmpty
+              // Negocio sin productos todavía: formas fáciles de dar de alta los primeros.
+              ? SingleChildScrollView(
+                  padding: EdgeInsets.fromLTRB(0, 2, 0, wide ? 24 : 200),
+                  child: FirstProductsCard(onQuickSale: () => showQuickSaleSheet(context)),
+                )
+              : products.isEmpty
               ? _EmptyCatalog(searching: q.isNotEmpty)
               : LayoutBuilder(
                   builder: (context, box) {

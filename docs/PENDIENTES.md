@@ -24,7 +24,9 @@ Prioridad: **Alta** = sin esto no se puede usar con un negocio real · **Media**
 - [ ] **Media** · Decidir si el respaldo en la nube es solo de los planes de pago: el PDF lo pone en Emprendedor. Hoy está abierto para todos.
 - [ ] **Baja** · Pagos mixtos (`sale_payments`) y devoluciones en la sincronización.
 - [x] **Alta** · Primer arranque: bienvenida con el nombre del negocio, o probar con la tiendita de ejemplo. En Más se puede borrar todo y empezar de nuevo. *26/10/2026*
-- [ ] **Media** · Guía para dar de alta el primer producto cuando el negocio está vacío.
+- [x] **Media** · Primer uso: con el negocio vacío, Cobrar e Inventario muestran "Agrega tus primeros productos": elegir de una lista de ~65 productos comunes de tiendita (se marca y se pone precio), agregar uno por uno o pegar desde Excel (computadora). *12/11/2026*
+- [x] **Media** · Un código de barras desconocido (lector USB o tecleado) ofrece "Darlo de alta" y lo agrega a la cuenta al guardarlo. *12/11/2026*
+- [ ] **Baja** · Listas de inicio para otros giros (fonda, papelería, ferretería, farmacia).
 - [x] **Media** · En el navegador los datos se guardan (`sqlite3.wasm` y `drift_worker.js` en `web/`) y se respaldan en Supabase igual que en el celular. *11/11/2026*
 - [x] **Alta** · Indicador real en el encabezado: Sin internet, Sin respaldo, Por subir, Respaldado o Revisar respaldo. *26/10/2026*
 - [x] **Media** · Folios que no chocan entre teléfonos: cada uno tiene su clave ("K7-0043") y su propia numeración. *09/11/2026*
@@ -93,7 +95,7 @@ Prioridad: **Alta** = sin esto no se puede usar con un negocio real · **Media**
 - [ ] **Media** · Activar en Supabase Auth la protección contra contraseñas filtradas (Authentication → Policies). Es un ajuste de seguridad del panel; lo hace el dueño del proyecto.
 - [x] **Media** · Que meseros y cocina no vean el costo de compra (migración 0008, `pull_products`). Se probó en la base con un dueño y un mesero simulados. *12/11/2026*
 - [ ] **Media** · Los meseros con una versión vieja de la app (antes del 12/11/2026) ya no bajan productos: hay que actualizarles la app.
-- [ ] **Media** · Que el rol cocina solo pueda cambiar el estado de los pedidos, no otros campos.
+- [x] **Media** · La cocina solo cambia el estado de los platillos: no abre ni cambia cuentas ni agrega platillos (migración 0009). Probado en la base con mesero y cocina simulados. *12/11/2026*
 - [ ] **Baja** · Revisar los 3 avisos "WARN" de Supabase cuando cambie el esquema. Hoy son intencionales; ver [BASE_DE_DATOS.md](BASE_DE_DATOS.md).
 
 ## Diseño

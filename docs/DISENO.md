@@ -48,6 +48,8 @@ Cada color tiene su versión suave (`marcaSuave`, `cenoteSuave`, `izamalSuave`, 
 - Ficha del producto: "Precio de venta" (lo que paga el cliente) y "Costo de compra" (lo que pagas al proveedor). Debajo, una franja dice "Ganas $4.50 por pieza · margen 25%" con el color del margen.
 - Corte: tarjeta "Ganancia del turno" con el total, la pastilla de margen y cada producto (vendidos, venta, costo, ganancia y margen). Los cortes anteriores se abren con el mismo detalle.
 - Margen: rojo si se pierde, ámbar si es menos de 15%, cenote si va bien (`marginColor`).
+- Primer uso: tarjeta "Agrega tus primeros productos" con opciones en renglones grandes (la principal en achiote suave) y "¿Solo quieres cobrar ya? Venta rápida por monto".
+- Lista de inicio: secciones por tipo, cada producto con círculo para marcar, su icono y el precio a la derecha con el ejemplo en gris; barra inferior con cuántos van y "Agregar N". Los marcados sin precio se enmarcan en rojo.
 - Tabla del catálogo: encabezado gris, renglones alternados, celda cambiada en amarillo Izamal suave, celda con error en rojo suave con borde, la celda activa con borde cenote; los renglones nuevos llevan la etiqueta "Nuevo".
 
 ## Animaciones

@@ -13,6 +13,7 @@ import '../widgets/buttons.dart';
 import '../widgets/common.dart';
 import '../widgets/product_icons.dart';
 import 'catalog_table_screen.dart';
+import 'first_products.dart';
 import 'product_form.dart';
 
 class InventarioScreen extends ConsumerStatefulWidget {
@@ -112,7 +113,8 @@ class _InventarioScreenState extends ConsumerState<InventarioScreen> {
               ],
             ),
           ),
-        if (list.isEmpty)
+        if (all.isEmpty) const FirstProductsCard(),
+        if (list.isEmpty && all.isNotEmpty)
           Padding(
             padding: const EdgeInsets.all(24),
             child: Text('No hay productos que coincidan.', textAlign: TextAlign.center, style: GText.muted(size: 14)),

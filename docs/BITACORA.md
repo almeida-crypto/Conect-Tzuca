@@ -509,3 +509,26 @@ Se abren desde **Más → Módulos** con el plan Emprendedor o superior. Los tre
   - Tabla con la columna Margen.
   - Se corrigieron "1 vendidos", la ayuda del costo cortada en celular y "MARGEN" partido en dos.
 - **No probado:** con un mesero real en otro teléfono.
+
+### Cocina solo cambia el estado y primer uso más fácil
+- **Seguridad de cocina (migración 0009):**
+  - La cocina ya no puede abrir ni cambiar cuentas.
+  - No puede agregar platillos.
+  - En los platillos que existen, un trigger deja todo como estaba salvo el estado y sus horas.
+  - Probado en la base con un mesero y una cocina inventados, en una transacción que se deshizo:
+    - La cocina subió un taco como "listo" con cantidad 9 y precio 0, y quedó listo con cantidad 2 y precio 20.
+    - Agregar platillo, abrir cuenta y cancelarla quedaron bloqueados.
+    - El mesero sí cambió la cantidad.
+- **Primer uso:**
+  - Con el negocio vacío, Cobrar e Inventario muestran "Agrega tus primeros productos" con tres opciones: elegir de una lista, agregar uno por uno y pegar desde Excel (computadora). En Cobrar también aparece la venta rápida.
+  - **Lista de inicio** (`domain/starter_catalog.dart`): unos 65 productos de tiendita en 8 grupos. Escribir el precio marca el producto, y lo que ya existe dice "Ya lo tienes".
+  - Respeta el límite del plan y no deja agregar productos marcados sin precio.
+- **Código desconocido:** al pasar o teclear un código que no existe, el aviso trae "Darlo de alta". Abre la ficha con el código y, al guardar, el producto entra a la cuenta.
+
+### Verificación
+- `flutter analyze` sin avisos y 59 pruebas pasan, 2 nuevas en `test/first_use_test.dart`: lista de inicio con precio y validación, y código desconocido.
+- En el navegador (celular), un negocio nuevo:
+  - Muestra la tarjeta de inicio.
+  - Al marcar Agua 1.5 L sin precio la avisa en rojo.
+  - Con precio, agregó 2 productos y ya salen en Cobrar.
+- Se cambió el ejemplo de precio a "ej. 20" porque parecía un precio puesto.
