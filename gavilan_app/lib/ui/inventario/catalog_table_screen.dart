@@ -5,6 +5,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../core/money.dart';
 import '../../domain/models.dart';
 import '../../domain/plan.dart';
+import '../../domain/profit.dart';
 import '../../state/app_state.dart';
 import '../../state/store.dart';
 import '../../theme/colors.dart';
@@ -17,8 +18,8 @@ import '../widgets/product_icons.dart';
 enum CatalogColumn {
   name('Producto'),
   barcode('Código de barras'),
-  price('Precio'),
-  cost('Costo'),
+  price('Precio de venta'),
+  cost('Costo de compra'),
   stock('Existencia'),
   min('Mínimo');
 
@@ -506,6 +507,7 @@ class _CatalogTableScreenState extends ConsumerState<CatalogTableScreen> {
 
 const _iconWidth = 44.0;
 const _removeWidth = 40.0;
+const _marginWidth = 92.0;
 double _colWidth(CatalogColumn c) => switch (c) {
   CatalogColumn.name => 0, // ocupa lo que sobra
   CatalogColumn.barcode => 170,
@@ -522,7 +524,7 @@ class _HeaderRow extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Container(
-      height: 40,
+      height: 46,
       decoration: const BoxDecoration(
         color: GColors.hundido,
         border: Border(bottom: BorderSide(color: GColors.linea)),
@@ -537,11 +539,22 @@ class _HeaderRow extends StatelessWidget {
                 padding: const EdgeInsets.symmetric(horizontal: 10),
                 child: Text(
                   c.label.toUpperCase(),
+                  maxLines: 2,
                   textAlign: c.numeric ? TextAlign.right : TextAlign.left,
-                  style: GText.label(),
+                  style: GText.label().copyWith(height: 1.15),
                 ),
               ),
             ),
+          SizedBox(
+            width: _marginWidth,
+            child: Tooltip(
+              message: 'De cada peso que paga el cliente, cuánto te queda',
+              child: Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 10),
+                child: Text('MARGEN', textAlign: TextAlign.right, style: GText.label()),
+              ),
+            ),
+          ),
           const SizedBox(width: _removeWidth),
         ],
       ),
@@ -594,6 +607,7 @@ class _TableRow extends StatelessWidget {
             ),
           ),
           for (final c in CatalogColumn.values) _sized(c, _cell(c)),
+          SizedBox(width: _marginWidth, child: _margin()),
           SizedBox(
             width: _removeWidth,
             child: onRemove == null
@@ -606,6 +620,23 @@ class _TableRow extends StatelessWidget {
                   ),
           ),
         ],
+      ),
+    );
+  }
+
+  /// Margen calculado de lo que está escrito en precio y costo.
+  Widget _margin() {
+    final price = parseMoney(row.text(CatalogColumn.price));
+    final cost = parseMoney(row.text(CatalogColumn.cost));
+    final m = (price == null || cost == null) ? null : marginPct(priceCents: price, costCents: cost);
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 10),
+      child: Text(
+        m == null ? '—' : '${(m * 100).round()}%',
+        textAlign: TextAlign.right,
+        style: m == null
+            ? GText.muted(size: 13)
+            : GText.figures(size: 13.5, weight: FontWeight.w700, color: marginColor(m)),
       ),
     );
   }

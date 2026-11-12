@@ -7,6 +7,7 @@ import 'package:uuid/uuid.dart';
 import '../data/repository.dart';
 import '../domain/models.dart';
 import '../domain/plan.dart';
+import '../domain/profit.dart';
 import '../domain/restaurant.dart';
 import 'app_state.dart';
 import 'seed.dart';
@@ -239,6 +240,9 @@ class StoreState {
 
   List<BatchOrder> ordersOfBatch(String batchId) =>
       batchOrders.where((o) => o.batchId == batchId).toList()..sort((a, b) => a.createdAt.compareTo(b.createdAt));
+
+  /// Lo que dejó cada producto vendido en el turno: precio, costo y ganancia.
+  ProfitReport profitFor(CashSession session) => profitOf(sales.where((s) => s.sessionId == session.id));
 
   CashSummary summaryFor(CashSession session) {
     final sessionSales = sales.where((s) => s.sessionId == session.id);
@@ -828,7 +832,16 @@ class StoreNotifier extends Notifier<StoreState> {
     final order = state.orderById(orderId)!;
     final lines = [
       for (final i in state.itemsOfOrder(orderId))
-        if (!i.cancelled) SaleLine(key: i.id, productId: i.productId, name: i.name, unitCents: i.unitCents, qty: i.qty),
+        if (!i.cancelled)
+          SaleLine(
+            key: i.id,
+            productId: i.productId,
+            name: i.name,
+            unitCents: i.unitCents,
+            qty: i.qty,
+            // El costo se toma al cobrar (quien cobra sí lo tiene), para que la ganancia de la mesa cuente.
+            unitCostCents: i.productId == null ? 0 : (state.productById(i.productId!)?.costCents ?? 0),
+          ),
     ];
     final sale = checkout(
       lines: lines,

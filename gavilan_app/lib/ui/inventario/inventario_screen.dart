@@ -65,9 +65,8 @@ class _InventarioScreenState extends ConsumerState<InventarioScreen> {
                         label: 'Editar en tabla',
                         icon: Icons.table_chart_outlined,
                         kind: GButtonKind.outline,
-                        onPressed: () => Navigator.of(context).push(
-                          MaterialPageRoute(builder: (_) => const CatalogTableScreen()),
-                        ),
+                        onPressed: () =>
+                            Navigator.of(context).push(MaterialPageRoute(builder: (_) => const CatalogTableScreen())),
                       ),
                       const SizedBox(width: 8),
                     ],

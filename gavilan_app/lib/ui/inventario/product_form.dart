@@ -4,6 +4,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../core/money.dart';
 import '../../domain/models.dart';
 import '../../domain/plan.dart';
+import '../../domain/profit.dart';
 import '../../state/app_state.dart';
 import '../../state/store.dart';
 import '../../state/sync.dart';
@@ -151,12 +152,20 @@ class _ProductFormState extends ConsumerState<_ProductForm> {
         ),
         const SizedBox(height: 10),
         Row(
+          crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Expanded(
               child: TextField(
                 controller: _price,
                 keyboardType: const TextInputType.numberWithOptions(decimal: true),
-                decoration: InputDecoration(labelText: 'Precio', prefixText: '\$ ', errorText: _errors['price']),
+                onChanged: (_) => setState(() {}),
+                decoration: InputDecoration(
+                  labelText: 'Precio de venta',
+                  helperText: 'Lo que paga el cliente',
+                  helperMaxLines: 2,
+                  prefixText: '\$ ',
+                  errorText: _errors['price'],
+                ),
               ),
             ),
             const SizedBox(width: 10),
@@ -164,8 +173,12 @@ class _ProductFormState extends ConsumerState<_ProductForm> {
               child: TextField(
                 controller: _cost,
                 keyboardType: const TextInputType.numberWithOptions(decimal: true),
+                onChanged: (_) => setState(() {}),
                 decoration: InputDecoration(
-                  labelText: 'Costo (opcional)',
+                  labelText: 'Costo de compra',
+                  helperText: 'Lo que pagas al proveedor',
+                  helperMaxLines: 2,
+                  hintText: 'Opcional',
                   prefixText: '\$ ',
                   errorText: _errors['cost'],
                 ),
@@ -173,6 +186,7 @@ class _ProductFormState extends ConsumerState<_ProductForm> {
             ),
           ],
         ),
+        _MarginNote(price: parseMoney(_price.text), cost: parseMoney(_cost.text)),
         const SizedBox(height: 10),
         TextField(
           controller: _barcode,
@@ -316,6 +330,47 @@ class _ProductFormState extends ConsumerState<_ProductForm> {
           ),
         ],
       ],
+    );
+  }
+}
+
+/// Debajo de precio y costo: cuánto se gana por pieza, para ver si conviene el precio.
+class _MarginNote extends StatelessWidget {
+  const _MarginNote({required this.price, required this.cost});
+
+  final int? price;
+  final int? cost;
+
+  @override
+  Widget build(BuildContext context) {
+    final p = price, c = cost;
+    final margin = (p == null || c == null) ? null : marginPct(priceCents: p, costCents: c);
+    if (margin == null) return const SizedBox(height: 4);
+    final profit = p! - c!;
+    final color = marginColor(margin);
+    return Container(
+      margin: const EdgeInsets.only(top: 10),
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 9),
+      decoration: BoxDecoration(
+        color: color.withValues(alpha: 0.1),
+        borderRadius: BorderRadius.circular(GShape.radiusSmall),
+      ),
+      child: Row(
+        children: [
+          Icon(profit > 0 ? Icons.trending_up_rounded : Icons.trending_down_rounded, size: 18, color: color),
+          const SizedBox(width: 8),
+          Expanded(
+            child: Text(
+              profit > 0
+                  ? 'Ganas ${money(profit)} por pieza · margen ${(margin * 100).round()}%'
+                  : profit == 0
+                  ? 'No ganas nada: el precio es igual al costo'
+                  : 'Pierdes ${money(-profit)} por pieza',
+              style: GText.sans(size: 13.5, weight: FontWeight.w700, color: color),
+            ),
+          ),
+        ],
+      ),
     );
   }
 }

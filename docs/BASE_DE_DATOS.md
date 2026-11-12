@@ -13,6 +13,7 @@ Proyecto de Supabase **proyecto-Gavilan** (`jveklinfbptnxmtavnez`, región us-ea
 | [0005_team.sql](../pos-backend/supabase/migrations/0005_team.sql) | `pos_team` | Invitaciones con código (`business_invites`), funciones del equipo y sin altas ni cambios directos en `business_members` |
 | [0006_restaurant_sync.sql](../pos-backend/supabase/migrations/0006_restaurant_sync.sql) | `pos_restaurant_sync` | `synced_at` en mesas, comandas y platillos; orden de las mesas, nombre de la comanda para llevar, hora de cierre y hora en que se sirvió |
 | [0007_table_zones.sql](../pos-backend/supabase/migrations/0007_table_zones.sql) | `pos_table_zones` | Zona de cada mesa (`restaurant_tables.zone`) |
+| [0008_hide_cost.sql](../pos-backend/supabase/migrations/0008_hide_cost.sql) | `0008_hide_cost` | El costo de compra solo lo ven dueño, admin y cajero: `products` y `sale_items` se leen solo con esos roles, y todos bajan los productos con `pull_products` |
 
 Toda migración nueva va en `pos-backend/supabase/migrations/` con número consecutivo y se registra aquí.
 
@@ -54,6 +55,7 @@ Las existencias se calculan desde `inventory_movements`: un trigger actualiza `p
 | `new_invite_code()` | Interna: genera el código con `gen_random_bytes`. Nadie la puede llamar por la API |
 | `apply_stock_movement()` | Trigger que actualiza existencias. No se puede llamar por la API |
 | `set_updated_at()` | Trigger de `updated_at` |
+| `pull_products(negocio, desde, salto, cuántos)` | Baja los productos que cambiaron. A meseros y cocina les llegan con `cost` vacío; a dueño, admin y cajero, completos. La app la usa en lugar de leer `products` directo |
 
 ## Roles y permisos (RLS)
 
@@ -64,7 +66,9 @@ Roles: `owner` (dueño), `admin`, `cashier` (cajero), `waiter` (mesero) y `kitch
 | Negocio | Miembros | Dueño y admin (no se crea ni borra directo) |
 | Equipo | Miembros | Solo por funciones (`accept_invite`, `remove_member`) |
 | Invitaciones | Dueño y admin | Solo por funciones (`create_invite`, `revoke_invite`) |
-| Catálogo y mesas | Miembros | Dueño y admin |
+| Catálogo | Dueño, admin y cajero (meseros y cocina, por `pull_products` sin costo) | Dueño y admin |
+| Mesas | Miembros | Dueño y admin |
+| Renglones de venta (`sale_items`, traen el costo) | Dueño, admin y cajero | Dueño, admin y cajero |
 | Ventas, caja, fiados, apartados, lotes y tandas | Miembros | Dueño, admin y cajero |
 | Pedidos y cocina | Miembros | Todos los roles |
 
@@ -74,16 +78,16 @@ Realtime está activo en `orders` y `order_items`, para la pantalla de cocina.
 
 ## Avisos de seguridad de Supabase
 
-Quedan 7 avisos "WARN" de funciones que pueden llamar los usuarios con sesión. Son **intencionales**:
+Quedan 8 avisos "WARN" de funciones que pueden llamar los usuarios con sesión. Son **intencionales**:
 - `is_member` y `has_role`: RLS las necesita, y solo responden sobre el propio usuario.
 - `create_business`: es la forma prevista de crear un negocio.
 - `create_invite`, `accept_invite`, `revoke_invite` y `remove_member`: son la única forma de manejar el equipo, y revisan el rol por dentro.
+- `pull_products`: es la forma de bajar el catálogo; solo responde a miembros del negocio y quita el costo a meseros y cocina.
 
 Aparte queda el aviso de "protección contra contraseñas filtradas". Es un ajuste del panel que activa el dueño del proyecto.
 
 ## Pendientes de la base
 
-- Que los meseros no vean `products.cost`.
 - Que cocina solo cambie el estado de los pedidos.
 - Validar los límites de cada plan con triggers.
 - Políticas de Storage para fotos.

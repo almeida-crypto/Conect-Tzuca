@@ -66,7 +66,8 @@ Prioridad: **Alta** = sin esto no se puede usar con un negocio real · **Media**
 - [ ] **Baja** · Validar en la base que solo el plan Negocio pueda invitar (hoy solo lo limita la app, con la vista previa).
 - [ ] **Baja** · Impresora térmica Bluetooth o USB.
 - [ ] **Baja** · Límite de crédito por cliente y alertas de vencimiento (plan Negocio).
-- [ ] **Baja** · Reportes de margen de ganancia y costos de proveedores.
+- [x] **Media** · Ganancia por producto en el corte (vendido, precio, costo, ganancia y margen), para dueño y administradores. También en los cortes anteriores. *12/11/2026*
+- [ ] **Baja** · Ganancia por producto en el panel web y por rango de fechas; costos por proveedor.
 
 ## Etapa 4 · Planes y cobro
 - [ ] **Media** · Confirmar los límites exactos de cada plan contra el PDF (la tabla salió desordenada al leerla).
@@ -90,7 +91,8 @@ Prioridad: **Alta** = sin esto no se puede usar con un negocio real · **Media**
 
 ## Seguridad y ajustes de base de datos
 - [ ] **Media** · Activar en Supabase Auth la protección contra contraseñas filtradas (Authentication → Policies). Es un ajuste de seguridad del panel; lo hace el dueño del proyecto.
-- [ ] **Media** · Que los meseros no vean el costo de los productos (vista sin `cost`).
+- [x] **Media** · Que meseros y cocina no vean el costo de compra (migración 0008, `pull_products`). Se probó en la base con un dueño y un mesero simulados. *12/11/2026*
+- [ ] **Media** · Los meseros con una versión vieja de la app (antes del 12/11/2026) ya no bajan productos: hay que actualizarles la app.
 - [ ] **Media** · Que el rol cocina solo pueda cambiar el estado de los pedidos, no otros campos.
 - [ ] **Baja** · Revisar los 3 avisos "WARN" de Supabase cuando cambie el esquema. Hoy son intencionales; ver [BASE_DE_DATOS.md](BASE_DE_DATOS.md).
 

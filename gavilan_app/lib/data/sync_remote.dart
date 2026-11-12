@@ -276,6 +276,19 @@ class SupabaseRemote implements SyncRemote {
     required int offset,
     required int limit,
   }) => _guard(() async {
+    // Los productos bajan por una función que les quita el costo a meseros y cocina (ver 0008_hide_cost.sql).
+    if (table == 'products') {
+      final rows = await client.rpc<List<dynamic>>(
+        'pull_products',
+        params: {
+          'p_business_id': businessId,
+          'p_since': since.toUtc().toIso8601String(),
+          'p_offset': offset,
+          'p_limit': limit,
+        },
+      );
+      return [for (final r in rows) Map<String, Object?>.from(r as Map)];
+    }
     final base = client.from(table).select();
     final filtered = table == 'businesses' ? base.eq('id', businessId) : base.eq('business_id', businessId);
     final rows = await filtered

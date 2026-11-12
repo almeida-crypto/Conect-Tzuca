@@ -465,3 +465,10 @@ class SectionTitle extends StatelessWidget {
     ),
   );
 }
+
+/// Color de un margen de ganancia: rojo si se pierde, ámbar si es muy poco (menos de 15%), cenote si va bien.
+Color marginColor(double margin) => margin <= 0
+    ? GColors.rojo
+    : margin < 0.15
+    ? const Color(0xFFB27C00)
+    : GColors.cenote;

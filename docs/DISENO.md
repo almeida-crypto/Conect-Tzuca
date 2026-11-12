@@ -45,6 +45,9 @@ Cada color tiene su versión suave (`marcaSuave`, `cenoteSuave`, `izamalSuave`, 
 - Mesas: las columnas crecen con el ancho (de 3 a 8).
 - Atajos: bajo el botón Cobrar, teclas dibujadas (`KeyCap`) con "F2 cobrar · Esc vaciar · F1 atajos"; F1 abre la lista completa.
 - Ticket: botón negro "Imprimir ticket" arriba de WhatsApp y la pista "Enter: nueva venta · P: imprimir".
+- Ficha del producto: "Precio de venta" (lo que paga el cliente) y "Costo de compra" (lo que pagas al proveedor). Debajo, una franja dice "Ganas $4.50 por pieza · margen 25%" con el color del margen.
+- Corte: tarjeta "Ganancia del turno" con el total, la pastilla de margen y cada producto (vendidos, venta, costo, ganancia y margen). Los cortes anteriores se abren con el mismo detalle.
+- Margen: rojo si se pierde, ámbar si es menos de 15%, cenote si va bien (`marginColor`).
 - Tabla del catálogo: encabezado gris, renglones alternados, celda cambiada en amarillo Izamal suave, celda con error en rojo suave con borde, la celda activa con borde cenote; los renglones nuevos llevan la etiqueta "Nuevo".
 
 ## Animaciones

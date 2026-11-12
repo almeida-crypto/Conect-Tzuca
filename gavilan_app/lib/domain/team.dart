@@ -40,6 +40,9 @@ class Permissions {
   /// Cobrar ventas y cuentas de mesa (en la nube, meseros y cocina no registran ventas).
   bool get charge => _boss || role == MemberRole.cashier;
 
+  /// Ver costos y ganancia (en el corte): es información del dueño.
+  bool get seeProfit => _boss;
+
   /// Meseros y cocina solo usan el restaurante: la app abre directo en mesas o cocina.
   bool get restaurantOnly => role == MemberRole.waiter || role == MemberRole.kitchen;
 }

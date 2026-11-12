@@ -5,11 +5,13 @@ import '../../core/money.dart';
 import '../../core/ticket_text.dart';
 import '../../domain/models.dart';
 import '../../state/store.dart';
+import '../../state/sync.dart';
 import '../../theme/colors.dart';
 import '../../theme/theme.dart';
 import '../widgets/buttons.dart';
 import '../widgets/common.dart';
 import 'cash_dialogs.dart';
+import 'profit_card.dart';
 
 /// Corte de caja: lo que debe haber en el cajón, calculado de las ventas, abonos y gastos del turno.
 class CajaScreen extends ConsumerStatefulWidget {
@@ -79,7 +81,7 @@ class _CajaScreenState extends ConsumerState<CajaScreen> {
               children: [
                 for (final (i, s) in store.closedSessions.take(10).indexed) ...[
                   if (i > 0) const Divider(height: 1, color: GColors.linea),
-                  _PastCut(session: s),
+                  _PastCut(session: s, onTap: () => showCutDetail(context, s)),
                 ],
               ],
             ),
@@ -137,6 +139,7 @@ class _CajaScreenState extends ConsumerState<CajaScreen> {
           ],
         ),
       ),
+      if (ref.watch(permissionsProvider).seeProfit) ProfitCard(report: store.profitFor(session)),
       Padding(
         padding: const EdgeInsets.fromLTRB(16, 14, 16, 0),
         child: Row(
@@ -289,7 +292,7 @@ class _CajaScreenState extends ConsumerState<CajaScreen> {
       if (last != null)
         Padding(
           padding: const EdgeInsets.fromLTRB(16, 10, 16, 0),
-          child: _CutCard(session: last, summary: store.summaryFor(last)),
+          child: _CutCard(session: last, summary: store.summaryFor(last), onDetail: () => showCutDetail(context, last)),
         ),
       Padding(
         padding: const EdgeInsets.fromLTRB(16, 16, 16, 0),
@@ -357,10 +360,11 @@ class _Ledger extends StatelessWidget {
 }
 
 class _CutCard extends StatelessWidget {
-  const _CutCard({required this.session, required this.summary});
+  const _CutCard({required this.session, required this.summary, required this.onDetail});
 
   final CashSession session;
   final CashSummary summary;
+  final VoidCallback onDetail;
 
   @override
   Widget build(BuildContext context) {
@@ -382,6 +386,16 @@ class _CutCard extends StatelessWidget {
             color: diff < 0 ? GColors.rojo : GColors.cenote,
           ),
           _Ledger('Total vendido', summary.totalSoldCents, muted: true),
+          Align(
+            alignment: Alignment.centerLeft,
+            child: TextButton(
+              onPressed: onDetail,
+              child: Text(
+                'Ver el corte completo',
+                style: GText.sans(size: 13.5, weight: FontWeight.w700, color: GColors.marca),
+              ),
+            ),
+          ),
         ],
       ),
     );
@@ -389,32 +403,77 @@ class _CutCard extends StatelessWidget {
 }
 
 class _PastCut extends StatelessWidget {
-  const _PastCut({required this.session});
+  const _PastCut({required this.session, required this.onTap});
 
   final CashSession session;
+  final VoidCallback onTap;
 
   @override
   Widget build(BuildContext context) {
     final diff = session.differenceCents ?? 0;
-    return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 12),
-      child: Row(
-        children: [
-          Expanded(
-            child: Text(dateTimeLabel(session.closedAt!), style: GText.figures(size: 13, weight: FontWeight.w500)),
-          ),
-          Text(money(session.countedCents ?? 0), style: GText.figures(size: 13, weight: FontWeight.w700)),
-          const SizedBox(width: 12),
-          SizedBox(
-            width: 92,
-            child: Text(
-              diff == 0 ? 'cuadró' : (diff > 0 ? '+${money(diff)}' : '-${money(-diff)}'),
-              textAlign: TextAlign.right,
-              style: GText.figures(size: 13, weight: FontWeight.w700, color: diff < 0 ? GColors.rojo : GColors.cenote),
+    return InkWell(
+      onTap: onTap,
+      child: Padding(
+        padding: const EdgeInsets.symmetric(vertical: 12),
+        child: Row(
+          children: [
+            Expanded(
+              child: Text(dateTimeLabel(session.closedAt!), style: GText.figures(size: 13, weight: FontWeight.w500)),
             ),
-          ),
-        ],
+            Text(money(session.countedCents ?? 0), style: GText.figures(size: 13, weight: FontWeight.w700)),
+            const SizedBox(width: 12),
+            SizedBox(
+              width: 92,
+              child: Text(
+                diff == 0 ? 'cuadró' : (diff > 0 ? '+${money(diff)}' : '-${money(-diff)}'),
+                textAlign: TextAlign.right,
+                style: GText.figures(
+                  size: 13,
+                  weight: FontWeight.w700,
+                  color: diff < 0 ? GColors.rojo : GColors.cenote,
+                ),
+              ),
+            ),
+            const SizedBox(width: 4),
+            const Icon(Icons.chevron_right_rounded, size: 20, color: GColors.tintaTenue),
+          ],
+        ),
       ),
     );
   }
+}
+
+/// Un corte cerrado completo: cuadre de caja y, para el dueño, la ganancia de cada producto vendido.
+Future<void> showCutDetail(BuildContext context, CashSession session) {
+  return showGSheet(
+    context,
+    (ctx) => Consumer(
+      builder: (ctx, ref, _) {
+        final store = ref.watch(storeProvider);
+        final summary = store.summaryFor(session);
+        final diff = session.differenceCents ?? 0;
+        return Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            SheetHeader(
+              'Corte de caja',
+              caption: '${dateTimeLabel(session.openedAt)} a ${timeLabel(session.closedAt ?? DateTime.now())}',
+            ),
+            _Ledger('Fondo inicial', summary.openingCents),
+            _Ledger('Ventas en efectivo', summary.cashSalesCents),
+            _Ledger('Debía haber', session.expectedCents ?? summary.expectedCashCents),
+            _Ledger('Se contó', session.countedCents ?? 0),
+            _Ledger(
+              diff == 0 ? 'Cuadró' : (diff > 0 ? 'Sobró' : 'Faltó'),
+              diff.abs(),
+              color: diff < 0 ? GColors.rojo : GColors.cenote,
+            ),
+            _Ledger('Total vendido', summary.totalSoldCents, total: true),
+            if (ref.watch(permissionsProvider).seeProfit)
+              ProfitCard(report: store.profitFor(session), margin: const EdgeInsets.only(top: 14)),
+          ],
+        );
+      },
+    ),
+  );
 }

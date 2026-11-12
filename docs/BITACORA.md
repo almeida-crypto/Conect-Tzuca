@@ -474,3 +474,38 @@ Se abren desde **Más → Módulos** con el plan Emprendedor o superior. Los tre
   - P mandó a imprimir el ticket (se revisó cómo sale) y después Enter siguió funcionando.
   - En la tabla se cambiaron precios con Enter para bajar, se pegaron 2 renglones y se guardó.
 - **No probado:** una impresora térmica real ni un lector USB físico.
+
+### Precio de venta, costo de compra y ganancia en el corte
+- **Textos claros.** Un amigo del usuario que probó la app confundía "precio" y "costo". Ahora:
+  - En la ficha y en la tabla dice **"Precio de venta"** (lo que paga el cliente) y **"Costo de compra"** (lo que pagas al proveedor).
+  - En la ficha, al escribirlos, aparece "Ganas $4.50 por pieza · margen 25%" o "Pierdes…".
+  - La tabla tiene una columna **Margen** que se calcula sola.
+- **Ganancia en el corte** (pedido del mismo amigo):
+  - En Caja, la tarjeta **"Ganancia del turno"** muestra el total y el margen.
+  - Producto por producto muestra cuántos se vendieron, el precio de venta, el costo, lo que se ganó y el margen. Los de mayor ganancia van primero, con "Ver los N productos".
+  - Lo vendido sin costo capturado se avisa aparte.
+  - Los cortes anteriores ahora se pueden abrir y traen el mismo detalle.
+  - Solo la ven dueño y administradores (`Permissions.seeProfit`).
+- **Mesas:** al cobrar una cuenta de mesa ahora se guarda el costo de lo vendido. Antes se guardaba en cero y la ganancia del restaurante no contaba.
+- **Costo escondido a meseros y cocina** (migración 0008, aplicada en proyecto-Gavilan):
+  - `products` y `sale_items` solo los leen dueño, admin y cajero.
+  - Todos bajan el catálogo con `pull_products()`, que a meseros y cocina les manda el precio de venta pero el costo vacío.
+  - La app ya usa esa función.
+
+### Verificación
+- `flutter analyze` sin avisos y 57 pruebas pasan, 4 nuevas en `test/profit_test.dart`:
+  - Margen.
+  - Resumen del turno con y sin costo.
+  - Costo al cobrar una mesa.
+  - El corte en pantalla.
+- **En la base**, en una transacción que se deshizo al final, con usuarios inventados:
+  - El dueño ve el costo (13.50).
+  - El mesero recibe la Coca a $18 con costo vacío y no puede leer la tabla directo.
+  - Alguien de fuera no recibe nada.
+  - Supabase quedó con 8 avisos WARN, todos intencionales.
+- **En el navegador:**
+  - Corte en celular con 8 productos y margen por producto.
+  - Ficha de la Coca: "Ganas $4.50 por pieza · margen 25%".
+  - Tabla con la columna Margen.
+  - Se corrigieron "1 vendidos", la ayuda del costo cortada en celular y "MARGEN" partido en dos.
+- **No probado:** con un mesero real en otro teléfono.
