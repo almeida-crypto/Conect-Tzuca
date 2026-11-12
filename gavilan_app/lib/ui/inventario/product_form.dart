@@ -67,7 +67,7 @@ class _ProductFormState extends ConsumerState<_ProductForm> {
 
   bool get _editing => widget.product != null;
 
-  static String _cents(int? c) => (c == null || c == 0) ? '' : (c / 100).toStringAsFixed(c % 100 == 0 ? 0 : 2);
+  static String _cents(int? c) => centsInput(c);
 
   @override
   void dispose() {

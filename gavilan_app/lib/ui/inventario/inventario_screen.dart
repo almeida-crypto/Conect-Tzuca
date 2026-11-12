@@ -12,6 +12,7 @@ import '../../theme/theme.dart';
 import '../widgets/buttons.dart';
 import '../widgets/common.dart';
 import '../widgets/product_icons.dart';
+import 'catalog_table_screen.dart';
 import 'product_form.dart';
 
 class InventarioScreen extends ConsumerStatefulWidget {
@@ -55,7 +56,24 @@ class _InventarioScreenState extends ConsumerState<InventarioScreen> {
             if (max != null) '${all.length} de $max productos',
           ].join(' · '),
           trailing: ref.watch(permissionsProvider).editCatalog
-              ? GButton(label: 'Agregar', icon: Icons.add, onPressed: _add)
+              ? Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    // En la computadora: cambiar muchos productos a la vez, como en Excel.
+                    if (MediaQuery.sizeOf(context).width >= 900) ...[
+                      GButton(
+                        label: 'Editar en tabla',
+                        icon: Icons.table_chart_outlined,
+                        kind: GButtonKind.outline,
+                        onPressed: () => Navigator.of(context).push(
+                          MaterialPageRoute(builder: (_) => const CatalogTableScreen()),
+                        ),
+                      ),
+                      const SizedBox(width: 8),
+                    ],
+                    GButton(label: 'Agregar', icon: Icons.add, onPressed: _add),
+                  ],
+                )
               : null,
         ),
         Padding(

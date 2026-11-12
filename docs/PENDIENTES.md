@@ -78,11 +78,15 @@ Prioridad: **Alta** = sin esto no se puede usar con un negocio real · **Media**
 - [x] **Media** · Panel web (`panel-web/`, Next.js 16) conectado al mismo Supabase, con reportes de ventas: cifras con comparación, ventas por día y por hora, formas de pago, lo más vendido, cortes, quién debe y por acabarse. Tiene datos de ejemplo. *11/11/2026*
 - [ ] **Media** · Que el usuario entre al panel con su cuenta y revise sus números reales.
 - [ ] **Media** · Publicar el panel en Vercel. Necesita que el usuario cree una cuenta gratuita.
-- [ ] **Media** · Panel: catálogo tipo Excel (editar productos, precios y existencias en bloque).
+- [x] **Media** · Catálogo tipo Excel: "Editar en tabla" en Inventario (computadora). Cambia nombre, código, precio, costo, existencia y mínimo de muchos productos; da de alta renglones nuevos y se puede pegar desde Excel. *12/11/2026*
 - [ ] **Baja** · Panel: descargar los reportes en Excel o PDF, elegir un rango de fechas libre y reportes por cajero o por teléfono.
 - [x] **Media** · Mostrador en la computadora: la misma app abierta en el navegador cobra, fía, lleva inventario, caja, mesas y equipo. Menú a la izquierda, la cuenta siempre a la derecha y lector láser USB sin tocar nada. *11/11/2026*
 - [ ] **Media** · Publicar el mostrador web (la app compilada con `flutter build web`) junto al panel, por ejemplo en `/mostrador`.
-- [ ] **Baja** · Mostrador web: atajos de teclado (F2 cobrar, Esc vaciar) e imprimir el ticket desde el navegador.
+- [x] **Media** · Mostrador web: atajos de teclado (F2, Esc, + y −, F3, F1, escribir sin dar clic) y cobrar escribiendo el monto con Enter. *12/11/2026*
+- [x] **Media** · Imprimir el ticket desde el navegador (botón, P o Ctrl+P), con la impresora de tickets o cualquiera instalada. *12/11/2026*
+- [ ] **Media** · Probar la impresión con una impresora térmica real (58 y 80 mm) y ajustar márgenes si hace falta.
+- [ ] **Baja** · Opción "imprimir siempre al cobrar" en la computadora.
+- [ ] **Baja** · Tabla del catálogo: elegir el icono y ocultar productos desde la tabla.
 
 ## Seguridad y ajustes de base de datos
 - [ ] **Media** · Activar en Supabase Auth la protección contra contraseñas filtradas (Authentication → Policies). Es un ajuste de seguridad del panel; lo hace el dueño del proyecto.

@@ -432,3 +432,45 @@ Se abren desde **Más → Módulos** con el plan Emprendedor o superior. Los tre
   - Un código de barras tecleado rápido con Enter agregó la Coca a la cuenta.
 - Se quitó el gavilán repetido del encabezado en la computadora.
 - **No probado:** un lector USB físico (se simularon sus teclas) ni entrar con una cuenta real desde el navegador.
+
+## 12 de noviembre de 2026 · Sesión 7
+
+### Mostrador web: teclado, impresión y catálogo tipo Excel
+- **Atajos en Cobrar:**
+  - F2 cobra, F3 abre la venta rápida y F1 muestra la lista de atajos.
+  - Esc borra la búsqueda o vacía la cuenta, con "Deshacer".
+  - Con el buscador vacío, + y − cambian la cantidad del último producto.
+  - Lo que se teclea sin dar clic va al buscador. Enter agrega el código exacto o el único resultado, y así entra también el lector láser.
+- **Al cobrar:** las cifras se escriben solas en "Otro" y Enter cobra (F2, 100, Enter). La pista se ve solo en pantalla ancha.
+- **Ticket:**
+  - Enter o Esc empiezan la siguiente venta.
+  - "Imprimir ticket", P o Ctrl+P imprimen una página aparte (`core/ticket_html.dart`, 72 mm de ancho) desde un marco invisible (`core/print/`).
+  - Solo en el navegador; en el celular sigue WhatsApp.
+- **Editar en tabla** (Inventario, computadora, dueño y administradores):
+  - Producto, código, precio, costo, existencia y mínimo. Tab avanza, Enter baja y Ctrl+S guarda.
+  - Pegar celdas de Excel las reparte y agrega renglones.
+  - Renglones nuevos para dar de alta productos, respetando el límite del plan.
+  - Avisa los errores celda por celda: precio vacío o código repetido.
+  - Pregunta antes de salir sin guardar.
+  - La existencia corregida se guarda como movimiento de "ajuste".
+- **Página web:** se llama "Gavilán", en español, y bloquea F1, F3, Ctrl+S y Ctrl+P del navegador.
+
+### Problemas que salieron al probar en el navegador
+- Al mover el cursor al campo "Otro" se perdía la primera cifra: ahora la hoja escribe el monto sin mover el cursor.
+- Después de imprimir el teclado dejaba de responder: ahora regresa a la app.
+- Ctrl+S no llegaba con el cursor dentro de una celda: ahora se escucha a nivel de teclado.
+- Pegar desde Excel perdía los saltos de renglón en celdas de una línea: las celdas aceptan varias líneas, y un Enter baja de renglón.
+
+### Verificación
+- `flutter analyze` sin avisos y 53 pruebas pasan, 6 nuevas en `test/desktop_test.dart`:
+  - Teclado y cobro.
+  - Lector de códigos.
+  - Esc con "Deshacer".
+  - Tabla con precio, existencia, pegar y Ctrl+S.
+  - Pegar desde Excel.
+  - El ticket en HTML escapa lo que no debe pasar.
+- En el navegador (1280 px), con la tiendita de ejemplo:
+  - Venta completa solo con teclado: "coca", Enter, F2, 100, Enter, cambio $82.
+  - P mandó a imprimir el ticket (se revisó cómo sale) y después Enter siguió funcionando.
+  - En la tabla se cambiaron precios con Enter para bajar, se pegaron 2 renglones y se guardó.
+- **No probado:** una impresora térmica real ni un lector USB físico.

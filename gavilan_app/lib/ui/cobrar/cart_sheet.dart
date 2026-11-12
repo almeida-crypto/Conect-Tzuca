@@ -8,6 +8,7 @@ import '../../theme/colors.dart';
 import '../../theme/theme.dart';
 import '../widgets/buttons.dart';
 import '../widgets/common.dart';
+import 'shortcuts_help.dart';
 
 Future<void> showCartSheet(BuildContext context) => showGSheet(context, (_) => const _CartSheet());
 
@@ -203,6 +204,29 @@ class CartPanel extends ConsumerWidget {
             big: true,
             expand: true,
             onPressed: onPay,
+          ),
+          const SizedBox(height: 12),
+          // Pistas del teclado; tocarlas abre la lista completa de atajos.
+          MouseRegion(
+            cursor: SystemMouseCursors.click,
+            child: GestureDetector(
+              onTap: () => showShortcutsHelp(context),
+              child: Wrap(
+                alignment: WrapAlignment.center,
+                crossAxisAlignment: WrapCrossAlignment.center,
+                spacing: 6,
+                runSpacing: 6,
+                children: [
+                  for (final (k, what) in const [('F2', 'cobrar'), ('Esc', 'vaciar'), ('F1', 'atajos')]) ...[
+                    KeyCap(k),
+                    Padding(
+                      padding: const EdgeInsets.only(right: 8),
+                      child: Text(what, style: GText.muted(size: 12.5)),
+                    ),
+                  ],
+                ],
+              ),
+            ),
           ),
         ],
       ),

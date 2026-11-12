@@ -434,12 +434,13 @@ class StoreNotifier extends Notifier<StoreState> {
     _save((r) => r.upsertProduct(product, isNew: isNew));
   }
 
-  void addStock(String productId, double qty) {
+  /// Suma (o con [adjustment], corrige) la existencia de un producto.
+  void addStock(String productId, double qty, {bool adjustment = false}) {
     final current = state.productById(productId);
-    if (current == null) return;
+    if (current == null || qty == 0) return;
     final updated = current.copyWith(stock: current.stock + qty);
     state = state.copyWith(products: [for (final p in state.products) p.id == productId ? updated : p]);
-    _save((r) => r.addStock(updated, qty));
+    _save((r) => r.addStock(updated, qty, adjustment: adjustment));
   }
 
   // ---------- Ventas ----------

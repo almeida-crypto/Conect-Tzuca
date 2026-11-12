@@ -43,6 +43,9 @@ Cada color tiene su versión suave (`marcaSuave`, `cenoteSuave`, `izamalSuave`, 
 - Cobrar: catálogo de 3 a 4 columnas y la cuenta fija a la derecha (380 px) con −/+, Vaciar, TOTAL y Cobrar.
 - Las demás pestañas no se estiran: máximo 820 px, centradas. Las hojas inferiores, máximo 640 px.
 - Mesas: las columnas crecen con el ancho (de 3 a 8).
+- Atajos: bajo el botón Cobrar, teclas dibujadas (`KeyCap`) con "F2 cobrar · Esc vaciar · F1 atajos"; F1 abre la lista completa.
+- Ticket: botón negro "Imprimir ticket" arriba de WhatsApp y la pista "Enter: nueva venta · P: imprimir".
+- Tabla del catálogo: encabezado gris, renglones alternados, celda cambiada en amarillo Izamal suave, celda con error en rojo suave con borde, la celda activa con borde cenote; los renglones nuevos llevan la etiqueta "Nuevo".
 
 ## Animaciones
 - Cambio de pestaña: desvanecido y leve deslizamiento (240 ms).

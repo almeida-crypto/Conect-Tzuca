@@ -52,6 +52,9 @@ class CartNotifier extends Notifier<List<SaleLine>> {
   }
 
   void clear() => state = const [];
+
+  /// Regresa una cuenta completa ("Deshacer" después de vaciarla).
+  void replace(List<SaleLine> lines) => state = List.unmodifiable(lines);
 }
 
 final cartProvider = NotifierProvider<CartNotifier, List<SaleLine>>(CartNotifier.new);

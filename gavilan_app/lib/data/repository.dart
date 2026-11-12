@@ -31,7 +31,8 @@ abstract class StoreRepository {
   Future<void> clear();
 
   Future<void> upsertProduct(Product product, {required bool isNew});
-  Future<void> addStock(Product updated, double delta);
+  /// Cambia la existencia. [adjustment]: corrección a mano (conteo), no mercancía que llegó.
+  Future<void> addStock(Product updated, double delta, {bool adjustment = false});
   Future<void> recordSale({
     required Sale sale,
     required List<Product> changedProducts,
@@ -101,7 +102,7 @@ class MemoryRepository implements StoreRepository {
   @override
   Future<void> upsertProduct(Product product, {required bool isNew}) async {}
   @override
-  Future<void> addStock(Product updated, double delta) async {}
+  Future<void> addStock(Product updated, double delta, {bool adjustment = false}) async {}
   @override
   Future<void> recordSale({
     required Sale sale,
@@ -618,7 +619,7 @@ class DriftRepository implements StoreRepository, SyncStore {
   });
 
   @override
-  Future<void> addStock(Product updated, double delta) => db.transaction(() async {
+  Future<void> addStock(Product updated, double delta, {bool adjustment = false}) => db.transaction(() async {
     await db.into(db.productsTable).insertOnConflictUpdate(_productRow(updated));
     final now = DateTime.now();
     await _enqueue([
@@ -626,10 +627,10 @@ class DriftRepository implements StoreRepository, SyncStore {
         table: 'inventory_movements',
         rows: [
           stockToRemote(
-            id: stableId('${updated.id}/purchase/${now.microsecondsSinceEpoch}'),
+            id: stableId('${updated.id}/${adjustment ? 'adjustment' : 'purchase'}/${now.microsecondsSinceEpoch}'),
             productId: updated.id,
             change: delta,
-            reason: 'purchase',
+            reason: adjustment ? 'adjustment' : 'purchase',
             at: now,
           ),
         ],

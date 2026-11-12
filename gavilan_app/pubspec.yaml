@@ -37,6 +37,7 @@ dependencies:
   flutter_riverpod: ^3.4.3
   google_fonts: ^9.0.0
   share_plus: ^13.3.1
+  web: ^1.1.1
   uuid: ^4.6.0
   intl: ^0.20.3
   drift: ^2.35.3

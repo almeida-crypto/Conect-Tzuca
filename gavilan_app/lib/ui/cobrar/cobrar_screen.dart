@@ -16,6 +16,7 @@ import '../widgets/product_icons.dart';
 import 'cart_sheet.dart';
 import 'pay_sheet.dart';
 import 'quick_sale_sheet.dart';
+import 'shortcuts_help.dart';
 
 /// Ancho desde el que la app se acomoda como punto de venta de computadora.
 const wideLayout = 900.0;
@@ -32,11 +33,8 @@ class CobrarScreen extends ConsumerStatefulWidget {
 
 class _CobrarScreenState extends ConsumerState<CobrarScreen> {
   final _search = TextEditingController();
+  final _searchFocus = FocusNode();
   String _query = '';
-
-  // Lector láser USB: "escribe" el código muy rápido y termina con Enter.
-  final _scanned = StringBuffer();
-  DateTime _lastKey = DateTime(2000);
 
   @override
   void initState() {
@@ -48,43 +46,125 @@ class _CobrarScreenState extends ConsumerState<CobrarScreen> {
   void dispose() {
     HardwareKeyboard.instance.removeHandler(_onKey);
     _search.dispose();
+    _searchFocus.dispose();
     super.dispose();
   }
 
-  /// Junta las teclas que llegan seguidas (menos de 60 ms entre una y otra) aunque ningún campo
-  /// esté seleccionado. Si se está escribiendo en un campo, ese campo se encarga.
+  /// Teclado de la computadora (y lectores de códigos, que "escriben" el código y dan Enter).
+  ///
+  /// - F2 cobra, F3 abre la venta rápida y F1 muestra los atajos, aunque se esté en el buscador.
+  /// - Esc borra la búsqueda o, si no hay, vacía la cuenta (con "Deshacer").
+  /// - Sin ningún campo seleccionado, lo que se teclea va al buscador; Enter agrega el producto.
+  /// - Con el buscador vacío, + y − cambian la cantidad del último producto de la cuenta.
   bool _onKey(KeyEvent e) {
-    if (e is! KeyDownEvent || !widget.active || !(ModalRoute.of(context)?.isCurrent ?? false)) return false;
+    if (e is KeyUpEvent || !mounted || !widget.active || !(ModalRoute.of(context)?.isCurrent ?? false)) return false;
+    final key = e.logicalKey;
+    final repeat = e is KeyRepeatEvent;
+    if (!repeat) {
+      if (key == LogicalKeyboardKey.f2) {
+        _startPayment();
+        return true;
+      }
+      if (key == LogicalKeyboardKey.f3) {
+        showQuickSaleSheet(context);
+        return true;
+      }
+      if (key == LogicalKeyboardKey.f1) {
+        showShortcutsHelp(context);
+        return true;
+      }
+    }
     final focus = FocusManager.instance.primaryFocus?.context;
-    if (focus != null && focus.findAncestorWidgetOfExactType<EditableText>() != null) return false;
-    final now = DateTime.now();
-    if (now.difference(_lastKey).inMilliseconds > 60) _scanned.clear();
-    _lastKey = now;
-    if (e.logicalKey == LogicalKeyboardKey.enter || e.logicalKey == LogicalKeyboardKey.numpadEnter) {
-      final code = _scanned.toString();
-      _scanned.clear();
-      if (code.length >= 4) {
-        _submitCode(code);
+    final typing = focus != null && focus.findAncestorWidgetOfExactType<EditableText>() != null;
+    if (key == LogicalKeyboardKey.escape && !repeat) {
+      if (_query.isNotEmpty || typing) {
+        _setQuery('');
+        _searchFocus.unfocus();
+        return true;
+      }
+      if (ref.read(cartProvider).isNotEmpty) {
+        _clearCart();
         return true;
       }
       return false;
     }
+    if (typing) return false;
+
+    if (key == LogicalKeyboardKey.enter || key == LogicalKeyboardKey.numpadEnter) {
+      if (_query.trim().isEmpty) return false;
+      _submitSearch(_query);
+      return true;
+    }
+    if (key == LogicalKeyboardKey.backspace) {
+      if (_query.isEmpty) return false;
+      _setQuery(_query.substring(0, _query.length - 1));
+      return true;
+    }
     final ch = e.character;
-    if (ch != null && ch.length == 1 && RegExp(r'[0-9A-Za-z\-]').hasMatch(ch)) _scanned.write(ch);
+    if (_query.isEmpty && (key == LogicalKeyboardKey.numpadAdd || ch == '+')) {
+      _bumpLast(1);
+      return true;
+    }
+    if (_query.isEmpty && (key == LogicalKeyboardKey.numpadSubtract || ch == '-')) {
+      _bumpLast(-1);
+      return true;
+    }
+    if (ch != null && ch.length == 1 && ch.codeUnitAt(0) >= 32 && ch.codeUnitAt(0) != 127) {
+      if (_query.isEmpty && ch == ' ') return false;
+      _setQuery(_query + ch);
+      return true;
+    }
     return false;
   }
 
-  /// Un lector de códigos USB "escribe" el código y da Enter: aquí lo buscamos.
-  void _submitCode(String value) {
-    final code = value.trim();
-    if (code.isEmpty) return;
-    final product = ref.read(storeProvider).productByBarcode(code);
-    if (product != null) {
-      ref.read(cartProvider.notifier).addProduct(product);
-      _search.clear();
-      setState(() => _query = '');
-    } else {
-      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('No hay producto con el código $code')));
+  void _setQuery(String value) {
+    _search.value = TextEditingValue(text: value, selection: TextSelection.collapsed(offset: value.length));
+    setState(() => _query = value);
+  }
+
+  void _bumpLast(double delta) {
+    final cart = ref.read(cartProvider);
+    if (cart.isEmpty) return;
+    final last = cart.last;
+    ref.read(cartProvider.notifier).setQty(last.key, last.qty + delta);
+  }
+
+  void _clearCart() {
+    final before = ref.read(cartProvider);
+    ref.read(cartProvider.notifier).clear();
+    ScaffoldMessenger.of(context)
+      ..hideCurrentSnackBar()
+      ..showSnackBar(
+        SnackBar(
+          content: const Text('Se vació la cuenta'),
+          action: SnackBarAction(label: 'Deshacer', onPressed: () => ref.read(cartProvider.notifier).replace(before)),
+        ),
+      );
+  }
+
+  /// Productos que coinciden con lo escrito, por nombre o código.
+  List<Product> _matching(StoreState store, String text) {
+    final q = text.trim().toLowerCase();
+    return store.activeProducts
+        .where((p) => q.isEmpty || p.name.toLowerCase().contains(q) || (p.barcode?.contains(q) ?? false))
+        .toList();
+  }
+
+  /// Enter en el buscador: un código de barras o un nombre con un solo resultado se agrega a la cuenta.
+  /// Con varios resultados se quedan a la vista para escoger.
+  void _submitSearch(String value) {
+    final text = value.trim();
+    if (text.isEmpty) return;
+    final store = ref.read(storeProvider);
+    final byCode = store.productByBarcode(text);
+    final matches = byCode != null ? [byCode] : _matching(store, text);
+    if (matches.length == 1) {
+      ref.read(cartProvider.notifier).addProduct(matches.single);
+      _setQuery('');
+    } else if (matches.isEmpty) {
+      ScaffoldMessenger.of(context)
+        ..hideCurrentSnackBar()
+        ..showSnackBar(SnackBar(content: Text('No hay producto con "$text"')));
     }
   }
 
@@ -107,9 +187,7 @@ class _CobrarScreenState extends ConsumerState<CobrarScreen> {
     final store = ref.watch(storeProvider);
     final cart = ref.watch(cartProvider);
     final q = _query.trim().toLowerCase();
-    final products = store.activeProducts
-        .where((p) => q.isEmpty || p.name.toLowerCase().contains(q) || (p.barcode?.contains(q) ?? false))
-        .toList();
+    final products = _matching(store, q);
 
     final wide = MediaQuery.sizeOf(context).width >= wideLayout;
     final catalog = Column(
@@ -124,8 +202,9 @@ class _CobrarScreenState extends ConsumerState<CobrarScreen> {
               Expanded(
                 child: TextField(
                   controller: _search,
+                  focusNode: _searchFocus,
                   onChanged: (v) => setState(() => _query = v),
-                  onSubmitted: _submitCode,
+                  onSubmitted: _submitSearch,
                   textInputAction: TextInputAction.search,
                   decoration: InputDecoration(
                     hintText: 'Buscar o escribir código',
@@ -135,10 +214,7 @@ class _CobrarScreenState extends ConsumerState<CobrarScreen> {
                         : IconButton(
                             tooltip: 'Borrar búsqueda',
                             icon: const Icon(Icons.close, size: 18),
-                            onPressed: () {
-                              _search.clear();
-                              setState(() => _query = '');
-                            },
+                            onPressed: () => _setQuery(''),
                           ),
                   ),
                 ),

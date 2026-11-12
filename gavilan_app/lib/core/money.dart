@@ -23,6 +23,9 @@ int? parseMoney(String input) {
   return (value * 100).round();
 }
 
+/// Centavos como se escriben en un campo: "18", "18.50"; vacío si es cero.
+String centsInput(int? c) => (c == null || c == 0) ? '' : (c / 100).toStringAsFixed(c % 100 == 0 ? 0 : 2);
+
 String qtyLabel(double qty) => qty == qty.roundToDouble() ? qty.toInt().toString() : qty.toStringAsFixed(2);
 
 String daysAgo(DateTime date, DateTime now) {
