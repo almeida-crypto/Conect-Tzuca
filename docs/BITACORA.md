@@ -558,3 +558,13 @@ Se abren desde **Más → Módulos** con el plan Emprendedor o superior. Los tre
   - Se conserva al reabrir.
   - Flujo en pantalla.
 - Capturas generadas con Flutter (no se subieron): lista con la venta cancelada tachada, diálogo con el motivo y el aviso, y ticket con el sello CANCELADA.
+
+### Color de la pestaña seleccionada y APK 1.1.0
+- A los amigos del usuario no les combinaba el naranja de la pestaña seleccionada (Cobrar, Fiados, Inventario, Caja, Más). Ahora es una pastilla cenote suave con el icono cenote, igual que el botón de cobrar y las barras de inventario.
+- Versión 1.1.0+2. APK con todo lo de esta sesión:
+  - Mostrador en la computadora.
+  - Atajos, impresión y tabla tipo Excel.
+  - Precio de venta y costo de compra con su ganancia.
+  - Seguridad de cocina y costos.
+  - Primer uso.
+  - Ventas del turno y cancelar ventas.

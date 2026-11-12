@@ -138,14 +138,15 @@ class _NavItem extends StatelessWidget {
           width: selected ? 58 : 40,
           height: 32,
           decoration: BoxDecoration(
-            color: selected ? GColors.marcaSuave : Colors.transparent,
+            // Cenote, como el botón de cobrar y las cifras de dinero: el achiote queda para la acción principal.
+            color: selected ? GColors.cenoteSuave : Colors.transparent,
             borderRadius: BorderRadius.circular(16),
           ),
           child: AnimatedScale(
             scale: selected ? 1.08 : 1,
             duration: const Duration(milliseconds: 260),
             curve: Curves.easeOutBack,
-            child: Icon(icon, size: 23, color: selected ? GColors.marca : GColors.tintaTenue),
+            child: Icon(icon, size: 23, color: selected ? GColors.cenote : GColors.tintaTenue),
           ),
         ),
         const SizedBox(height: 4),

@@ -61,3 +61,4 @@ Decisiones ya tomadas, con su razón. Antes de cambiar alguna, revisa por qué s
 | 55 | Solo se cancelan ventas del turno abierto | Cambiar un turno ya cerrado movería un corte que ya se contó y se firmó | 12/11/2026 |
 | 56 | Cancelar ventas lo hacen dueño y administradores, no el cajero | Cancelar regresa dinero de la caja: es la puerta más común para que falte efectivo | 12/11/2026 |
 | 57 | La deuda de una venta fiada cancelada se quita con un renglón propio (`reversal` / "Venta cancelada"), no con un abono | Un abono contaría como dinero que entró a la caja | 12/11/2026 |
+| 58 | La pestaña seleccionada (abajo en el celular, a la izquierda en la computadora) va en cenote, no en achiote | El achiote en la barra competía con los botones principales y no combinaba; el cenote es el color del dinero y de las barras de inventario | 12/11/2026 |

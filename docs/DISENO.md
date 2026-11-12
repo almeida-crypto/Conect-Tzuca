@@ -35,7 +35,7 @@ Cada color tiene su versión suave (`marcaSuave`, `cenoteSuave`, `izamalSuave`, 
 - `GButton`: achiote (principal), cenote (dinero), tinta (fuerte), blanco con borde (secundario). Se encoge al apretarlo y regresa con rebote.
 - `Pressable`: el mismo efecto para fichas y tarjetas tocables.
 - `GCard`, `StatCard` (cifra grande que cuenta hacia arriba al aparecer), `Avatar` (inicial con color), `SoftButton` (pastilla de color suave, como "Abonar"), `SectionTitle`, `EnterAnimation` (listas que entran escalonadas).
-- Barra de pestañas blanca: el icono activo se asienta en una pastilla achiote suave.
+- Barra de pestañas blanca: el icono activo se asienta en una pastilla cenote suave (antes achiote: a quienes la vieron no les combinaba). El achiote queda para la acción principal de cada pantalla.
 - Hojas inferiores con esquinas de 24 px y asa para arrastrar.
 
 ## Computadora (900 px o más)
