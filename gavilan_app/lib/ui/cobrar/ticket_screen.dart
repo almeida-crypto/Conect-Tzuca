@@ -15,6 +15,7 @@ import '../../state/sync.dart';
 import '../../theme/colors.dart';
 import '../../theme/theme.dart';
 import '../widgets/buttons.dart';
+import 'return_sheet.dart';
 
 /// Ticket de la venta con sello PAGADO, FIADO o CANCELADA.
 class TicketScreen extends ConsumerStatefulWidget {
@@ -32,6 +33,21 @@ class TicketScreen extends ConsumerStatefulWidget {
 class _TicketScreenState extends ConsumerState<TicketScreen> {
   /// Lo que queda dentro de esta llave es lo que se manda como imagen.
   final _ticketKey = GlobalKey();
+
+  Future<void> _returnItems(Sale sale) async {
+    final request = await showReturnSheet(context, sale);
+    if (request == null || !mounted) return;
+    final newSale = ref.read(storeProvider.notifier).returnItems(sale.id, request.back, reason: request.reason);
+    final messenger = ScaffoldMessenger.of(context);
+    if (newSale != null) {
+      Navigator.of(
+        context,
+      ).pushReplacement(MaterialPageRoute<void>(builder: (_) => TicketScreen(saleId: newSale.id, fromHistory: true)));
+      messenger.showSnackBar(SnackBar(content: Text('Devolución hecha. Esta es la venta nueva ${newSale.folioLabel}')));
+    } else {
+      messenger.showSnackBar(const SnackBar(content: Text('Regresó todo: la venta quedó cancelada')));
+    }
+  }
 
   Future<void> _confirmCancel(Sale sale, String? customerName) async {
     final reason = await showCancelSaleDialog(context, sale, customerName: customerName);
@@ -53,7 +69,10 @@ class _TicketScreenState extends ConsumerState<TicketScreen> {
     final open = store.openSession;
     final canCancel =
         !sale.cancelled && open != null && sale.sessionId == open.id && ref.watch(permissionsProvider).cancelSales;
+    final order = sale.orderId == null ? null : store.orderById(sale.orderId!);
+    final place = order == null ? null : store.orderTitle(order);
     final text = ticketText(
+      place: place,
       business: store.businessName,
       sale: sale,
       customerName: customer?.name,
@@ -63,6 +82,7 @@ class _TicketScreenState extends ConsumerState<TicketScreen> {
 
     void printTicket() => printHtml(
       ticketHtml(
+        place: place,
         business: store.businessName,
         sale: sale,
         customerName: customer?.name,
@@ -126,9 +146,19 @@ class _TicketScreenState extends ConsumerState<TicketScreen> {
                                   textAlign: TextAlign.center,
                                   style: GText.mono(size: 11, color: GColors.tintaSuave),
                                 ),
+                                if (place != null)
+                                  Text(
+                                    place,
+                                    textAlign: TextAlign.center,
+                                    style: GText.mono(size: 12, weight: FontWeight.w700),
+                                  ),
                                 const SizedBox(height: 10),
                                 for (final l in sale.lines) _row('${qtyLabel(l.qty)} x ${l.name}', money(l.totalCents)),
                                 const _Dashed(),
+                                if (sale.discountCents > 0) ...[
+                                  _row('Subtotal', money(sale.subtotalCents)),
+                                  _row('Descuento', '-${money(sale.discountCents)}'),
+                                ],
                                 _row('TOTAL', money(sale.totalCents), bold: true),
                                 const _Dashed(),
                                 if (paid) ...[
@@ -209,6 +239,15 @@ class _TicketScreenState extends ConsumerState<TicketScreen> {
                           expand: true,
                           onPressed: () => Navigator.of(context).pop(),
                         ),
+                        if (canCancel && (sale.lines.length > 1 || sale.lines.any((l) => l.qty > 1)))
+                          TextButton.icon(
+                            onPressed: () => _returnItems(sale),
+                            icon: const Icon(Icons.assignment_return_outlined, size: 18, color: GColors.tintaSuave),
+                            label: Text(
+                              'Devolver algunos productos',
+                              style: GText.sans(size: 13.5, weight: FontWeight.w700, color: GColors.tintaSuave),
+                            ),
+                          ),
                         if (canCancel)
                           TextButton.icon(
                             onPressed: () => _confirmCancel(sale, customer?.name),

@@ -472,3 +472,8 @@ Color marginColor(double margin) => margin <= 0
     : margin < 0.15
     ? const Color(0xFFB27C00)
     : GColors.cenote;
+
+/// Libera un controlador de texto de una ventana o una hoja que se acaba de cerrar, pero hasta que
+/// termina su animación de salida (si se libera antes, la ventana lo sigue usando y falla).
+void disposeAfterClose(ChangeNotifier controller) =>
+    Future<void>.delayed(const Duration(milliseconds: 600), controller.dispose);

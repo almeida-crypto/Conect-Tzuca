@@ -1,3 +1,5 @@
+import '../core/money.dart';
+
 import 'dart:math';
 
 import 'package:flutter/foundation.dart';
@@ -463,10 +465,12 @@ class StoreNotifier extends Notifier<StoreState> {
     int? receivedCents,
     String? customerId,
     String? orderId,
+    int discountCents = 0,
   }) {
     assert(lines.isNotEmpty);
     assert(kind == SaleKind.pagada || customerId != null);
     final now = _clock();
+    final subtotal = lines.fold(0, (a, l) => a + l.totalCents);
     final sale = Sale(
       id: newId(),
       folio: state.nextFolio,
@@ -479,6 +483,7 @@ class StoreNotifier extends Notifier<StoreState> {
       customerId: customerId,
       device: ref.read(repositoryProvider).deviceCode,
       orderId: orderId,
+      discountCents: discountCents.clamp(0, subtotal),
     );
     final sold = <String, double>{};
     for (final l in lines) {
@@ -553,6 +558,43 @@ class StoreNotifier extends Notifier<StoreState> {
     );
     _save((r) => r.cancelSale(sale: cancelled, restocked: restocked, reversal: reversal));
     return cancelled;
+  }
+
+  /// Devolución de una parte: [back] dice cuánto regresa de cada renglón (por posición).
+  /// La venta original se cancela y se hace una nueva solo con lo que el cliente se queda, con su
+  /// propio folio. Así inventario, caja y fiado cuadran solos. Devuelve la venta nueva, o null si
+  /// regresó todo (entonces solo se cancela) o si no se pudo.
+  Sale? returnItems(String saleId, Map<int, double> back, {required String reason}) {
+    final sale = state.sales.where((s) => s.id == saleId).firstOrNull;
+    final open = state.openSession;
+    if (sale == null || sale.cancelled || open == null || sale.sessionId != open.id) return null;
+    final kept = <SaleLine>[];
+    final returned = <String>[];
+    for (final (i, l) in sale.lines.indexed) {
+      final r = (back[i] ?? 0).clamp(0, l.qty).toDouble();
+      if (r > 0) returned.add('${qtyLabel(r)} ${l.name}');
+      if (l.qty - r > 0.0001) kept.add(l.withQty(l.qty - r));
+    }
+    if (returned.isEmpty) return null;
+    final what = returned.join(', ');
+    if (kept.isEmpty) {
+      cancelSale(saleId, reason: 'Devolvió todo: $reason');
+      return null;
+    }
+    final newSubtotal = kept.fold(0, (a, l) => a + l.totalCents);
+    final discount = sale.subtotalCents == 0 ? 0 : (sale.discountCents * newSubtotal / sale.subtotalCents).round();
+    final device = ref.read(repositoryProvider).deviceCode;
+    final nextLabel = '$device-${state.nextFolio.toString().padLeft(4, '0')}';
+    cancelSale(saleId, reason: 'Devolvió $what ($reason). Queda en la venta $nextLabel');
+    return checkout(
+      lines: kept,
+      kind: sale.kind,
+      method: sale.method,
+      receivedCents: sale.kind == SaleKind.pagada ? newSubtotal - discount : null,
+      customerId: sale.customerId,
+      orderId: sale.orderId,
+      discountCents: discount,
+    );
   }
 
   // ---------- Clientes y fiados ----------
@@ -873,6 +915,7 @@ class StoreNotifier extends Notifier<StoreState> {
     PayMethod? method,
     int? receivedCents,
     String? customerId,
+    int discountCents = 0,
   }) {
     final order = state.orderById(orderId)!;
     final lines = [
@@ -895,9 +938,20 @@ class StoreNotifier extends Notifier<StoreState> {
       receivedCents: receivedCents,
       customerId: customerId,
       orderId: orderId,
+      discountCents: discountCents,
     );
     _closeOrder(order.close(OrderStatus.cerrada, _now()));
     return sale;
+  }
+
+  /// Pasa una cuenta abierta a otra mesa libre. Falso si la mesa ya tiene cuenta o no existe.
+  bool moveOrder(String orderId, String tableId) {
+    final order = state.orderById(orderId);
+    final table = state.tableById(tableId);
+    if (order == null || !order.isOpen || table == null || !table.active) return false;
+    if (state.openOrderOfTable(tableId) != null) return false;
+    _closeOrder(order.moveTo(tableId));
+    return true;
   }
 
   void _closeOrder(RestaurantOrder order) {

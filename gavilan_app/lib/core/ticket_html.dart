@@ -10,6 +10,7 @@ String ticketHtml({
   String? customerName,
   int? newBalanceCents,
   bool watermark = false,
+  String? place,
 }) {
   final paid = sale.kind == SaleKind.pagada;
   final rows = StringBuffer();
@@ -20,6 +21,10 @@ String ticketHtml({
     row('${qtyLabel(l.qty)} x ${l.name}', money(l.totalCents));
   }
   rows.writeln('<tr class="sep"><td colspan="2"></td></tr>');
+  if (sale.discountCents > 0) {
+    row('Subtotal', money(sale.subtotalCents));
+    row('Descuento', '-${money(sale.discountCents)}');
+  }
   row('TOTAL', money(sale.totalCents), strong: true);
   rows.writeln('<tr class="sep"><td colspan="2"></td></tr>');
   if (paid) {
@@ -53,7 +58,7 @@ String ticketHtml({
 </style></head>
 <body><div class="t">
 <h1>${_esc(business)}</h1>
-<div class="sub">Folio ${_esc(sale.folioLabel)} · ${_esc(dateTimeLabel(sale.createdAt))}</div>
+<div class="sub">Folio ${_esc(sale.folioLabel)} · ${_esc(dateTimeLabel(sale.createdAt))}${place == null ? '' : '<br>${_esc(place)}'}</div>
 <table>
 $rows</table>
 <div class="sello">${sale.cancelled ? 'CANCELADA' : (paid ? 'PAGADO' : 'FIADO')}</div>

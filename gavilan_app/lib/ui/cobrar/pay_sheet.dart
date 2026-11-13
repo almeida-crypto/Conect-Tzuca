@@ -42,6 +42,23 @@ class _PaySheetState extends ConsumerState<_PaySheet> {
   bool _otherMode = false;
   String? _error;
 
+  /// Descuento a toda la cuenta, en centavos.
+  int _discount = 0;
+
+  int _subtotal() =>
+      widget.orderId == null ? ref.read(cartTotalProvider) : ref.read(storeProvider).totalOfOrder(widget.orderId!);
+
+  Future<void> _askDiscount() async {
+    final cents = await showDiscountDialog(context, subtotalCents: _subtotal(), currentCents: _discount);
+    if (cents != null && mounted) {
+      setState(() {
+        _discount = cents;
+        _received = null;
+        _error = null;
+      });
+    }
+  }
+
   @override
   void dispose() {
     _other.dispose();
@@ -51,7 +68,7 @@ class _PaySheetState extends ConsumerState<_PaySheet> {
 
   void _finish({required SaleKind kind, String? customerId}) {
     final orderId = widget.orderId;
-    final total = orderId == null ? ref.read(cartTotalProvider) : ref.read(storeProvider).totalOfOrder(orderId);
+    final total = (_subtotal() - _discount).clamp(0, _subtotal());
     int? received;
     if (kind == SaleKind.pagada && _method == PayMethod.efectivo) {
       received = _otherMode ? parseMoney(_other.text) : _received;
@@ -74,10 +91,18 @@ class _PaySheetState extends ConsumerState<_PaySheet> {
         method: _method,
         receivedCents: paid,
         customerId: customerId,
+        discountCents: _discount,
       );
       ref.read(cartProvider.notifier).clear();
     } else {
-      sale = store.chargeOrder(orderId, kind: kind, method: _method, receivedCents: paid, customerId: customerId);
+      sale = store.chargeOrder(
+        orderId,
+        kind: kind,
+        method: _method,
+        receivedCents: paid,
+        customerId: customerId,
+        discountCents: _discount,
+      );
     }
     final navigator = Navigator.of(context);
     navigator.pop();
@@ -137,9 +162,10 @@ class _PaySheetState extends ConsumerState<_PaySheet> {
 
   @override
   Widget build(BuildContext context) {
-    final total = widget.orderId == null
+    final subtotal = widget.orderId == null
         ? ref.watch(cartTotalProvider)
         : ref.watch(storeProvider.select((s) => s.totalOfOrder(widget.orderId!)));
+    final total = (subtotal - _discount).clamp(0, subtotal);
     final received = _otherMode ? parseMoney(_other.text) : _received;
     final change = (_method == PayMethod.efectivo && received != null) ? received - total : 0;
 
@@ -151,7 +177,40 @@ class _PaySheetState extends ConsumerState<_PaySheet> {
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
           const SheetHeader('Cobrar', caption: 'Total a cobrar'),
-          Text(money(total), style: GText.amount(size: 40)),
+          Row(
+            crossAxisAlignment: CrossAxisAlignment.end,
+            children: [
+              Expanded(child: Text(money(total), style: GText.amount(size: 40))),
+              TextButton.icon(
+                onPressed: _askDiscount,
+                icon: Icon(
+                  _discount > 0 ? Icons.edit_rounded : Icons.sell_outlined,
+                  size: 18,
+                  color: GColors.tintaSuave,
+                ),
+                label: Text(
+                  _discount > 0 ? 'Cambiar descuento' : 'Descuento',
+                  style: GText.sans(size: 13.5, weight: FontWeight.w700, color: GColors.tintaSuave),
+                ),
+              ),
+            ],
+          ),
+          if (_discount > 0)
+            Padding(
+              padding: const EdgeInsets.only(top: 2),
+              child: Text.rich(
+                TextSpan(
+                  children: [
+                    TextSpan(text: 'Productos ${money(subtotal)}  ·  '),
+                    TextSpan(
+                      text: 'Descuento -${money(_discount)}',
+                      style: GText.sans(size: 13, weight: FontWeight.w700, color: GColors.cenote),
+                    ),
+                  ],
+                ),
+                style: GText.muted(size: 13),
+              ),
+            ),
           const SizedBox(height: 14),
           Text('Forma de pago', style: GText.sans(size: 12)),
           const SizedBox(height: 6),
@@ -278,6 +337,123 @@ class _PaySheetState extends ConsumerState<_PaySheet> {
             ),
         ],
       ),
+    );
+  }
+}
+
+/// Pide un descuento en porcentaje o en pesos. Devuelve los centavos a descontar (0 para quitarlo),
+/// o null si se canceló.
+Future<int?> showDiscountDialog(BuildContext context, {required int subtotalCents, int currentCents = 0}) =>
+    showDialog<int>(
+      context: context,
+      builder: (_) => _DiscountDialog(subtotalCents: subtotalCents, currentCents: currentCents),
+    );
+
+class _DiscountDialog extends StatefulWidget {
+  const _DiscountDialog({required this.subtotalCents, required this.currentCents});
+
+  final int subtotalCents;
+  final int currentCents;
+
+  @override
+  State<_DiscountDialog> createState() => _DiscountDialogState();
+}
+
+class _DiscountDialogState extends State<_DiscountDialog> {
+  // El campo vive lo mismo que el diálogo: se libera al cerrarse por completo, no antes.
+  late final _field = TextEditingController(text: widget.currentCents == 0 ? '' : centsInput(widget.currentCents));
+  late bool _percent = widget.currentCents == 0;
+
+  @override
+  void dispose() {
+    _field.dispose();
+    super.dispose();
+  }
+
+  int? _cents() {
+    final text = _field.text.trim();
+    if (text.isEmpty) return 0;
+    if (_percent) {
+      final p = double.tryParse(text);
+      if (p == null || p < 0 || p > 100) return null;
+      return (widget.subtotalCents * p / 100).round();
+    }
+    final c = parseMoney(text);
+    return c == null || c > widget.subtotalCents ? null : c;
+  }
+
+  void _mode(bool percent) => setState(() {
+    _percent = percent;
+    _field.clear();
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final value = _cents();
+    return AlertDialog(
+      title: Text('Descuento', style: GText.sans(size: 18, weight: FontWeight.w800)),
+      content: SizedBox(
+        width: 360,
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            Row(
+              children: [
+                Expanded(
+                  child: GChip(label: 'Porcentaje', selected: _percent, onTap: () => _mode(true)),
+                ),
+                const SizedBox(width: 6),
+                Expanded(
+                  child: GChip(label: 'Pesos', selected: !_percent, onTap: () => _mode(false)),
+                ),
+              ],
+            ),
+            const SizedBox(height: 10),
+            if (_percent)
+              Wrap(
+                spacing: 6,
+                runSpacing: 6,
+                children: [
+                  for (final p in const [5, 10, 15, 20])
+                    GChip(label: '$p%', selected: _field.text == '$p', onTap: () => setState(() => _field.text = '$p')),
+                ],
+              ),
+            const SizedBox(height: 10),
+            TextField(
+              controller: _field,
+              autofocus: true,
+              keyboardType: const TextInputType.numberWithOptions(decimal: true),
+              inputFormatters: _percent ? const [QtyInputFormatter()] : const [MoneyInputFormatter()],
+              onChanged: (_) => setState(() {}),
+              decoration: InputDecoration(
+                prefixText: _percent ? null : '\$ ',
+                suffixText: _percent ? '%' : null,
+                hintText: _percent ? '10' : '20',
+                errorText: value == null ? (_percent ? 'Entre 0 y 100' : 'No puede ser más que la cuenta') : null,
+              ),
+            ),
+            const SizedBox(height: 12),
+            if (value != null)
+              Text(
+                'Se descuentan ${money(value)} · queda ${money(widget.subtotalCents - value)}',
+                style: GText.sans(size: 13.5, weight: FontWeight.w700, color: GColors.cenote),
+              ),
+          ],
+        ),
+      ),
+      actions: [
+        if (widget.currentCents > 0)
+          TextButton(onPressed: () => Navigator.of(context).pop(0), child: const Text('Quitar descuento')),
+        TextButton(onPressed: () => Navigator.of(context).pop(), child: const Text('Cancelar')),
+        TextButton(
+          onPressed: value == null ? null : () => Navigator.of(context).pop(value),
+          child: Text(
+            'Aplicar',
+            style: GText.sans(size: 14, weight: FontWeight.w800, color: GColors.cenote),
+          ),
+        ),
+      ],
     );
   }
 }

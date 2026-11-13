@@ -306,9 +306,8 @@ class _ModuleRow extends StatelessWidget {
         } else if (module.screen != null) {
           Navigator.of(context).push(MaterialPageRoute(builder: (_) => module.screen!()));
         } else {
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(content: Text('${module.title} viene incluido en tu plan y llega muy pronto.')),
-          );
+          ScaffoldMessenger.of(context)
+              .showSnackBar(SnackBar(content: Text('${module.title} viene incluido en tu plan y llega muy pronto.')));
         }
       },
       child: Padding(

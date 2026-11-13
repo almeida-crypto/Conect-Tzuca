@@ -270,6 +270,7 @@ class DriftRepository implements StoreRepository, SyncStore {
             orderId: s.orderId,
             cancelledAt: s.cancelledAt,
             cancelReason: s.cancelReason,
+            discountCents: s.discountCents,
           ),
       ],
       credit: [
@@ -541,6 +542,7 @@ class DriftRepository implements StoreRepository, SyncStore {
             orderId: s.orderId,
             cancelledAt: s.cancelledAt,
             cancelReason: s.cancelReason,
+            discountCents: s.discountCents,
           ),
         );
     for (var i = 0; i < s.lines.length; i++) {

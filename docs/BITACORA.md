@@ -590,3 +590,33 @@ Se abren desde **Más → Módulos** con el plan Emprendedor o superior. Los tre
 - `flutter analyze` sin avisos y 69 pruebas pasan, 4 nuevas en `test/limits_test.dart`. Ninguna pantalla de las pruebas se desborda con la letra nueva.
 - Capturas generadas con Flutter (no se subieron): Cobrar, Caja con ganancia y Mi plan.
 - Panel web: `tsc` sin errores con Manrope.
+
+### Descuentos, devoluciones parciales y mesas
+- **Descuento al cobrar:** botón "Descuento" junto al total.
+  - En porcentaje (5, 10, 15, 20% o cualquiera) o en pesos, sin pasar de la cuenta.
+  - La hoja muestra "Productos \$88 · Descuento -\$8.80" y el total.
+  - Se guarda en la venta (`discountCents`, base local en esquema 8) y sube a Supabase en `sales.discount`, con `subtotal` y `total` correctos.
+  - El ticket (pantalla, WhatsApp e impreso) muestra subtotal y descuento.
+  - La ganancia reparte el descuento entre los productos.
+- **Devolver algunos productos** (en el ticket, dueño y administradores, turno abierto):
+  - Se marca cuánto regresa de cada producto (lo que va por kilo se regresa completo) y el motivo.
+  - La original queda cancelada con "Devolvió … Queda en la venta K7-0044", y se abre el ticket de la venta nueva.
+  - Devolverlo todo es cancelarla.
+- **Restaurante:**
+  - "Pasar a otra mesa" en el menú de la cuenta, solo a mesas libres.
+  - El ticket de una mesa dice cuál era (pantalla, WhatsApp e impreso).
+- **Error encontrado al revisar:** al cerrarse, la ventana de descuento liberaba su campo de texto antes de terminar la animación y fallaba. Se rehízo como ventana con su propio estado. Otras cinco ventanas tenían el mismo patrón (tanda, notas del platillo, mesas y zonas): ahora liberan el campo hasta que terminan de cerrarse (`disposeAfterClose`).
+- **Se pospone:** límites del plan en la base, hasta que haya cobro real (ver decisión 65).
+
+### Verificación
+- `flutter analyze` sin avisos y 75 pruebas pasan, 6 nuevas en `test/sales_extras_test.dart`:
+  - Descuento en caja, ganancia y Supabase.
+  - El tope del descuento.
+  - Devolución en efectivo y de un fiado.
+  - Devolverlo todo.
+  - Cambiar de mesa con la mesa en el ticket.
+- Capturas generadas con Flutter, sin subir:
+  - Diálogo de descuento.
+  - Hoja de cobro con el descuento de 10% (\$79.20).
+  - Ticket con subtotal y descuento.
+  - Devolución de 1 Coca: \$16.20, que cuadra con la venta nueva de \$63.00.

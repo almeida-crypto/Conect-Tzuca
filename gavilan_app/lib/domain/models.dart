@@ -108,6 +108,7 @@ class Sale {
     this.orderId,
     this.cancelledAt,
     this.cancelReason,
+    this.discountCents = 0,
   });
 
   final String id;
@@ -130,6 +131,9 @@ class Sale {
   final DateTime? cancelledAt;
   final String? cancelReason;
 
+  /// Descuento a toda la venta, en centavos (nunca más que la suma de los productos).
+  final int discountCents;
+
   bool get cancelled => cancelledAt != null;
 
   /// La misma venta, cancelada: deja de contar en la caja, la ganancia y lo vendido.
@@ -147,12 +151,17 @@ class Sale {
     orderId: orderId,
     cancelledAt: at,
     cancelReason: reason,
+    discountCents: discountCents,
   );
 
   /// "K7-0043": cada teléfono lleva su propia numeración.
   String get folioLabel => '${device ?? 'A'}-${folio.toString().padLeft(4, '0')}';
 
-  int get totalCents => lines.fold(0, (a, l) => a + l.totalCents);
+  /// Suma de los productos, antes del descuento.
+  int get subtotalCents => lines.fold(0, (a, l) => a + l.totalCents);
+
+  /// Lo que se cobró: los productos menos el descuento.
+  int get totalCents => (subtotalCents - discountCents).clamp(0, subtotalCents);
   int get changeCents => (receivedCents ?? totalCents) - totalCents;
 }
 

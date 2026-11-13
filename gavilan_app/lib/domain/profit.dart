@@ -65,6 +65,9 @@ class ProfitReport {
 ProfitReport profitOf(Iterable<Sale> sales) {
   final byKey = <String, ({String name, double qty, int sold, int cost, bool known})>{};
   for (final sale in sales) {
+    // Con descuento, cada producto cuenta lo que de verdad se cobró por él (el descuento se reparte).
+    final subtotal = sale.subtotalCents;
+    final factor = subtotal == 0 ? 1.0 : sale.totalCents / subtotal;
     for (final l in sale.lines) {
       final key = l.productId ?? '_rapida';
       final name = l.productId == null ? 'Ventas rápidas por monto' : l.name;
@@ -73,7 +76,7 @@ ProfitReport profitOf(Iterable<Sale> sales) {
       byKey[key] = (
         name: prev?.name ?? name,
         qty: (prev?.qty ?? 0) + l.qty,
-        sold: (prev?.sold ?? 0) + l.totalCents,
+        sold: (prev?.sold ?? 0) + (l.totalCents * factor).round(),
         cost: (prev?.cost ?? 0) + (l.unitCostCents > 0 ? lineCost : 0),
         known: (prev?.known ?? true) && l.unitCostCents > 0,
       );

@@ -66,3 +66,6 @@ Decisiones ya tomadas, con su razón. Antes de cambiar alguna, revisa por qué s
 | 60 | Si un celular ya tenía guardada una cifra irreal, al abrir la app se regresa al límite | Que la pantalla no se rompa y el respaldo no la rechace para siempre | 12/11/2026 |
 | 61 | La letra pasa de Archivo a Manrope en la app y el panel | Los números de Archivo se sentían "de IA"; Manrope tiene números finos y parejos, como las apps de pagos | 12/11/2026 |
 | 62 | En "Mi plan" solo se anuncia lo que ya funciona; lo demás lleva la etiqueta "Pronto" | Prometer fotos, logo o impresora Bluetooth que aún no existen generaba desconfianza | 12/11/2026 |
+| 63 | Una devolución parcial cancela la venta original y hace una nueva con lo que se queda el cliente (nuevo folio, el motivo en la original dice cuál es) | Reutiliza la cancelación: inventario, caja, ganancia y fiado cuadran solos, sin tablas nuevas que sincronizar | 12/11/2026 |
+| 64 | El descuento es de toda la cuenta y en la ganancia se reparte entre los productos según su peso | Así cada producto muestra lo que de verdad se cobró por él | 12/11/2026 |
+| 65 | Los límites del plan en la base se dejan para cuando haya cobro real | Con la vista previa, alguien que prueba Negocio con más de 30 productos se quedaría con el respaldo trabado | 12/11/2026 |

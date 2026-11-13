@@ -59,6 +59,7 @@ class SalesTable extends Table {
   TextColumn get orderId => text().nullable()();
   DateTimeColumn get cancelledAt => dateTime().nullable()();
   TextColumn get cancelReason => text().nullable()();
+  IntColumn get discountCents => integer().withDefault(const Constant(0))();
 
   @override
   Set<Column> get primaryKey => {id};
@@ -351,7 +352,7 @@ class GavilanDb extends _$GavilanDb {
   );
 
   @override
-  int get schemaVersion => 7;
+  int get schemaVersion => 8;
 
   @override
   MigrationStrategy get migration => MigrationStrategy(
@@ -386,6 +387,7 @@ class GavilanDb extends _$GavilanDb {
         await m.addColumn(salesTable, salesTable.cancelledAt);
         await m.addColumn(salesTable, salesTable.cancelReason);
       }
+      if (from < 8) await m.addColumn(salesTable, salesTable.discountCents);
     },
   );
 }

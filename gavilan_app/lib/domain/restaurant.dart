@@ -62,6 +62,16 @@ class RestaurantOrder {
   bool get isOpen => status == OrderStatus.abierta;
   bool get takeout => tableId == null;
 
+  /// La misma cuenta en otra mesa (se cambiaron de lugar).
+  RestaurantOrder moveTo(String newTableId) => RestaurantOrder(
+    id: id,
+    tableId: newTableId,
+    label: label,
+    createdAt: createdAt,
+    status: status,
+    closedAt: closedAt,
+  );
+
   RestaurantOrder close(OrderStatus status, DateTime at) =>
       RestaurantOrder(id: id, tableId: tableId, label: label, createdAt: createdAt, status: status, closedAt: at);
 }

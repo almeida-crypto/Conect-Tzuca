@@ -73,7 +73,7 @@ class _OrderScreenState extends ConsumerState<OrderScreen> {
       ),
     );
     if (ok == true) _store.setItemNotes(item.id, notes.text);
-    notes.dispose();
+    disposeAfterClose(notes);
   }
 
   Future<void> _charge() async {
@@ -82,6 +82,47 @@ class _OrderScreenState extends ConsumerState<OrderScreen> {
     if (!mounted || route == null) return;
     // Ya cobrada, la cuenta se quita de en medio y queda el ticket encima de las mesas.
     if (ref.read(storeProvider).orderById(_orderId!)?.isOpen == false) Navigator.of(context).removeRoute(route);
+  }
+
+  /// Se cambiaron de mesa: la cuenta (con lo que ya se mandó a cocina) se pasa a una mesa libre.
+  Future<void> _move() async {
+    final store = ref.read(storeProvider);
+    final order = store.orderById(_orderId!);
+    final free = [
+      for (final t in store.activeTables)
+        if (t.id != order?.tableId && store.openOrderOfTable(t.id) == null) t,
+    ];
+    if (free.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('No hay mesas libres')));
+      return;
+    }
+    final picked = await showGSheet<String>(
+      context,
+      (ctx) => Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          const SheetHeader('Pasar a otra mesa', caption: 'Solo se ven las mesas libres'),
+          Wrap(
+            spacing: 8,
+            runSpacing: 8,
+            children: [
+              for (final t in free) GChip(label: t.fullName, selected: false, onTap: () => Navigator.of(ctx).pop(t.id)),
+            ],
+          ),
+        ],
+      ),
+    );
+    if (picked == null || !mounted) return;
+    final ok = _store.moveOrder(_orderId!, picked);
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(
+          ok
+              ? 'La cuenta pasó a ${ref.read(storeProvider).tableById(picked)?.fullName ?? 'la otra mesa'}'
+              : 'Esa mesa ya tiene cuenta',
+        ),
+      ),
+    );
   }
 
   Future<void> _cancel() async {
@@ -136,8 +177,11 @@ class _OrderScreenState extends ConsumerState<OrderScreen> {
         actions: [
           if (order != null && order.isOpen)
             PopupMenuButton<String>(
-              onSelected: (_) => _cancel(),
-              itemBuilder: (_) => [const PopupMenuItem(value: 'cancel', child: Text('Cancelar cuenta'))],
+              onSelected: (v) => v == 'move' ? _move() : _cancel(),
+              itemBuilder: (_) => [
+                const PopupMenuItem(value: 'move', child: Text('Pasar a otra mesa')),
+                const PopupMenuItem(value: 'cancel', child: Text('Cancelar cuenta')),
+              ],
             ),
         ],
       ),

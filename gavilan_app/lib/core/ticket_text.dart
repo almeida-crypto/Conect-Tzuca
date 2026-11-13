@@ -12,17 +12,21 @@ String ticketText({
   String? customerName,
   int? newBalanceCents,
   bool watermark = false,
+  String? place,
 }) {
   final b = StringBuffer()
     ..writeln('*$business*')
-    ..writeln('Folio ${sale.folioLabel} · ${dateTimeLabel(sale.createdAt)}')
-    ..writeln('');
+    ..writeln('Folio ${sale.folioLabel} · ${dateTimeLabel(sale.createdAt)}');
+  if (place != null) b.writeln(place);
+  b.writeln('');
   for (final l in sale.lines) {
     b.writeln('${qtyLabel(l.qty)} x ${l.name}  ${money(l.totalCents)}');
   }
-  b
-    ..writeln('')
-    ..writeln('*TOTAL ${money(sale.totalCents)}*');
+  b.writeln('');
+  if (sale.discountCents > 0) {
+    b.writeln('Subtotal ${money(sale.subtotalCents)} · Descuento -${money(sale.discountCents)}');
+  }
+  b.writeln('*TOTAL ${money(sale.totalCents)}*');
   if (sale.kind == SaleKind.pagada) {
     b.writeln('Pagado con ${sale.method!.label.toLowerCase()}');
     if (sale.method == PayMethod.efectivo && sale.receivedCents != null) {

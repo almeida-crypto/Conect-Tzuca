@@ -195,7 +195,7 @@ class TandaDetailScreen extends ConsumerWidget {
         ],
       ),
     );
-    controller.dispose();
+    disposeAfterClose(controller);
     if (cents != null) ref.read(storeProvider.notifier).setBatchSupplies(tanda.id, cents);
   }
 

@@ -158,7 +158,7 @@ class _TablesView extends ConsumerWidget {
       ),
     );
     final label = name.text;
-    name.dispose();
+    disposeAfterClose(name);
     if (ok == true && context.mounted) {
       await Navigator.of(context)
           .push(MaterialPageRoute<void>(builder: (_) => OrderScreen(takeoutLabel: label.trim())));
@@ -415,7 +415,7 @@ class _TablesSheetState extends ConsumerState<_TablesSheet> {
       ),
     );
     final value = name.text.trim();
-    name.dispose();
+    disposeAfterClose(name);
     return ok == true && value.isNotEmpty ? value : null;
   }
 
@@ -479,7 +479,7 @@ class _TablesSheetState extends ConsumerState<_TablesSheet> {
       if (name.text.trim().isNotEmpty && name.text.trim() != t.name) _store.renameTable(t.id, name.text);
       if (zone != t.zone) _store.moveTable(t.id, zone);
     }
-    name.dispose();
+    disposeAfterClose(name);
   }
 
   Future<void> _remove(DiningTable t) async {

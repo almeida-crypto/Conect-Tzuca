@@ -50,8 +50,9 @@ Prioridad: **Alta** = sin esto no se puede usar con un negocio real · **Media**
 - [ ] **Baja** · Celular como escáner inalámbrico de la laptop (Supabase Realtime).
 - [ ] **Baja** · Generador de etiquetas con código de barras en PDF.
 - [x] **Alta** · Ventas del turno (lista con cada ticket) y cancelar una venta del turno abierto: regresa al inventario, deja de contar en la caja y la ganancia, y si fue fiada le quita la deuda al cliente. Solo dueño y administradores. *12/11/2026*
-- [ ] **Media** · Devolver solo una parte de una venta (un producto de varios) y cancelar ventas de turnos ya cerrados.
-- [ ] **Baja** · Descuentos por venta.
+- [x] **Media** · Devolver solo una parte de una venta: se cancela la original y queda una venta nueva con lo que se quedó el cliente. *12/11/2026*
+- [x] **Media** · Descuento a la cuenta al cobrar (porcentaje o pesos), en el ticket y repartido en la ganancia. *12/11/2026*
+- [ ] **Baja** · Cancelar o devolver ventas de turnos ya cerrados (con su ajuste en el siguiente corte).
 
 ## Etapa 3 · Módulos por giro
 - [x] **Media** · Apartados: anticipo, abonos, fecha límite con aviso de vencido, liquidación automática, cancelación y comprobante por WhatsApp. *31/10/2026*
@@ -62,7 +63,8 @@ Prioridad: **Alta** = sin esto no se puede usar con un negocio real · **Media**
 - [x] **Media** · Restaurante: mesas, comandas, pantalla de cocina al instante (Realtime), para llevar y cobro por mesa. Meseros y cocina se invitan al equipo y la app les abre directo en mesas o cocina. *09/11/2026*
 - [ ] **Media** · Probar el restaurante con dos celulares reales (mesero y cocina) para medir cuánto tarda en llegar la comanda.
 - [x] **Media** · Zonas de mesas (Planta baja, Segunda planta, Terraza): cada zona con su numeración, mesas agrupadas y nombre completo en cocina. *11/11/2026*
-- [ ] **Baja** · Restaurante: dividir la cuenta, pasar una cuenta a otra mesa, imprimir la comanda en cocina y poner la mesa en el ticket.
+- [x] **Baja** · Restaurante: pasar una cuenta a otra mesa libre y poner la mesa en el ticket. *12/11/2026*
+- [ ] **Baja** · Restaurante: dividir la cuenta e imprimir la comanda en cocina.
 - [ ] **Baja** · Platillos que no se venden en mostrador (que solo salgan en el restaurante) y modificadores con precio (extra queso).
 - [x] **Media** · Equipo y roles: el dueño invita cajeros y administradores con un código; el cajero no cambia el catálogo. *09/11/2026*
 - [ ] **Media** · Probar el equipo con dos cuentas reales: el dueño invita desde su celular y alguien se une desde otro.
@@ -75,7 +77,7 @@ Prioridad: **Alta** = sin esto no se puede usar con un negocio real · **Media**
 
 ## Etapa 4 · Planes y cobro
 - [ ] **Media** · Confirmar los límites exactos de cada plan contra el PDF (la tabla salió desordenada al leerla).
-- [ ] **Media** · Validar los límites también en la base de datos (triggers), no solo en la app.
+- [ ] **Media** · Validar los límites también en la base de datos (triggers), no solo en la app. Se hace junto con el cobro real: hoy la vista previa deja probar Negocio y en la base todos son plan gratis, así que los triggers trabarían el respaldo de quien prueba.
 - [ ] **Media** · Cobro real de suscripciones y quitar el selector de "vista previa" de planes.
 - [ ] **Alta** · Pasar proyecto-Gavilan a plan Pro de Supabase antes de tener clientes: el gratis se pausa tras 7 días sin actividad. Ya pasó una vez (09/11/2026) y se reactivó a mano; mientras está pausado, ningún teléfono respalda.
 
