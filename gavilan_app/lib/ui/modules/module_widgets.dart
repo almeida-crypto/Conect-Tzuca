@@ -1,3 +1,5 @@
+import '../../core/limits.dart';
+
 import 'package:flutter/material.dart';
 
 import '../../core/ticket_text.dart';
@@ -29,6 +31,7 @@ class MoneyField extends StatelessWidget {
       controller: controller,
       autofocus: autofocus,
       keyboardType: const TextInputType.numberWithOptions(decimal: true),
+      inputFormatters: const [MoneyInputFormatter()],
       style: GText.amount(size: 22),
       onChanged: onChanged,
       decoration: InputDecoration(labelText: label, prefixText: '\$ ', hintText: hint, errorText: error),

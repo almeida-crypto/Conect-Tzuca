@@ -1,3 +1,5 @@
+import '../../core/limits.dart';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
@@ -81,8 +83,8 @@ class _ProductFormState extends ConsumerState<_ProductForm> {
   void _save() {
     final price = parseMoney(_price.text);
     final cost = _cost.text.trim().isEmpty ? 0 : parseMoney(_cost.text);
-    final stock = double.tryParse(_stock.text.trim().isEmpty ? '0' : _stock.text.trim());
-    final min = _min.text.trim().isEmpty ? null : double.tryParse(_min.text.trim());
+    final stock = parseQty(_stock.text.trim().isEmpty ? '0' : _stock.text);
+    final min = _min.text.trim().isEmpty ? null : parseQty(_min.text);
     final code = _barcode.text.trim();
     final store = ref.read(storeProvider);
     final clash = code.isEmpty ? null : store.productByBarcode(code);
@@ -90,10 +92,13 @@ class _ProductFormState extends ConsumerState<_ProductForm> {
     setState(() {
       _errors.clear();
       if (_name.text.trim().isEmpty) _errors['name'] = 'Escribe el nombre';
-      if (price == null || price == 0) _errors['price'] = 'Escribe el precio';
-      if (cost == null) _errors['cost'] = 'Costo no válido';
-      if (_track && stock == null) _errors['stock'] = 'Cantidad no válida';
-      if (_min.text.trim().isNotEmpty && min == null) _errors['min'] = 'Cantidad no válida';
+      if (price == null || price == 0) _errors['price'] = moneyTooBig(_price.text) ?? 'Escribe el precio';
+      if (cost == null) _errors['cost'] = moneyTooBig(_cost.text) ?? 'Costo no válido';
+      if (price != null && cost != null && cost > 0 && price > 0 && cost > price * 20) {
+        _errors['cost'] = 'Revisa: el costo es mucho mayor que el precio';
+      }
+      if (_track && stock == null) _errors['stock'] = 'Entre 0 y 99,999';
+      if (_min.text.trim().isNotEmpty && min == null) _errors['min'] = 'Entre 0 y 99,999';
       if (clash != null && clash.id != widget.product?.id) _errors['barcode'] = 'Ya lo usa "${clash.name}"';
     });
     if (_errors.isNotEmpty) return;
@@ -119,9 +124,14 @@ class _ProductFormState extends ConsumerState<_ProductForm> {
   }
 
   void _addStock() {
-    final qty = double.tryParse(_restock.text.trim());
-    if (qty == null || qty <= 0) {
-      setState(() => _errors['restock'] = 'Escribe cuánto llegó');
+    final qty = parseQty(_restock.text);
+    final current = ref.read(storeProvider).productById(widget.product!.id);
+    if (qty == null || qty <= 0 || (current != null && current.stock + qty > Limits.maxQty)) {
+      setState(
+        () => _errors['restock'] = qty != null && qty > 0
+            ? 'La existencia no puede pasar de 99,999'
+            : 'Escribe cuánto llegó',
+      );
       return;
     }
     ref.read(storeProvider.notifier).addStock(widget.product!.id, qty);
@@ -147,6 +157,7 @@ class _ProductFormState extends ConsumerState<_ProductForm> {
         SheetHeader(_editing ? 'Editar producto' : 'Nuevo producto'),
         TextField(
           controller: _name,
+          inputFormatters: [maxChars(Limits.maxNameLength)],
           textCapitalization: TextCapitalization.sentences,
           decoration: InputDecoration(labelText: 'Nombre', hintText: 'Coca 600 ml', errorText: _errors['name']),
         ),
@@ -158,6 +169,7 @@ class _ProductFormState extends ConsumerState<_ProductForm> {
               child: TextField(
                 controller: _price,
                 keyboardType: const TextInputType.numberWithOptions(decimal: true),
+                inputFormatters: const [MoneyInputFormatter()],
                 onChanged: (_) => setState(() {}),
                 decoration: InputDecoration(
                   labelText: 'Precio de venta',
@@ -173,6 +185,7 @@ class _ProductFormState extends ConsumerState<_ProductForm> {
               child: TextField(
                 controller: _cost,
                 keyboardType: const TextInputType.numberWithOptions(decimal: true),
+                inputFormatters: const [MoneyInputFormatter()],
                 onChanged: (_) => setState(() {}),
                 decoration: InputDecoration(
                   labelText: 'Costo de compra',
@@ -191,6 +204,7 @@ class _ProductFormState extends ConsumerState<_ProductForm> {
         TextField(
           controller: _barcode,
           keyboardType: TextInputType.number,
+          inputFormatters: [maxChars(Limits.maxBarcodeLength)],
           decoration: InputDecoration(
             labelText: 'Código de barras (opcional)',
             prefixIcon: const Icon(Icons.qr_code_2, size: 20),
@@ -275,6 +289,7 @@ class _ProductFormState extends ConsumerState<_ProductForm> {
                   child: TextField(
                     controller: _stock,
                     keyboardType: const TextInputType.numberWithOptions(decimal: true),
+                    inputFormatters: const [QtyInputFormatter()],
                     decoration: InputDecoration(labelText: 'Tengo ahora', errorText: _errors['stock']),
                   ),
                 ),
@@ -284,6 +299,7 @@ class _ProductFormState extends ConsumerState<_ProductForm> {
                 child: TextField(
                   controller: _min,
                   keyboardType: const TextInputType.numberWithOptions(decimal: true),
+                  inputFormatters: const [QtyInputFormatter()],
                   decoration: InputDecoration(labelText: 'Avisarme al llegar a', errorText: _errors['min']),
                 ),
               ),
@@ -309,6 +325,7 @@ class _ProductFormState extends ConsumerState<_ProductForm> {
                       child: TextField(
                         controller: _restock,
                         keyboardType: const TextInputType.numberWithOptions(decimal: true),
+                        inputFormatters: const [QtyInputFormatter()],
                         decoration: InputDecoration(hintText: 'Llegó mercancía: 12', errorText: _errors['restock']),
                       ),
                     ),

@@ -1,3 +1,5 @@
+import '../../core/limits.dart';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
@@ -81,6 +83,7 @@ class _CustomerPickerState extends ConsumerState<_CustomerPicker> {
           const SheetHeader('Nuevo cliente'),
           TextField(
             controller: _name,
+            inputFormatters: [maxChars(Limits.maxPersonLength)],
             autofocus: true,
             textCapitalization: TextCapitalization.words,
             onChanged: (_) => setState(() => _error = null),

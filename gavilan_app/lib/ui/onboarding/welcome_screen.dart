@@ -1,3 +1,5 @@
+import '../../core/limits.dart';
+
 import 'dart:async';
 
 import 'package:flutter/material.dart';
@@ -73,6 +75,7 @@ class _WelcomeScreenState extends ConsumerState<WelcomeScreen> {
                   const SizedBox(height: 22),
                   TextField(
                     controller: _name,
+                    inputFormatters: [maxChars(Limits.maxPersonLength)],
                     autofocus: true,
                     textCapitalization: TextCapitalization.words,
                     textInputAction: TextInputAction.done,

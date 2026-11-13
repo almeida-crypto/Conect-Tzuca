@@ -160,6 +160,7 @@ class _StockRow extends StatelessWidget {
                       const SizedBox(width: 6),
                       Text(
                         money(p.priceCents, hideZeroCents: true),
+                        maxLines: 1,
                         style: GText.figures(size: 12, color: GColors.tintaTenue),
                       ),
                     ],
@@ -194,10 +195,16 @@ class _StockRow extends StatelessWidget {
             const SizedBox(width: 10),
             SizedBox(
               width: 64,
-              child: Text(
-                p.trackStock ? qtyLabel(p.stock) : '—',
-                textAlign: TextAlign.right,
-                style: GText.amount(size: 17, color: p.isLow ? GColors.rojo : GColors.tinta),
+              // Una cifra larga se encoge en lugar de partirse en varias líneas.
+              child: FittedBox(
+                fit: BoxFit.scaleDown,
+                alignment: Alignment.centerRight,
+                child: Text(
+                  p.trackStock ? qtyLabel(p.stock) : '—',
+                  maxLines: 1,
+                  textAlign: TextAlign.right,
+                  style: GText.amount(size: 17, color: p.isLow ? GColors.rojo : GColors.tinta),
+                ),
               ),
             ),
           ],

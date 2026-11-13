@@ -1,3 +1,5 @@
+import '../../core/limits.dart';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
@@ -237,6 +239,7 @@ class _CajaScreenState extends ConsumerState<CajaScreen> {
             TextField(
               controller: _counted,
               keyboardType: const TextInputType.numberWithOptions(decimal: true),
+              inputFormatters: const [MoneyInputFormatter()],
               onChanged: (_) => setState(() => _error = null),
               style: GText.amount(size: 26),
               decoration: InputDecoration(prefixText: '\$ ', hintText: '0.00', errorText: _error),

@@ -1,3 +1,5 @@
+import '../../core/limits.dart';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
@@ -134,6 +136,7 @@ class _NewTandaSheetState extends ConsumerState<_NewTandaSheet> {
         const SheetHeader('Nueva tanda'),
         TextField(
           controller: _name,
+          inputFormatters: [maxChars(Limits.maxNameLength)],
           autofocus: true,
           textCapitalization: TextCapitalization.sentences,
           onChanged: (_) => setState(() => _error = null),
@@ -429,6 +432,7 @@ class _NewOrderSheetState extends ConsumerState<_NewOrderSheet> {
         const SheetHeader('Nuevo pedido'),
         TextField(
           controller: _name,
+          inputFormatters: [maxChars(Limits.maxNameLength)],
           autofocus: true,
           textCapitalization: TextCapitalization.words,
           decoration: InputDecoration(labelText: 'Cliente', hintText: 'Doña Lupe', errorText: _errors['name']),

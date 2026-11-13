@@ -103,6 +103,8 @@ Prioridad: **Alta** = sin esto no se puede usar con un negocio real · **Media**
 ## Diseño
 - [x] **Baja** · Gavilán nuevo (ilustración de Flow) en el inicio, la bienvenida y el encabezado. *01/11/2026*
 - [x] **Baja** · Icono de la app: la cabeza del gavilán sobre óxido, en Android (adaptable) e iPhone. *01/11/2026*
+- [x] **Alta** · Límites de números reales en todos los campos (dinero hasta \$999,999.99 con 2 decimales, cantidades hasta 99,999 con 3, nombres y códigos con largo máximo) y también en la base (migración 0011). *12/11/2026*
+- [x] **Media** · Letra Manrope en la app y el panel; pantalla de planes rediseñada con tarjetas redondeadas y sin prometer lo que aún no existe. *12/11/2026*
 - [ ] **Baja** · Tema oscuro.
 - [x] **Baja** · Diseñar comandera y pantalla de cocina. *09/11/2026*
 

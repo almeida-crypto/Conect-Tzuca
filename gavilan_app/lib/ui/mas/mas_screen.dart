@@ -75,8 +75,8 @@ final _modules = [
   _Module(Icons.print_outlined, 'Impresora de tickets', 'Térmica por Bluetooth o USB', Plan.negocio, (l) => l.printer),
   _Module(
     Icons.computer_outlined,
-    'Panel web en la laptop',
-    'Reportes y catálogo desde la computadora',
+    'Gavilán en la computadora',
+    'Mostrador y reportes en el navegador',
     Plan.emprendedor,
     (l) => l.webPanel,
   ),
@@ -289,7 +289,8 @@ class _ModuleRow extends StatelessWidget {
   final bool unlocked;
   final Plan plan;
 
-  static const _colors = [GColors.marca, Color(0xFF6B4FA0), Color(0xFFB27C00), GColors.cenote, Color(0xFF2F6DB5)];
+  // Solo colores de la paleta: achiote, cenote, Izamal (oscuro, para que se lea) y café.
+  static const _colors = [GColors.marca, GColors.cenote, Color(0xFFB27C00), GColors.cafe];
 
   @override
   Widget build(BuildContext context) {
@@ -306,7 +307,7 @@ class _ModuleRow extends StatelessWidget {
           Navigator.of(context).push(MaterialPageRoute(builder: (_) => module.screen!()));
         } else {
           ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(content: Text('${module.title} está incluido en tu plan. Se construye en la siguiente etapa.')),
+            SnackBar(content: Text('${module.title} viene incluido en tu plan y llega muy pronto.')),
           );
         }
       },

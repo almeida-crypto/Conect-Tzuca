@@ -19,7 +19,7 @@ Future<void> main() async {
   // Las fuentes van dentro de la app (assets/google_fonts/): no hace falta internet para verlas.
   GoogleFonts.config.allowRuntimeFetching = false;
   LicenseRegistry.addLicense(() async* {
-    for (final family in ['Archivo', 'SpaceMono']) {
+    for (final family in ['Manrope', 'SpaceMono']) {
       final text = await rootBundle.loadString('assets/google_fonts/OFL-$family.txt');
       yield LicenseEntryWithLineBreaks(['google_fonts'], text);
     }

@@ -14,6 +14,13 @@ extension PlanInfo on Plan {
     Plan.negocio => '\$129 a \$149 al mes',
   };
 
+  /// Precio en dos partes para mostrarlo grande: "\$49 – \$69" y "al mes".
+  (String, String?) get priceParts => switch (this) {
+    Plan.semilla => ('Gratis', 'para siempre'),
+    Plan.emprendedor => ('\$49 – \$69', 'al mes'),
+    Plan.negocio => ('\$129 – \$149', 'al mes'),
+  };
+
   String get profile => switch (this) {
     Plan.semilla => 'Para quien empieza: dulces, postres, ventas de vez en cuando.',
     Plan.emprendedor => 'Paca, tianguis, comida por Facebook, catálogo y tienditas.',
@@ -99,29 +106,37 @@ class PlanLimits {
   };
 }
 
-/// Lo que incluye cada plan, en palabras para la pantalla "Mi plan".
+/// Lo que incluye cada plan, en palabras para la pantalla "Mi plan". Solo lo que ya funciona;
+/// lo que viene después va en [planComingSoon], para no prometer de más.
 List<String> planHighlights(Plan plan) => switch (plan) {
   Plan.semilla => const [
-    'App en 1 celular',
-    'Hasta 30 productos con iconos',
-    'Hasta 20 clientes fiados',
-    'Corte de caja diario',
-    'Ticket con marca de agua',
+    'App en 1 celular o computadora',
+    'Hasta 30 productos',
+    'Hasta 20 clientes con fiado',
+    'Corte de caja con la ganancia del día',
+    'Ticket por WhatsApp con marca de agua',
   ],
   Plan.emprendedor => const [
-    'App en 2 dispositivos y panel web básico',
-    'Hasta 300 productos con foto',
-    'Fiados sin límite y apartados con foto',
+    'Todo lo de Semilla, en 2 dispositivos',
+    'Hasta 300 productos',
+    'Fiados sin límite y apartados',
     'Pacas y lotes con barra de recuperación',
     'Pedidos por tanda',
-    'Ticket con tu logo, sin marca de agua',
+    'Reportes de ventas en la computadora',
+    'Ticket sin marca de agua',
   ],
   Plan.negocio => const [
-    'Productos sin límite y edición tipo Excel en PC',
+    'Todo lo de Emprendedor, sin límite de productos',
+    'Mostrador en la computadora con lector USB',
+    'Catálogo tipo Excel: pega tu lista y listo',
     'Mesas, meseros y pantalla de cocina',
-    'Equipo con roles: dueño, cajeros, meseros',
-    'Lector láser USB y celular como escáner',
-    'Impresora térmica Bluetooth o USB',
-    'Límite de crédito y alertas de vencimiento',
+    'Equipo con permisos: cajeros, meseros y cocina',
   ],
+};
+
+/// Lo que llegará a cada plan más adelante.
+List<String> planComingSoon(Plan plan) => switch (plan) {
+  Plan.semilla => const [],
+  Plan.emprendedor => const ['Fotos de producto y tu logo en el ticket'],
+  Plan.negocio => const ['Impresora de tickets Bluetooth', 'Límite de crédito por cliente'],
 };

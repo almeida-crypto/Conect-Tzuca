@@ -34,7 +34,7 @@ Abre http://localhost:3000. Desde la raíz del repositorio también está la con
 | `src/lib/demo.ts` | Datos de ejemplo. |
 | `src/components/` | Entrada, tablero, gráfica de columnas y piezas (tarjetas, cifras, barras). |
 
-Colores y letra son los de la app (achiote, cenote, Izamal; Archivo). Las barras de las gráficas usan un cenote un paso más vivo (`#0A8F82`), validado para contraste.
+Colores y letra son los de la app (achiote, cenote, Izamal; Manrope). Las barras de las gráficas usan un cenote un paso más vivo (`#0A8F82`), validado para contraste.
 
 ## Publicarlo
 

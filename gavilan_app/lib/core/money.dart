@@ -19,8 +19,10 @@ int? parseMoney(String input) {
   final clean = input.replaceAll(',', '').replaceAll('\$', '').trim();
   if (clean.isEmpty) return null;
   final value = double.tryParse(clean);
-  if (value == null || value < 0) return null;
-  return (value * 100).round();
+  if (value == null || value.isNaN || value.isInfinite || value < 0) return null;
+  final cents = (value * 100).round();
+  // Nada de cifras irreales: el límite está en core/limits.dart (\$999,999.99).
+  return cents > 99999999 ? null : cents;
 }
 
 /// Centavos como se escriben en un campo: "18", "18.50"; vacío si es cero.

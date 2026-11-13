@@ -1,3 +1,5 @@
+import '../../core/limits.dart';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
@@ -163,6 +165,7 @@ class _NewLotSheetState extends ConsumerState<_NewLotSheet> {
         const SheetHeader('Nueva paca', caption: 'Lo que compraste de golpe'),
         TextField(
           controller: _name,
+          inputFormatters: [maxChars(Limits.maxNameLength)],
           autofocus: true,
           textCapitalization: TextCapitalization.sentences,
           onChanged: (_) => setState(() => _nameError = null),

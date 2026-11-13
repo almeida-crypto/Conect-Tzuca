@@ -1,3 +1,5 @@
+import '../../core/limits.dart';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
@@ -244,6 +246,7 @@ class _ItemRow extends StatelessWidget {
                   controller: price,
                   textAlign: TextAlign.right,
                   keyboardType: const TextInputType.numberWithOptions(decimal: true),
+                  inputFormatters: const [MoneyInputFormatter()],
                   onChanged: onPriceChanged,
                   style: GText.figures(size: 14.5, weight: FontWeight.w700),
                   decoration: InputDecoration(

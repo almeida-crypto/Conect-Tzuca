@@ -1,3 +1,5 @@
+import '../core/limits.dart';
+
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../domain/models.dart';
@@ -46,6 +48,7 @@ class CartNotifier extends Notifier<List<SaleLine>> {
   }
 
   void setQty(String key, double qty) {
+    if (qty > Limits.maxCartQty) qty = Limits.maxCartQty;
     state = qty <= 0
         ? state.where((l) => l.key != key).toList()
         : [for (final l in state) l.key == key ? l.withQty(qty) : l];

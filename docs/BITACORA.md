@@ -568,3 +568,25 @@ Se abren desde **Más → Módulos** con el plan Emprendedor o superior. Los tre
   - Seguridad de cocina y costos.
   - Primer uso.
   - Ventas del turno y cancelar ventas.
+
+### Pulido después de la prueba de un amigo (APK 1.1.0)
+- **Números irreales:** en el celular del amigo entró un producto con precio de \$92 mil billones y existencia de 9 trillones, y la pantalla de Inventario se rompió.
+  - `core/limits.dart` frena al escribir: dinero hasta \$999,999.99 con 2 decimales, cantidades hasta 99,999 con 3 decimales, y nombres y códigos con largo máximo.
+  - Está en todos los campos: ficha, tabla tipo Excel (también al pegar), lista de inicio, cobro (también lo tecleado en "Otro"), caja, gastos, abonos, apartados, pacas y tandas.
+  - `parseMoney` y `parseQty` rechazan lo que pasa del límite. Una cuenta no pasa de 9,999 piezas por producto.
+  - La ficha avisa si el costo es más de 20 veces el precio.
+  - Al abrir la app, lo que ya estuviera guardado fuera de rango se regresa al límite.
+  - Las listas encogen una cifra larga en lugar de partirla.
+  - Migración 0011: la base rechaza lo mismo.
+- **Letra:** Manrope en lugar de Archivo, en la app y en el panel. Se descargó de Google Fonts y se comprobó con el sha256 que trae el paquete `google_fonts`.
+- **Planes:**
+  - Tarjetas redondeadas con sombra como el resto de la app y precio grande ("\$49 – \$69 al mes").
+  - "Tu plan" en una pastilla achiote, y casillas de color por plan.
+  - Botón "Probar este plan".
+  - Solo lo que ya funciona; lo demás dice "Pronto" (fotos y logo, impresora Bluetooth, límite de crédito).
+- **Más:** los iconos de módulos usan solo colores de la paleta (antes había morado y azul). "Panel web en la laptop" ahora dice "Gavilán en la computadora", y se cambió el aviso de "se construye en la siguiente etapa".
+
+### Verificación
+- `flutter analyze` sin avisos y 69 pruebas pasan, 4 nuevas en `test/limits_test.dart`. Ninguna pantalla de las pruebas se desborda con la letra nueva.
+- Capturas generadas con Flutter (no se subieron): Cobrar, Caja con ganancia y Mi plan.
+- Panel web: `tsc` sin errores con Manrope.

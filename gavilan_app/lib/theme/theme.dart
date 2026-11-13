@@ -20,10 +20,11 @@ abstract final class GShape {
       BoxDecoration(color: color, borderRadius: BorderRadius.circular(radius), boxShadow: shadow);
 }
 
-/// Estilos de texto propios. Archivo para todo; Space Mono solo para el ticket impreso.
+/// Estilos de texto propios. Manrope para todo (números parejos y finos, de app de pagos);
+/// Space Mono solo para el ticket impreso.
 abstract final class GText {
   static TextStyle sans({double size = 14, FontWeight weight = FontWeight.w500, Color color = GColors.tinta}) =>
-      GoogleFonts.archivo(fontSize: size, fontWeight: weight, color: color, height: 1.2);
+      GoogleFonts.manrope(fontSize: size, fontWeight: weight, color: color, height: 1.2);
 
   /// Letra de ticket. Solo para el ticket, que imita uno impreso.
   static TextStyle mono({double size = 12, FontWeight weight = FontWeight.w400, Color color = GColors.tinta}) =>
@@ -31,7 +32,7 @@ abstract final class GText {
 
   /// Cifras en listas y cuentas: números del mismo ancho para que las columnas cuadren.
   static TextStyle figures({double size = 13, FontWeight weight = FontWeight.w600, Color color = GColors.tinta}) =>
-      GoogleFonts.archivo(
+      GoogleFonts.manrope(
         fontSize: size,
         fontWeight: weight,
         color: color,
@@ -40,7 +41,7 @@ abstract final class GText {
       );
 
   /// Montos: peso fuerte y números tabulares para que no "bailen".
-  static TextStyle amount({double size = 18, Color color = GColors.tinta}) => GoogleFonts.archivo(
+  static TextStyle amount({double size = 18, Color color = GColors.tinta}) => GoogleFonts.manrope(
     fontSize: size,
     fontWeight: FontWeight.w800,
     color: color,
@@ -68,7 +69,7 @@ ThemeData buildGavilanTheme() {
       error: GColors.rojo,
     ),
     scaffoldBackgroundColor: GColors.fondo,
-    fontFamily: GoogleFonts.archivo().fontFamily,
+    fontFamily: GoogleFonts.manrope().fontFamily,
   );
   const field = OutlineInputBorder(
     borderRadius: BorderRadius.all(Radius.circular(GShape.radiusSmall)),

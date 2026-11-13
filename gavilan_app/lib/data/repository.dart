@@ -1,3 +1,5 @@
+import '../core/limits.dart';
+
 import 'dart:convert';
 
 import 'package:drift/drift.dart';
@@ -317,16 +319,18 @@ class DriftRepository implements StoreRepository, SyncStore {
     return LoadedData(store: withModules, plan: plan);
   }
 
+  /// Al leer, cualquier cifra irreal guardada antes de los límites se regresa al rango permitido,
+  /// para que la pantalla no se rompa y el respaldo no la rechace.
   static Product _product(ProductRow p) => Product(
     id: p.id,
-    name: p.name,
-    priceCents: p.priceCents,
-    costCents: p.costCents,
+    name: p.name.length > Limits.maxNameLength ? p.name.substring(0, Limits.maxNameLength) : p.name,
+    priceCents: p.priceCents.clamp(0, Limits.maxMoneyCents),
+    costCents: p.costCents.clamp(0, Limits.maxMoneyCents),
     barcode: p.barcode,
     iconId: p.iconId,
     trackStock: p.trackStock,
-    stock: p.stock,
-    minStock: p.minStock,
+    stock: p.stock.isFinite ? p.stock.clamp(-Limits.maxQty, Limits.maxQty) : 0,
+    minStock: p.minStock == null || !p.minStock!.isFinite ? null : p.minStock!.clamp(0, Limits.maxQty),
     active: p.active,
   );
 

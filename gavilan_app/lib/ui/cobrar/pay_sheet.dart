@@ -1,3 +1,5 @@
+import '../../core/limits.dart';
+
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -95,7 +97,9 @@ class _PaySheetState extends ConsumerState<_PaySheet> {
     // podría perder la primera tecla).
     final ch = e.character;
     if (_method == PayMethod.efectivo && ch != null && RegExp(r'^[0-9.]$').hasMatch(ch)) {
-      _setOther((_otherMode ? _other.text : '') + ch);
+      final next = (_otherMode ? _other.text : '') + ch;
+      final ok = const MoneyInputFormatter().formatEditUpdate(TextEditingValue.empty, TextEditingValue(text: next));
+      if (ok.text == next) _setOther(next);
       return KeyEventResult.handled;
     }
     if (_otherMode && key == LogicalKeyboardKey.backspace && _other.text.isNotEmpty) {
@@ -211,6 +215,7 @@ class _PaySheetState extends ConsumerState<_PaySheet> {
                 controller: _other,
                 focusNode: _otherFocus,
                 keyboardType: const TextInputType.numberWithOptions(decimal: true),
+                inputFormatters: const [MoneyInputFormatter()],
                 onChanged: (_) => setState(() => _error = null),
                 onSubmitted: (_) => _finish(kind: SaleKind.pagada),
                 decoration: const InputDecoration(hintText: '250', prefixText: '\$ '),

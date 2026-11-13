@@ -1,3 +1,5 @@
+import '../../core/limits.dart';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
@@ -161,14 +163,11 @@ class _DebtorDetail extends ConsumerWidget {
                 Text(dateTimeLabel(e.createdAt), style: GText.figures(size: 11, color: GColors.tintaSuave)),
                 const SizedBox(width: 10),
                 Expanded(
-                  child: Text(
-                    switch (e.type) {
-                      CreditType.cargo => 'Compra fiada',
-                      CreditType.cancelacion => 'Venta cancelada',
-                      CreditType.abono => 'Abono${e.method == null ? '' : ' (${e.method!.label.toLowerCase()})'}',
-                    },
-                    style: GText.sans(size: 13, weight: FontWeight.w400),
-                  ),
+                  child: Text(switch (e.type) {
+                    CreditType.cargo => 'Compra fiada',
+                    CreditType.cancelacion => 'Venta cancelada',
+                    CreditType.abono => 'Abono${e.method == null ? '' : ' (${e.method!.label.toLowerCase()})'}',
+                  }, style: GText.sans(size: 13, weight: FontWeight.w400)),
                 ),
                 Text(
                   '${e.type == CreditType.cargo ? '+' : '-'}${money(e.amountCents)}',
@@ -245,6 +244,7 @@ class _AbonoSheetState extends ConsumerState<_AbonoSheet> {
           controller: _amount,
           autofocus: true,
           keyboardType: const TextInputType.numberWithOptions(decimal: true),
+          inputFormatters: const [MoneyInputFormatter()],
           style: GText.amount(size: 26),
           onChanged: (_) => setState(() => _error = null),
           decoration: InputDecoration(prefixText: '\$ ', hintText: '0.00', errorText: _error),

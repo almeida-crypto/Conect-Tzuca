@@ -13,9 +13,8 @@ String ticketHtml({
 }) {
   final paid = sale.kind == SaleKind.pagada;
   final rows = StringBuffer();
-  void row(String a, String b, {bool strong = false}) => rows.writeln(
-    '<tr${strong ? ' class="strong"' : ''}><td>${_esc(a)}</td><td class="r">${_esc(b)}</td></tr>',
-  );
+  void row(String a, String b, {bool strong = false}) =>
+      rows.writeln('<tr${strong ? ' class="strong"' : ''}><td>${_esc(a)}</td><td class="r">${_esc(b)}</td></tr>');
 
   for (final l in sale.lines) {
     row('${qtyLabel(l.qty)} x ${l.name}', money(l.totalCents));

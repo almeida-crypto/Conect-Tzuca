@@ -387,11 +387,16 @@ class _ProductTile extends StatelessWidget {
                       style: GText.sans(size: 13, weight: FontWeight.w600).copyWith(height: 1.15),
                     ),
                     const SizedBox(height: 3),
-                    Text(
-                      out ? 'Agotado' : money(product.priceCents, hideZeroCents: true),
-                      style: out
-                          ? GText.sans(size: 13, weight: FontWeight.w700, color: GColors.rojo)
-                          : GText.amount(size: 17),
+                    FittedBox(
+                      fit: BoxFit.scaleDown,
+                      alignment: Alignment.centerLeft,
+                      child: Text(
+                        out ? 'Agotado' : money(product.priceCents, hideZeroCents: true),
+                        maxLines: 1,
+                        style: out
+                            ? GText.sans(size: 13, weight: FontWeight.w700, color: GColors.rojo)
+                            : GText.amount(size: 17),
+                      ),
                     ),
                   ],
                 ),

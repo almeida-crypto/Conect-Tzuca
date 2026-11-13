@@ -20,7 +20,7 @@
   --color-izamal-suave: #fdf1d4;
   --color-rojo: #cc2f2f;
   --color-rojo-suave: #fbe5e3;
-  --font-sans: var(--font-archivo), system-ui, sans-serif;
+  --font-sans: var(--font-manrope), system-ui, sans-serif;
 }
 
 body {

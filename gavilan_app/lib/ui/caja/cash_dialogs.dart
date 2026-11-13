@@ -1,3 +1,5 @@
+import '../../core/limits.dart';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
@@ -53,6 +55,7 @@ class _OpenCashSheetState extends ConsumerState<_OpenCashSheet> {
           controller: _amount,
           autofocus: true,
           keyboardType: const TextInputType.numberWithOptions(decimal: true),
+          inputFormatters: const [MoneyInputFormatter()],
           onChanged: (_) => setState(() => _error = null),
           style: GText.amount(size: 24),
           decoration: InputDecoration(prefixText: '\$ ', errorText: _error),
@@ -116,6 +119,7 @@ class _MovementSheetState extends ConsumerState<_MovementSheet> {
           controller: _amount,
           autofocus: true,
           keyboardType: const TextInputType.numberWithOptions(decimal: true),
+          inputFormatters: const [MoneyInputFormatter()],
           style: GText.amount(size: 22),
           onChanged: (_) => setState(() => _amountError = null),
           decoration: InputDecoration(prefixText: '\$ ', hintText: '0.00', errorText: _amountError),

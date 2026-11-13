@@ -28,7 +28,7 @@ Definida en `gavilan_app/lib/theme/colors.dart`. El inicio animado conserva su p
 Cada color tiene su versión suave (`marcaSuave`, `cenoteSuave`, `izamalSuave`, `rojoSuave`) para fondos de pastillas e iconos. Los productos llevan un color según su tipo (`productTint`), así el catálogo se lee de un vistazo.
 
 ## Tipografía
-- **Archivo** para toda la interfaz y los montos, con números de ancho fijo (`GText.figures`, `GText.amount`) para que las columnas cuadren y los totales no "bailen".
+- **Manrope** para toda la interfaz y los montos, con números de ancho fijo (`GText.figures`, `GText.amount`) para que las columnas cuadren y los totales no "bailen". Sustituyó a Archivo (12/11/2026): a quienes probaron la app los números de Archivo les daban "sensación de IA"; los de Manrope son más finos y parejos, de app de pagos. El panel web usa la misma.
 - **Space Mono** solo en el ticket, que imita uno impreso.
 
 ## Piezas

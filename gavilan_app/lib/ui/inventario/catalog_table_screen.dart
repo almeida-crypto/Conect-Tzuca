@@ -1,3 +1,5 @@
+import '../../core/limits.dart';
+
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -162,9 +164,11 @@ class _CatalogTableScreenState extends ConsumerState<CatalogTableScreen> {
     final t = r.text(c);
     switch (c) {
       case CatalogColumn.name:
+        if (t.length > Limits.maxNameLength) return 'Máximo ${Limits.maxNameLength} letras';
         return t.isEmpty ? 'Escribe el nombre' : null;
       case CatalogColumn.barcode:
         if (t.isEmpty) return null;
+        if (t.length > Limits.maxBarcodeLength) return 'Código demasiado largo';
         if ((codes[t] ?? 0) > 1) return 'Este código está repetido';
         final other = ref.read(storeProvider).productByBarcode(t);
         if (other != null && other.id != r.id && !_rows.any((x) => x.id == other.id)) {
@@ -173,16 +177,15 @@ class _CatalogTableScreenState extends ConsumerState<CatalogTableScreen> {
         return null;
       case CatalogColumn.price:
         final v = parseMoney(t);
-        return (v == null || v == 0) ? 'Escribe el precio' : null;
+        return (v == null || v == 0) ? (moneyTooBig(t) ?? 'Escribe el precio') : null;
       case CatalogColumn.cost:
-        return t.isEmpty || parseMoney(t) != null ? null : 'Costo no válido';
+        return t.isEmpty || parseMoney(t) != null ? null : (moneyTooBig(t) ?? 'Costo no válido');
       case CatalogColumn.stock:
         if (t.isEmpty) return r.tracked ? 'Escribe la existencia' : null;
-        return double.tryParse(t) == null ? 'Cantidad no válida' : null;
+        return parseQty(t, allowNegative: true) == null ? 'Entre -99,999 y 99,999' : null;
       case CatalogColumn.min:
         if (t.isEmpty) return null;
-        final v = double.tryParse(t);
-        return (v == null || v < 0) ? 'Cantidad no válida' : null;
+        return parseQty(t) == null ? 'Entre 0 y 99,999' : null;
     }
   }
 
@@ -296,9 +299,9 @@ class _CatalogTableScreenState extends ConsumerState<CatalogTableScreen> {
       final cost = costText.isEmpty ? 0 : parseMoney(costText)!;
       final code = r.text(CatalogColumn.barcode);
       final stockText = r.text(CatalogColumn.stock);
-      final stock = stockText.isEmpty ? null : double.parse(stockText);
+      final stock = stockText.isEmpty ? null : parseQty(stockText, allowNegative: true);
       final minText = r.text(CatalogColumn.min);
-      final min = minText.isEmpty ? null : double.parse(minText);
+      final min = minText.isEmpty ? null : parseQty(minText);
 
       if (r.isNew) {
         notifier.saveProduct(
@@ -667,7 +670,16 @@ class _TableRow extends StatelessWidget {
           minLines: 1,
           maxLines: null,
           style: c.numeric ? GText.figures(size: 13.5) : GText.sans(size: 13.5),
-          inputFormatters: [_PasteCatcher(onPaste: (text) => onPaste(c, text), onEnter: () => onDown(c))],
+          inputFormatters: [
+            _PasteCatcher(onPaste: (text) => onPaste(c, text), onEnter: () => onDown(c)),
+            ...switch (c) {
+              CatalogColumn.name => [maxChars(Limits.maxNameLength)],
+              CatalogColumn.barcode => [maxChars(Limits.maxBarcodeLength)],
+              CatalogColumn.price || CatalogColumn.cost => const [MoneyInputFormatter()],
+              CatalogColumn.stock => const [QtyInputFormatter(allowNegative: true)],
+              CatalogColumn.min => const [QtyInputFormatter()],
+            },
+          ],
           onChanged: (_) => onChanged(),
           decoration: InputDecoration(
             isDense: true,
