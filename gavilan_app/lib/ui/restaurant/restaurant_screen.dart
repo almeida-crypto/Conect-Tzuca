@@ -17,6 +17,7 @@ import '../modules/module_widgets.dart' show EmptyInvite;
 import '../widgets/buttons.dart';
 import '../widgets/common.dart';
 import 'order_screen.dart';
+import 'extras_screen.dart';
 
 /// Minutos desde [since], para "hace 12 min".
 int minutesSince(DateTime since) => DateTime.now().difference(since).inMinutes;
@@ -92,6 +93,13 @@ class _RestaurantScreenState extends ConsumerState<RestaurantScreen> {
               tooltip: 'Acomodar mesas',
               icon: const Icon(Icons.tune),
               onPressed: () => showGSheet<void>(context, (_) => const _TablesSheet()),
+            ),
+          if (can.manageTables && !_kitchen)
+            IconButton(
+              tooltip: 'Extras con precio',
+              icon: const Icon(Icons.add_card_outlined),
+              onPressed: () =>
+                  Navigator.of(context).push(MaterialPageRoute<void>(builder: (_) => const ExtrasScreen())),
             ),
           if (widget.embedded)
             IconButton(
@@ -758,6 +766,12 @@ class _KitchenTicketState extends ConsumerState<_KitchenTicket> with SingleTicke
                               color: i.status == KitchenStatus.listo ? GColors.tintaSuave : GColors.tinta,
                             ),
                           ),
+                          // Los extras, bien visibles para que cocina no se los salte.
+                          for (final e in i.extras)
+                            Text(
+                              '+ ${e.name}',
+                              style: GText.sans(size: 15, weight: FontWeight.w800, color: GColors.cenote),
+                            ),
                           if (i.notes != null)
                             Text(
                               i.notes!,

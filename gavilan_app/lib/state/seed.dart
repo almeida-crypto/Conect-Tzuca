@@ -1,4 +1,5 @@
 import '../domain/models.dart';
+import '../domain/restaurant.dart';
 import 'store.dart';
 
 /// Datos de ejemplo de una tiendita para ver la app funcionando de punta a punta.
@@ -194,6 +195,12 @@ StoreState seedStore(DateTime now) {
     isDemo: true,
     businessName: 'Abarrotes Doña Mary',
     products: products,
+    // Para probar el restaurante: extras con precio de ejemplo.
+    extras: const [
+      Extra(id: 'x1', name: 'Extra queso', priceCents: 1000),
+      Extra(id: 'x2', name: 'Doble carne', priceCents: 2000, position: 1),
+      Extra(id: 'x3', name: 'Leche deslactosada', priceCents: 500, position: 2),
+    ],
     sales: sales,
     customers: const [lupe, beto, chelo, pedro],
     credit: [

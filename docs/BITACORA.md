@@ -620,3 +620,31 @@ Se abren desde **Más → Módulos** con el plan Emprendedor o superior. Los tre
   - Hoja de cobro con el descuento de 10% (\$79.20).
   - Ticket con subtotal y descuento.
   - Devolución de 1 Coca: \$16.20, que cuadra con la venta nueva de \$63.00.
+
+## 13 de noviembre de 2026 · Sesión 8
+
+### Extras con precio en el restaurante
+- **Dar de alta** (dueño y administradores):
+  - En Mesas, botón de extras arriba.
+  - Lista con nombre y "+\$10"; tocar uno lo cambia y el bote lo quita.
+  - El precio respeta los límites y puede ser \$0 (sin costo).
+- **En la comanda:**
+  - Tocar un platillo sin mandar abre "Indicaciones y extras".
+  - Ahí van las notas y los extras como botones ("Extra queso +\$10"), y se ve el precio por pieza ("\$8 + \$10 de extras").
+  - Un platillo con extras es otro renglón: dos panes con queso se juntan, pero no con uno sencillo.
+- **Cocina:** cada extra en verde ("+ Extra queso"), antes de las notas.
+- **Cobro:** el renglón de la venta dice "Pan dulce (extra queso)" con el precio completo, y así sale en el ticket y en la ganancia.
+- **Datos:**
+  - Local: esquema 9, con la tabla `extras` y la columna `extras` en platillos.
+  - Supabase: migración 0012, sincronizada como las demás tablas.
+- **Tiendita de ejemplo:** trae 3 extras (queso \$10, doble carne \$20, leche deslactosada \$5).
+
+### Verificación
+- `flutter analyze` sin avisos y 79 pruebas pasan, 4 nuevas en `test/extras_test.dart`:
+  - Alta, cambio y baja de extras.
+  - Cuenta, renglones y cobro.
+  - Ida y vuelta con Supabase.
+  - Se conservan al reabrir.
+- Capturas generadas con Flutter (no se subieron): cuenta con extras, hoja de indicaciones y extras, cocina y lista de extras.
+- Se corrigió que el toque de la lista de extras no se veía sobre la tarjeta.
+- **No probado:** con mesero y cocina en dos celulares reales.

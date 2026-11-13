@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../../core/limits.dart';
 import '../../core/money.dart';
 import '../../domain/models.dart';
 import '../../domain/restaurant.dart';
@@ -54,26 +55,11 @@ class _OrderScreenState extends ConsumerState<OrderScreen> {
   }
 
   Future<void> _editNotes(OrderItem item) async {
-    final notes = TextEditingController(text: item.notes ?? '');
-    final ok = await showDialog<bool>(
-      context: context,
-      builder: (ctx) => AlertDialog(
-        title: Text(item.name),
-        content: TextField(
-          controller: notes,
-          autofocus: true,
-          textCapitalization: TextCapitalization.sentences,
-          decoration: const InputDecoration(labelText: 'Indicaciones para cocina', hintText: 'Sin cebolla'),
-          onSubmitted: (_) => Navigator.of(ctx).pop(true),
-        ),
-        actions: [
-          TextButton(onPressed: () => Navigator.of(ctx).pop(false), child: const Text('Cancelar')),
-          TextButton(onPressed: () => Navigator.of(ctx).pop(true), child: const Text('Guardar')),
-        ],
-      ),
+    final result = await showGSheet<({String notes, List<ItemExtra> extras})>(
+      context,
+      (_) => _ItemDetailsSheet(item: item),
     );
-    if (ok == true) _store.setItemNotes(item.id, notes.text);
-    disposeAfterClose(notes);
+    if (result != null) _store.setItemDetails(item.id, notes: result.notes, extras: result.extras);
   }
 
   Future<void> _charge() async {
@@ -351,8 +337,14 @@ class _UnsentRow extends StatelessWidget {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Text(item.name, style: GText.sans(size: 15, weight: FontWeight.w800)),
+                  if (item.extras.isNotEmpty)
+                    Text(
+                      item.extras.map((e) => '+ ${e.name}').join('  '),
+                      style: GText.sans(size: 13, weight: FontWeight.w700, color: GColors.cenote),
+                    ),
                   Text(
-                    item.notes ?? 'Toca para agregar indicaciones',
+                    item.notes ??
+                        (item.extras.isEmpty ? 'Toca para agregar indicaciones o extras' : 'Toca para cambiar'),
                     style: item.notes == null
                         ? GText.muted(size: 12.5)
                         : GText.sans(size: 13, color: GColors.marca).copyWith(fontStyle: FontStyle.italic),
@@ -403,6 +395,11 @@ class _SentRow extends StatelessWidget {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(item.name, style: GText.sans(size: 15)),
+                if (item.extras.isNotEmpty)
+                  Text(
+                    item.extras.map((e) => '+ ${e.name}').join('  '),
+                    style: GText.sans(size: 13, weight: FontWeight.w700, color: GColors.cenote),
+                  ),
                 if (item.notes != null)
                   Text(
                     item.notes!,
@@ -507,6 +504,93 @@ class _ProductPickerState extends ConsumerState<_ProductPicker> {
           expand: true,
           big: true,
           onPressed: count == 0 ? null : () => Navigator.of(context).pop(Map.of(_picked)),
+        ),
+      ],
+    );
+  }
+}
+
+/// Indicaciones para cocina y extras con precio de un platillo que aún no se manda.
+class _ItemDetailsSheet extends ConsumerStatefulWidget {
+  const _ItemDetailsSheet({required this.item});
+
+  final OrderItem item;
+
+  @override
+  ConsumerState<_ItemDetailsSheet> createState() => _ItemDetailsSheetState();
+}
+
+class _ItemDetailsSheetState extends ConsumerState<_ItemDetailsSheet> {
+  late final _notes = TextEditingController(text: widget.item.notes ?? '');
+  late final _picked = [...widget.item.extras];
+
+  @override
+  void dispose() {
+    _notes.dispose();
+    super.dispose();
+  }
+
+  void _toggle(ItemExtra e) => setState(() => _picked.contains(e) ? _picked.remove(e) : _picked.add(e));
+
+  @override
+  Widget build(BuildContext context) {
+    final available = ref.watch(storeProvider.select((s) => s.activeExtras));
+    final can = ref.watch(permissionsProvider);
+    // Lo que ya traía el platillo se sigue viendo aunque el dueño haya quitado ese extra de la lista.
+    final options = [
+      for (final e in available) ItemExtra(e.name, e.priceCents),
+      for (final e in widget.item.extras)
+        if (!available.any((a) => a.name == e.name && a.priceCents == e.cents)) e,
+    ];
+    final extraCents = _picked.fold(0, (a, e) => a + e.cents);
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        SheetHeader(widget.item.name, caption: 'Indicaciones y extras'),
+        TextField(
+          controller: _notes,
+          autofocus: options.isEmpty,
+          inputFormatters: [maxChars(Limits.maxNoteLength)],
+          textCapitalization: TextCapitalization.sentences,
+          decoration: const InputDecoration(labelText: 'Indicaciones para cocina', hintText: 'Sin cebolla'),
+        ),
+        const SizedBox(height: 14),
+        Text('Extras', style: GText.sans(size: 13, weight: FontWeight.w700)),
+        const SizedBox(height: 6),
+        if (options.isEmpty)
+          Text(
+            can.manageTables
+                ? 'No hay extras. Dalos de alta en Mesas, con el botón de extras arriba.'
+                : 'No hay extras dados de alta.',
+            style: GText.muted(size: 13),
+          )
+        else
+          Wrap(
+            spacing: 6,
+            runSpacing: 6,
+            children: [
+              for (final e in options)
+                GChip(
+                  label: e.cents == 0 ? e.name : '${e.name} +${money(e.cents, hideZeroCents: true)}',
+                  selected: _picked.contains(e),
+                  onTap: () => _toggle(e),
+                ),
+            ],
+          ),
+        if (extraCents > 0) ...[
+          const SizedBox(height: 10),
+          Text(
+            'Cada uno queda en ${money(widget.item.unitCents + extraCents)} '
+            '(${money(widget.item.unitCents)} + ${money(extraCents)} de extras)',
+            style: GText.sans(size: 13, weight: FontWeight.w700, color: GColors.cenote),
+          ),
+        ],
+        const SizedBox(height: 16),
+        GButton(
+          label: 'Guardar',
+          icon: Icons.check_rounded,
+          expand: true,
+          onPressed: () => Navigator.of(context).pop((notes: _notes.text, extras: List.of(_picked))),
         ),
       ],
     );

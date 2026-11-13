@@ -307,6 +307,9 @@ class OrderItemsTable extends Table {
   RealColumn get qty => real()();
   IntColumn get unitCents => integer()();
   TextColumn get notes => text().nullable()();
+
+  /// Extras del platillo en JSON: [{"name": "Extra queso", "cents": 1000}].
+  TextColumn get extras => text().nullable()();
   TextColumn get status => textEnum<KitchenStatus>()();
   DateTimeColumn get createdAt => dateTime()();
   DateTimeColumn get sentAt => dateTime().nullable()();
@@ -317,8 +320,25 @@ class OrderItemsTable extends Table {
   Set<Column> get primaryKey => {id};
 }
 
+/// Extras con precio del restaurante.
+@DataClassName('ExtraRow')
+class ExtrasTable extends Table {
+  @override
+  String get tableName => 'extras';
+
+  TextColumn get id => text()();
+  TextColumn get name => text()();
+  IntColumn get priceCents => integer()();
+  BoolColumn get active => boolean().withDefault(const Constant(true))();
+  IntColumn get position => integer().withDefault(const Constant(0))();
+
+  @override
+  Set<Column> get primaryKey => {id};
+}
+
 @DriftDatabase(
   tables: [
+    ExtrasTable,
     OutboxTable,
     DiningTablesTable,
     OrdersTable,
@@ -352,7 +372,7 @@ class GavilanDb extends _$GavilanDb {
   );
 
   @override
-  int get schemaVersion => 8;
+  int get schemaVersion => 9;
 
   @override
   MigrationStrategy get migration => MigrationStrategy(
@@ -388,6 +408,11 @@ class GavilanDb extends _$GavilanDb {
         await m.addColumn(salesTable, salesTable.cancelReason);
       }
       if (from < 8) await m.addColumn(salesTable, salesTable.discountCents);
+      if (from < 9) {
+        await m.createTable(extrasTable);
+        // Antes de la versión 5 la tabla de platillos se crea completa (ya con extras).
+        if (from >= 5) await m.addColumn(orderItemsTable, orderItemsTable.extras);
+      }
     },
   );
 }

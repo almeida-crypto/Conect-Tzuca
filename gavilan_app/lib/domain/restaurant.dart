@@ -76,6 +76,39 @@ class RestaurantOrder {
       RestaurantOrder(id: id, tableId: tableId, label: label, createdAt: createdAt, status: status, closedAt: at);
 }
 
+/// Extra con precio que el dueño da de alta una vez ("Extra queso", +\$10).
+class Extra {
+  const Extra({required this.id, required this.name, required this.priceCents, this.active = true, this.position = 0});
+
+  final String id;
+  final String name;
+  final int priceCents;
+  final bool active;
+  final int position;
+
+  Extra copyWith({String? name, int? priceCents, bool? active}) => Extra(
+    id: id,
+    name: name ?? this.name,
+    priceCents: priceCents ?? this.priceCents,
+    active: active ?? this.active,
+    position: position,
+  );
+}
+
+/// Un extra ya puesto en un platillo: nombre y precio de ese momento (si luego cambia, la comanda no).
+class ItemExtra {
+  const ItemExtra(this.name, this.cents);
+
+  final String name;
+  final int cents;
+
+  @override
+  bool operator ==(Object other) => other is ItemExtra && other.name == name && other.cents == cents;
+
+  @override
+  int get hashCode => Object.hash(name, cents);
+}
+
 class OrderItem {
   const OrderItem({
     required this.id,
@@ -83,6 +116,7 @@ class OrderItem {
     required this.name,
     required this.qty,
     required this.unitCents,
+    this.extras = const [],
     required this.createdAt,
     this.productId,
     this.notes,
@@ -97,7 +131,18 @@ class OrderItem {
   final String? productId;
   final String name;
   final double qty;
+
+  /// Precio del platillo solo, sin extras.
   final int unitCents;
+
+  /// Extras con precio ("Extra queso" +\$10). Se cobran por cada pieza.
+  final List<ItemExtra> extras;
+
+  /// Precio de una pieza con sus extras.
+  int get unitWithExtrasCents => unitCents + extras.fold(0, (a, e) => a + e.cents);
+
+  /// "Tacos de pastor (extra queso, doble carne)", para la cuenta y el ticket.
+  String get fullName => extras.isEmpty ? name : '$name (${extras.map((e) => e.name.toLowerCase()).join(', ')})';
 
   /// "Sin cebolla", "bien dorada".
   final String? notes;
@@ -111,11 +156,12 @@ class OrderItem {
 
   bool get sent => sentAt != null;
   bool get cancelled => status == KitchenStatus.cancelado;
-  int get totalCents => cancelled ? 0 : (unitCents * qty).round();
+  int get totalCents => cancelled ? 0 : (unitWithExtrasCents * qty).round();
 
   OrderItem copyWith({
     double? qty,
     String? notes,
+    List<ItemExtra>? extras,
     KitchenStatus? status,
     DateTime? sentAt,
     DateTime? readyAt,
@@ -127,6 +173,7 @@ class OrderItem {
     name: name,
     qty: qty ?? this.qty,
     unitCents: unitCents,
+    extras: extras ?? this.extras,
     notes: notes ?? this.notes,
     status: status ?? this.status,
     createdAt: createdAt,

@@ -46,6 +46,7 @@ class StoreState {
     this.batches = const [],
     this.batchOrders = const [],
     this.tables = const [],
+    this.extras = const [],
     this.orders = const [],
     this.orderItems = const [],
   });
@@ -69,6 +70,11 @@ class StoreState {
   final List<Tanda> batches;
   final List<BatchOrder> batchOrders;
   final List<DiningTable> tables;
+
+  /// Extras con precio del restaurante ("Extra queso" +\$10).
+  final List<Extra> extras;
+
+  List<Extra> get activeExtras => extras.where((e) => e.active).toList();
   final List<RestaurantOrder> orders;
   final List<OrderItem> orderItems;
   final int nextFolio;
@@ -326,6 +332,7 @@ class StoreState {
     List<Tanda>? batches,
     List<BatchOrder>? batchOrders,
     List<DiningTable>? tables,
+    List<Extra>? extras,
     List<RestaurantOrder>? orders,
     List<OrderItem>? orderItems,
     int? nextFolio,
@@ -346,6 +353,7 @@ class StoreState {
     batches: batches ?? this.batches,
     batchOrders: batchOrders ?? this.batchOrders,
     tables: tables ?? this.tables,
+    extras: extras ?? this.extras,
     orders: orders ?? this.orders,
     orderItems: orderItems ?? this.orderItems,
     nextFolio: nextFolio ?? this.nextFolio,
@@ -801,12 +809,16 @@ class StoreNotifier extends Notifier<StoreState> {
     return order;
   }
 
-  /// Suma un platillo a la comanda. Si ya hay uno igual sin mandar a cocina, sube la cantidad.
-  OrderItem addOrderItem(String orderId, Product product, {String? notes}) {
+  /// Suma un platillo a la comanda. Si ya hay uno igual (mismas notas y extras) sin mandar a cocina,
+  /// sube la cantidad.
+  OrderItem addOrderItem(String orderId, Product product, {String? notes, List<ItemExtra> extras = const []}) {
     final note = notes?.trim().isEmpty ?? true ? null : notes!.trim();
     final same = state
         .itemsOfOrder(orderId)
-        .where((i) => !i.sent && !i.cancelled && i.productId == product.id && i.notes == note)
+        .where(
+          (i) =>
+              !i.sent && !i.cancelled && i.productId == product.id && i.notes == note && _sameExtras(i.extras, extras),
+        )
         .firstOrNull;
     final item =
         same?.copyWith(qty: same.qty + 1) ??
@@ -817,11 +829,60 @@ class StoreNotifier extends Notifier<StoreState> {
           name: product.name,
           qty: 1,
           unitCents: product.priceCents,
+          extras: List.unmodifiable(extras),
           notes: note,
           createdAt: _now(),
         );
     _setItems([item]);
     return item;
+  }
+
+  static bool _sameExtras(List<ItemExtra> a, List<ItemExtra> b) =>
+      a.length == b.length && a.every(b.contains) && b.every(a.contains);
+
+  /// Indicaciones y extras de un platillo que aún no se manda a cocina.
+  void setItemDetails(String itemId, {required String notes, required List<ItemExtra> extras}) {
+    final item = state.orderItems.where((i) => i.id == itemId).firstOrNull;
+    if (item == null || item.sent) return;
+    _setItems([
+      OrderItem(
+        id: item.id,
+        orderId: item.orderId,
+        productId: item.productId,
+        name: item.name,
+        qty: item.qty,
+        unitCents: item.unitCents,
+        extras: List.unmodifiable(extras),
+        notes: notes.trim().isEmpty ? null : notes.trim(),
+        createdAt: item.createdAt,
+      ),
+    ]);
+  }
+
+  // ---------- Extras con precio ----------
+
+  /// Da de alta o cambia un extra. Devuelve el extra guardado.
+  Extra saveExtra({String? id, required String name, required int priceCents}) {
+    final existing = id == null ? null : state.extras.where((e) => e.id == id).firstOrNull;
+    final extra =
+        existing?.copyWith(name: name.trim(), priceCents: priceCents) ??
+        Extra(id: newId(), name: name.trim(), priceCents: priceCents, position: state.extras.length);
+    state = state.copyWith(
+      extras: existing == null
+          ? [...state.extras, extra]
+          : [for (final e in state.extras) e.id == extra.id ? extra : e],
+    );
+    _save((r) => r.upsertExtra(extra));
+    return extra;
+  }
+
+  /// Quita un extra de la lista (las comandas que ya lo traen no cambian).
+  void removeExtra(String id) {
+    final existing = state.extras.where((e) => e.id == id).firstOrNull;
+    if (existing == null) return;
+    final off = existing.copyWith(active: false);
+    state = state.copyWith(extras: [for (final e in state.extras) e.id == id ? off : e]);
+    _save((r) => r.upsertExtra(off));
   }
 
   /// Cambia la cantidad de un platillo que aún no se manda. En cero se cancela.
@@ -833,19 +894,8 @@ class StoreNotifier extends Notifier<StoreState> {
 
   void setItemNotes(String itemId, String notes) {
     final item = state.orderItems.where((i) => i.id == itemId).firstOrNull;
-    if (item == null || item.sent) return;
-    _setItems([
-      OrderItem(
-        id: item.id,
-        orderId: item.orderId,
-        productId: item.productId,
-        name: item.name,
-        qty: item.qty,
-        unitCents: item.unitCents,
-        notes: notes.trim().isEmpty ? null : notes.trim(),
-        createdAt: item.createdAt,
-      ),
-    ]);
+    if (item == null) return;
+    setItemDetails(itemId, notes: notes, extras: item.extras);
   }
 
   /// Manda a cocina lo que el mesero ya anotó. Devuelve cuántos platillos salieron.
@@ -924,8 +974,9 @@ class StoreNotifier extends Notifier<StoreState> {
           SaleLine(
             key: i.id,
             productId: i.productId,
-            name: i.name,
-            unitCents: i.unitCents,
+            // Con extras: "Tacos de pastor (extra queso)" y el precio de la pieza ya con ellos.
+            name: i.fullName,
+            unitCents: i.unitWithExtrasCents,
             qty: i.qty,
             // El costo se toma al cobrar (quien cobra sí lo tiene), para que la ganancia de la mesa cuente.
             unitCostCents: i.productId == null ? 0 : (state.productById(i.productId!)?.costCents ?? 0),

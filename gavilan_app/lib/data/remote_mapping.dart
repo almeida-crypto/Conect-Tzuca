@@ -1,3 +1,5 @@
+import 'dart:convert';
+
 import 'package:uuid/uuid.dart';
 
 import '../domain/models.dart';
@@ -428,6 +430,9 @@ RemoteRow orderItemToRemote(OrderItem i) => {
   'qty': i.qty,
   'unit_price': _pesos(i.unitCents),
   'notes': i.notes,
+  'extras': [
+    for (final e in i.extras) {'name': e.name, 'price': _pesos(e.cents)},
+  ],
   'status': _kitchenOut[i.status],
   'created_at': _iso(i.createdAt),
   'sent_at': i.sentAt == null ? null : _iso(i.sentAt!),
@@ -460,9 +465,46 @@ OrderItemRow orderItemFromRemote(RemoteRow r) => OrderItemRow(
   qty: _double(r['qty']),
   unitCents: _cents(r['unit_price']),
   notes: r['notes'] as String?,
+  extras: extrasToJson([
+    for (final e in (r['extras'] as List?) ?? const [])
+      if (e is Map) ItemExtra('${e['name'] ?? ''}', _cents(e['price'])),
+  ]),
   status: _kitchenIn[r['status']] ?? KitchenStatus.pendiente,
   createdAt: _date(r['created_at']),
   sentAt: _dateOrNull(r['sent_at']),
   readyAt: _dateOrNull(r['ready_at']),
   servedAt: _dateOrNull(r['served_at']),
 );
+
+RemoteRow extraToRemote(Extra e) => {
+  'id': e.id,
+  'name': e.name,
+  'price': _pesos(e.priceCents),
+  'is_active': e.active,
+  'position': e.position,
+};
+
+ExtraRow extraFromRemote(RemoteRow r) => ExtraRow(
+  id: r['id']! as String,
+  name: r['name']! as String,
+  priceCents: _cents(r['price']),
+  active: (r['is_active'] as bool?) ?? true,
+  position: (r['position'] as num?)?.toInt() ?? 0,
+);
+
+/// Extras de un platillo para guardarlos en la base local.
+String? extrasToJson(List<ItemExtra> extras) => extras.isEmpty
+    ? null
+    : jsonEncode([
+        for (final e in extras) {'name': e.name, 'cents': e.cents},
+      ]);
+
+List<ItemExtra> extrasFromJson(String? json) {
+  if (json == null || json.isEmpty) return const [];
+  final list = jsonDecode(json);
+  if (list is! List) return const [];
+  return [
+    for (final e in list)
+      if (e is Map) ItemExtra('${e['name'] ?? ''}', (e['cents'] as num?)?.toInt() ?? 0),
+  ];
+}

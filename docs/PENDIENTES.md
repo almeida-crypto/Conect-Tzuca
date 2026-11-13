@@ -65,7 +65,8 @@ Prioridad: **Alta** = sin esto no se puede usar con un negocio real · **Media**
 - [x] **Media** · Zonas de mesas (Planta baja, Segunda planta, Terraza): cada zona con su numeración, mesas agrupadas y nombre completo en cocina. *11/11/2026*
 - [x] **Baja** · Restaurante: pasar una cuenta a otra mesa libre y poner la mesa en el ticket. *12/11/2026*
 - [ ] **Baja** · Restaurante: dividir la cuenta e imprimir la comanda en cocina.
-- [ ] **Baja** · Platillos que no se venden en mostrador (que solo salgan en el restaurante) y modificadores con precio (extra queso).
+- [x] **Media** · Extras con precio (extra queso +\$10): el dueño los da de alta, el mesero los elige en cada platillo, salen en cocina y se cobran. *13/11/2026*
+- [ ] **Baja** · Platillos que no se venden en mostrador (que solo salgan en el restaurante).
 - [x] **Media** · Equipo y roles: el dueño invita cajeros y administradores con un código; el cajero no cambia el catálogo. *09/11/2026*
 - [ ] **Media** · Probar el equipo con dos cuentas reales: el dueño invita desde su celular y alguien se une desde otro.
 - [x] **Media** · Invitar meseros y cocina. *09/11/2026*

@@ -3,6 +3,311 @@
 part of 'database.dart';
 
 // ignore_for_file: type=lint
+class $ExtrasTableTable extends ExtrasTable with TableInfo<$ExtrasTableTable, ExtraRow> {
+  @override
+  final GeneratedDatabase attachedDatabase;
+  final String? _alias;
+  $ExtrasTableTable(this.attachedDatabase, [this._alias]);
+  static const VerificationMeta _idMeta = const VerificationMeta('id');
+  @override
+  late final GeneratedColumn<String> id = GeneratedColumn<String>(
+    'id',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _nameMeta = const VerificationMeta('name');
+  @override
+  late final GeneratedColumn<String> name = GeneratedColumn<String>(
+    'name',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _priceCentsMeta = const VerificationMeta('priceCents');
+  @override
+  late final GeneratedColumn<int> priceCents = GeneratedColumn<int>(
+    'price_cents',
+    aliasedName,
+    false,
+    type: DriftSqlType.int,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _activeMeta = const VerificationMeta('active');
+  @override
+  late final GeneratedColumn<bool> active = GeneratedColumn<bool>(
+    'active',
+    aliasedName,
+    false,
+    type: DriftSqlType.bool,
+    requiredDuringInsert: false,
+    defaultConstraints: GeneratedColumn.constraintIsAlways('CHECK ("active" IN (0, 1))'),
+    defaultValue: const Constant(true),
+  );
+  static const VerificationMeta _positionMeta = const VerificationMeta('position');
+  @override
+  late final GeneratedColumn<int> position = GeneratedColumn<int>(
+    'position',
+    aliasedName,
+    false,
+    type: DriftSqlType.int,
+    requiredDuringInsert: false,
+    defaultValue: const Constant(0),
+  );
+  @override
+  List<GeneratedColumn> get $columns => [id, name, priceCents, active, position];
+  @override
+  String get aliasedName => _alias ?? actualTableName;
+  @override
+  String get actualTableName => $name;
+  static const String $name = 'extras';
+  @override
+  VerificationContext validateIntegrity(Insertable<ExtraRow> instance, {bool isInserting = false}) {
+    final context = VerificationContext();
+    final data = instance.toColumns(true);
+    if (data.containsKey('id')) {
+      context.handle(_idMeta, id.isAcceptableOrUnknown(data['id']!, _idMeta));
+    } else if (isInserting) {
+      context.missing(_idMeta);
+    }
+    if (data.containsKey('name')) {
+      context.handle(_nameMeta, name.isAcceptableOrUnknown(data['name']!, _nameMeta));
+    } else if (isInserting) {
+      context.missing(_nameMeta);
+    }
+    if (data.containsKey('price_cents')) {
+      context.handle(_priceCentsMeta, priceCents.isAcceptableOrUnknown(data['price_cents']!, _priceCentsMeta));
+    } else if (isInserting) {
+      context.missing(_priceCentsMeta);
+    }
+    if (data.containsKey('active')) {
+      context.handle(_activeMeta, active.isAcceptableOrUnknown(data['active']!, _activeMeta));
+    }
+    if (data.containsKey('position')) {
+      context.handle(_positionMeta, position.isAcceptableOrUnknown(data['position']!, _positionMeta));
+    }
+    return context;
+  }
+
+  @override
+  Set<GeneratedColumn> get $primaryKey => {id};
+  @override
+  ExtraRow map(Map<String, dynamic> data, {String? tablePrefix}) {
+    final effectivePrefix = tablePrefix != null ? '$tablePrefix.' : '';
+    return ExtraRow(
+      id: attachedDatabase.typeMapping.read(DriftSqlType.string, data['${effectivePrefix}id'])!,
+      name: attachedDatabase.typeMapping.read(DriftSqlType.string, data['${effectivePrefix}name'])!,
+      priceCents: attachedDatabase.typeMapping.read(DriftSqlType.int, data['${effectivePrefix}price_cents'])!,
+      active: attachedDatabase.typeMapping.read(DriftSqlType.bool, data['${effectivePrefix}active'])!,
+      position: attachedDatabase.typeMapping.read(DriftSqlType.int, data['${effectivePrefix}position'])!,
+    );
+  }
+
+  @override
+  $ExtrasTableTable createAlias(String alias) {
+    return $ExtrasTableTable(attachedDatabase, alias);
+  }
+}
+
+class ExtraRow extends DataClass implements Insertable<ExtraRow> {
+  final String id;
+  final String name;
+  final int priceCents;
+  final bool active;
+  final int position;
+  const ExtraRow({
+    required this.id,
+    required this.name,
+    required this.priceCents,
+    required this.active,
+    required this.position,
+  });
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    map['id'] = Variable<String>(id);
+    map['name'] = Variable<String>(name);
+    map['price_cents'] = Variable<int>(priceCents);
+    map['active'] = Variable<bool>(active);
+    map['position'] = Variable<int>(position);
+    return map;
+  }
+
+  ExtrasTableCompanion toCompanion(bool nullToAbsent) {
+    return ExtrasTableCompanion(
+      id: Value(id),
+      name: Value(name),
+      priceCents: Value(priceCents),
+      active: Value(active),
+      position: Value(position),
+    );
+  }
+
+  factory ExtraRow.fromJson(Map<String, dynamic> json, {ValueSerializer? serializer}) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return ExtraRow(
+      id: serializer.fromJson<String>(json['id']),
+      name: serializer.fromJson<String>(json['name']),
+      priceCents: serializer.fromJson<int>(json['priceCents']),
+      active: serializer.fromJson<bool>(json['active']),
+      position: serializer.fromJson<int>(json['position']),
+    );
+  }
+  @override
+  Map<String, dynamic> toJson({ValueSerializer? serializer}) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return <String, dynamic>{
+      'id': serializer.toJson<String>(id),
+      'name': serializer.toJson<String>(name),
+      'priceCents': serializer.toJson<int>(priceCents),
+      'active': serializer.toJson<bool>(active),
+      'position': serializer.toJson<int>(position),
+    };
+  }
+
+  ExtraRow copyWith({String? id, String? name, int? priceCents, bool? active, int? position}) => ExtraRow(
+    id: id ?? this.id,
+    name: name ?? this.name,
+    priceCents: priceCents ?? this.priceCents,
+    active: active ?? this.active,
+    position: position ?? this.position,
+  );
+  ExtraRow copyWithCompanion(ExtrasTableCompanion data) {
+    return ExtraRow(
+      id: data.id.present ? data.id.value : this.id,
+      name: data.name.present ? data.name.value : this.name,
+      priceCents: data.priceCents.present ? data.priceCents.value : this.priceCents,
+      active: data.active.present ? data.active.value : this.active,
+      position: data.position.present ? data.position.value : this.position,
+    );
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('ExtraRow(')
+          ..write('id: $id, ')
+          ..write('name: $name, ')
+          ..write('priceCents: $priceCents, ')
+          ..write('active: $active, ')
+          ..write('position: $position')
+          ..write(')'))
+        .toString();
+  }
+
+  @override
+  int get hashCode => Object.hash(id, name, priceCents, active, position);
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      (other is ExtraRow &&
+          other.id == this.id &&
+          other.name == this.name &&
+          other.priceCents == this.priceCents &&
+          other.active == this.active &&
+          other.position == this.position);
+}
+
+class ExtrasTableCompanion extends UpdateCompanion<ExtraRow> {
+  final Value<String> id;
+  final Value<String> name;
+  final Value<int> priceCents;
+  final Value<bool> active;
+  final Value<int> position;
+  final Value<int> rowid;
+  const ExtrasTableCompanion({
+    this.id = const Value.absent(),
+    this.name = const Value.absent(),
+    this.priceCents = const Value.absent(),
+    this.active = const Value.absent(),
+    this.position = const Value.absent(),
+    this.rowid = const Value.absent(),
+  });
+  ExtrasTableCompanion.insert({
+    required String id,
+    required String name,
+    required int priceCents,
+    this.active = const Value.absent(),
+    this.position = const Value.absent(),
+    this.rowid = const Value.absent(),
+  }) : id = Value(id),
+       name = Value(name),
+       priceCents = Value(priceCents);
+  static Insertable<ExtraRow> custom({
+    Expression<String>? id,
+    Expression<String>? name,
+    Expression<int>? priceCents,
+    Expression<bool>? active,
+    Expression<int>? position,
+    Expression<int>? rowid,
+  }) {
+    return RawValuesInsertable({
+      if (id != null) 'id': id,
+      if (name != null) 'name': name,
+      if (priceCents != null) 'price_cents': priceCents,
+      if (active != null) 'active': active,
+      if (position != null) 'position': position,
+      if (rowid != null) 'rowid': rowid,
+    });
+  }
+
+  ExtrasTableCompanion copyWith({
+    Value<String>? id,
+    Value<String>? name,
+    Value<int>? priceCents,
+    Value<bool>? active,
+    Value<int>? position,
+    Value<int>? rowid,
+  }) {
+    return ExtrasTableCompanion(
+      id: id ?? this.id,
+      name: name ?? this.name,
+      priceCents: priceCents ?? this.priceCents,
+      active: active ?? this.active,
+      position: position ?? this.position,
+      rowid: rowid ?? this.rowid,
+    );
+  }
+
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    if (id.present) {
+      map['id'] = Variable<String>(id.value);
+    }
+    if (name.present) {
+      map['name'] = Variable<String>(name.value);
+    }
+    if (priceCents.present) {
+      map['price_cents'] = Variable<int>(priceCents.value);
+    }
+    if (active.present) {
+      map['active'] = Variable<bool>(active.value);
+    }
+    if (position.present) {
+      map['position'] = Variable<int>(position.value);
+    }
+    if (rowid.present) {
+      map['rowid'] = Variable<int>(rowid.value);
+    }
+    return map;
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('ExtrasTableCompanion(')
+          ..write('id: $id, ')
+          ..write('name: $name, ')
+          ..write('priceCents: $priceCents, ')
+          ..write('active: $active, ')
+          ..write('position: $position, ')
+          ..write('rowid: $rowid')
+          ..write(')'))
+        .toString();
+  }
+}
+
 class $OutboxTableTable extends OutboxTable with TableInfo<$OutboxTableTable, OutboxRow> {
   @override
   final GeneratedDatabase attachedDatabase;
@@ -1025,6 +1330,15 @@ class $OrderItemsTableTable extends OrderItemsTable with TableInfo<$OrderItemsTa
     type: DriftSqlType.string,
     requiredDuringInsert: false,
   );
+  static const VerificationMeta _extrasMeta = const VerificationMeta('extras');
+  @override
+  late final GeneratedColumn<String> extras = GeneratedColumn<String>(
+    'extras',
+    aliasedName,
+    true,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+  );
   @override
   late final GeneratedColumnWithTypeConverter<KitchenStatus, String> status = GeneratedColumn<String>(
     'status',
@@ -1078,6 +1392,7 @@ class $OrderItemsTableTable extends OrderItemsTable with TableInfo<$OrderItemsTa
     qty,
     unitCents,
     notes,
+    extras,
     status,
     createdAt,
     sentAt,
@@ -1124,6 +1439,9 @@ class $OrderItemsTableTable extends OrderItemsTable with TableInfo<$OrderItemsTa
     if (data.containsKey('notes')) {
       context.handle(_notesMeta, notes.isAcceptableOrUnknown(data['notes']!, _notesMeta));
     }
+    if (data.containsKey('extras')) {
+      context.handle(_extrasMeta, extras.isAcceptableOrUnknown(data['extras']!, _extrasMeta));
+    }
     if (data.containsKey('created_at')) {
       context.handle(_createdAtMeta, createdAt.isAcceptableOrUnknown(data['created_at']!, _createdAtMeta));
     } else if (isInserting) {
@@ -1154,6 +1472,7 @@ class $OrderItemsTableTable extends OrderItemsTable with TableInfo<$OrderItemsTa
       qty: attachedDatabase.typeMapping.read(DriftSqlType.double, data['${effectivePrefix}qty'])!,
       unitCents: attachedDatabase.typeMapping.read(DriftSqlType.int, data['${effectivePrefix}unit_cents'])!,
       notes: attachedDatabase.typeMapping.read(DriftSqlType.string, data['${effectivePrefix}notes']),
+      extras: attachedDatabase.typeMapping.read(DriftSqlType.string, data['${effectivePrefix}extras']),
       status: $OrderItemsTableTable.$converterstatus.fromSql(
         attachedDatabase.typeMapping.read(DriftSqlType.string, data['${effectivePrefix}status'])!,
       ),
@@ -1182,6 +1501,9 @@ class OrderItemRow extends DataClass implements Insertable<OrderItemRow> {
   final double qty;
   final int unitCents;
   final String? notes;
+
+  /// Extras del platillo en JSON: [{"name": "Extra queso", "cents": 1000}].
+  final String? extras;
   final KitchenStatus status;
   final DateTime createdAt;
   final DateTime? sentAt;
@@ -1195,6 +1517,7 @@ class OrderItemRow extends DataClass implements Insertable<OrderItemRow> {
     required this.qty,
     required this.unitCents,
     this.notes,
+    this.extras,
     required this.status,
     required this.createdAt,
     this.sentAt,
@@ -1214,6 +1537,9 @@ class OrderItemRow extends DataClass implements Insertable<OrderItemRow> {
     map['unit_cents'] = Variable<int>(unitCents);
     if (!nullToAbsent || notes != null) {
       map['notes'] = Variable<String>(notes);
+    }
+    if (!nullToAbsent || extras != null) {
+      map['extras'] = Variable<String>(extras);
     }
     {
       map['status'] = Variable<String>($OrderItemsTableTable.$converterstatus.toSql(status));
@@ -1240,6 +1566,7 @@ class OrderItemRow extends DataClass implements Insertable<OrderItemRow> {
       qty: Value(qty),
       unitCents: Value(unitCents),
       notes: notes == null && nullToAbsent ? const Value.absent() : Value(notes),
+      extras: extras == null && nullToAbsent ? const Value.absent() : Value(extras),
       status: Value(status),
       createdAt: Value(createdAt),
       sentAt: sentAt == null && nullToAbsent ? const Value.absent() : Value(sentAt),
@@ -1258,6 +1585,7 @@ class OrderItemRow extends DataClass implements Insertable<OrderItemRow> {
       qty: serializer.fromJson<double>(json['qty']),
       unitCents: serializer.fromJson<int>(json['unitCents']),
       notes: serializer.fromJson<String?>(json['notes']),
+      extras: serializer.fromJson<String?>(json['extras']),
       status: $OrderItemsTableTable.$converterstatus.fromJson(serializer.fromJson<String>(json['status'])),
       createdAt: serializer.fromJson<DateTime>(json['createdAt']),
       sentAt: serializer.fromJson<DateTime?>(json['sentAt']),
@@ -1276,6 +1604,7 @@ class OrderItemRow extends DataClass implements Insertable<OrderItemRow> {
       'qty': serializer.toJson<double>(qty),
       'unitCents': serializer.toJson<int>(unitCents),
       'notes': serializer.toJson<String?>(notes),
+      'extras': serializer.toJson<String?>(extras),
       'status': serializer.toJson<String>($OrderItemsTableTable.$converterstatus.toJson(status)),
       'createdAt': serializer.toJson<DateTime>(createdAt),
       'sentAt': serializer.toJson<DateTime?>(sentAt),
@@ -1292,6 +1621,7 @@ class OrderItemRow extends DataClass implements Insertable<OrderItemRow> {
     double? qty,
     int? unitCents,
     Value<String?> notes = const Value.absent(),
+    Value<String?> extras = const Value.absent(),
     KitchenStatus? status,
     DateTime? createdAt,
     Value<DateTime?> sentAt = const Value.absent(),
@@ -1305,6 +1635,7 @@ class OrderItemRow extends DataClass implements Insertable<OrderItemRow> {
     qty: qty ?? this.qty,
     unitCents: unitCents ?? this.unitCents,
     notes: notes.present ? notes.value : this.notes,
+    extras: extras.present ? extras.value : this.extras,
     status: status ?? this.status,
     createdAt: createdAt ?? this.createdAt,
     sentAt: sentAt.present ? sentAt.value : this.sentAt,
@@ -1320,6 +1651,7 @@ class OrderItemRow extends DataClass implements Insertable<OrderItemRow> {
       qty: data.qty.present ? data.qty.value : this.qty,
       unitCents: data.unitCents.present ? data.unitCents.value : this.unitCents,
       notes: data.notes.present ? data.notes.value : this.notes,
+      extras: data.extras.present ? data.extras.value : this.extras,
       status: data.status.present ? data.status.value : this.status,
       createdAt: data.createdAt.present ? data.createdAt.value : this.createdAt,
       sentAt: data.sentAt.present ? data.sentAt.value : this.sentAt,
@@ -1338,6 +1670,7 @@ class OrderItemRow extends DataClass implements Insertable<OrderItemRow> {
           ..write('qty: $qty, ')
           ..write('unitCents: $unitCents, ')
           ..write('notes: $notes, ')
+          ..write('extras: $extras, ')
           ..write('status: $status, ')
           ..write('createdAt: $createdAt, ')
           ..write('sentAt: $sentAt, ')
@@ -1348,8 +1681,21 @@ class OrderItemRow extends DataClass implements Insertable<OrderItemRow> {
   }
 
   @override
-  int get hashCode =>
-      Object.hash(id, orderId, productId, name, qty, unitCents, notes, status, createdAt, sentAt, readyAt, servedAt);
+  int get hashCode => Object.hash(
+    id,
+    orderId,
+    productId,
+    name,
+    qty,
+    unitCents,
+    notes,
+    extras,
+    status,
+    createdAt,
+    sentAt,
+    readyAt,
+    servedAt,
+  );
   @override
   bool operator ==(Object other) =>
       identical(this, other) ||
@@ -1361,6 +1707,7 @@ class OrderItemRow extends DataClass implements Insertable<OrderItemRow> {
           other.qty == this.qty &&
           other.unitCents == this.unitCents &&
           other.notes == this.notes &&
+          other.extras == this.extras &&
           other.status == this.status &&
           other.createdAt == this.createdAt &&
           other.sentAt == this.sentAt &&
@@ -1376,6 +1723,7 @@ class OrderItemsTableCompanion extends UpdateCompanion<OrderItemRow> {
   final Value<double> qty;
   final Value<int> unitCents;
   final Value<String?> notes;
+  final Value<String?> extras;
   final Value<KitchenStatus> status;
   final Value<DateTime> createdAt;
   final Value<DateTime?> sentAt;
@@ -1390,6 +1738,7 @@ class OrderItemsTableCompanion extends UpdateCompanion<OrderItemRow> {
     this.qty = const Value.absent(),
     this.unitCents = const Value.absent(),
     this.notes = const Value.absent(),
+    this.extras = const Value.absent(),
     this.status = const Value.absent(),
     this.createdAt = const Value.absent(),
     this.sentAt = const Value.absent(),
@@ -1405,6 +1754,7 @@ class OrderItemsTableCompanion extends UpdateCompanion<OrderItemRow> {
     required double qty,
     required int unitCents,
     this.notes = const Value.absent(),
+    this.extras = const Value.absent(),
     required KitchenStatus status,
     required DateTime createdAt,
     this.sentAt = const Value.absent(),
@@ -1426,6 +1776,7 @@ class OrderItemsTableCompanion extends UpdateCompanion<OrderItemRow> {
     Expression<double>? qty,
     Expression<int>? unitCents,
     Expression<String>? notes,
+    Expression<String>? extras,
     Expression<String>? status,
     Expression<DateTime>? createdAt,
     Expression<DateTime>? sentAt,
@@ -1441,6 +1792,7 @@ class OrderItemsTableCompanion extends UpdateCompanion<OrderItemRow> {
       if (qty != null) 'qty': qty,
       if (unitCents != null) 'unit_cents': unitCents,
       if (notes != null) 'notes': notes,
+      if (extras != null) 'extras': extras,
       if (status != null) 'status': status,
       if (createdAt != null) 'created_at': createdAt,
       if (sentAt != null) 'sent_at': sentAt,
@@ -1458,6 +1810,7 @@ class OrderItemsTableCompanion extends UpdateCompanion<OrderItemRow> {
     Value<double>? qty,
     Value<int>? unitCents,
     Value<String?>? notes,
+    Value<String?>? extras,
     Value<KitchenStatus>? status,
     Value<DateTime>? createdAt,
     Value<DateTime?>? sentAt,
@@ -1473,6 +1826,7 @@ class OrderItemsTableCompanion extends UpdateCompanion<OrderItemRow> {
       qty: qty ?? this.qty,
       unitCents: unitCents ?? this.unitCents,
       notes: notes ?? this.notes,
+      extras: extras ?? this.extras,
       status: status ?? this.status,
       createdAt: createdAt ?? this.createdAt,
       sentAt: sentAt ?? this.sentAt,
@@ -1506,6 +1860,9 @@ class OrderItemsTableCompanion extends UpdateCompanion<OrderItemRow> {
     if (notes.present) {
       map['notes'] = Variable<String>(notes.value);
     }
+    if (extras.present) {
+      map['extras'] = Variable<String>(extras.value);
+    }
     if (status.present) {
       map['status'] = Variable<String>($OrderItemsTableTable.$converterstatus.toSql(status.value));
     }
@@ -1537,6 +1894,7 @@ class OrderItemsTableCompanion extends UpdateCompanion<OrderItemRow> {
           ..write('qty: $qty, ')
           ..write('unitCents: $unitCents, ')
           ..write('notes: $notes, ')
+          ..write('extras: $extras, ')
           ..write('status: $status, ')
           ..write('createdAt: $createdAt, ')
           ..write('sentAt: $sentAt, ')
@@ -6846,6 +7204,7 @@ class MetaTableCompanion extends UpdateCompanion<MetaRow> {
 abstract class _$GavilanDb extends GeneratedDatabase {
   _$GavilanDb(QueryExecutor e) : super(e);
   $GavilanDbManager get managers => $GavilanDbManager(this);
+  late final $ExtrasTableTable extrasTable = $ExtrasTableTable(this);
   late final $OutboxTableTable outboxTable = $OutboxTableTable(this);
   late final $DiningTablesTableTable diningTablesTable = $DiningTablesTableTable(this);
   late final $OrdersTableTable ordersTable = $OrdersTableTable(this);
@@ -6868,6 +7227,7 @@ abstract class _$GavilanDb extends GeneratedDatabase {
   Iterable<TableInfo<Table, Object?>> get allTables => allSchemaEntities.whereType<TableInfo<Table, Object?>>();
   @override
   List<DatabaseSchemaEntity> get allSchemaEntities => [
+    extrasTable,
     outboxTable,
     diningTablesTable,
     ordersTable,
@@ -6891,6 +7251,169 @@ abstract class _$GavilanDb extends GeneratedDatabase {
   DriftDatabaseOptions get options => const DriftDatabaseOptions(storeDateTimeAsText: true);
 }
 
+typedef $$ExtrasTableTableCreateCompanionBuilder = ExtrasTableCompanion Function({
+  required String id,
+  required String name,
+  required int priceCents,
+  Value<bool> active,
+  Value<int> position,
+  Value<int> rowid,
+});
+typedef $$ExtrasTableTableUpdateCompanionBuilder = ExtrasTableCompanion Function({
+  Value<String> id,
+  Value<String> name,
+  Value<int> priceCents,
+  Value<bool> active,
+  Value<int> position,
+  Value<int> rowid,
+});
+
+class $$ExtrasTableTableFilterComposer extends Composer<_$GavilanDb, $ExtrasTableTable> {
+  $$ExtrasTableTableFilterComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnFilters<String> get id => $composableBuilder(column: $table.id, builder: (column) => ColumnFilters(column));
+
+  ColumnFilters<String> get name => $composableBuilder(column: $table.name, builder: (column) => ColumnFilters(column));
+
+  ColumnFilters<int> get priceCents =>
+      $composableBuilder(column: $table.priceCents, builder: (column) => ColumnFilters(column));
+
+  ColumnFilters<bool> get active =>
+      $composableBuilder(column: $table.active, builder: (column) => ColumnFilters(column));
+
+  ColumnFilters<int> get position =>
+      $composableBuilder(column: $table.position, builder: (column) => ColumnFilters(column));
+}
+
+class $$ExtrasTableTableOrderingComposer extends Composer<_$GavilanDb, $ExtrasTableTable> {
+  $$ExtrasTableTableOrderingComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnOrderings<String> get id => $composableBuilder(column: $table.id, builder: (column) => ColumnOrderings(column));
+
+  ColumnOrderings<String> get name =>
+      $composableBuilder(column: $table.name, builder: (column) => ColumnOrderings(column));
+
+  ColumnOrderings<int> get priceCents =>
+      $composableBuilder(column: $table.priceCents, builder: (column) => ColumnOrderings(column));
+
+  ColumnOrderings<bool> get active =>
+      $composableBuilder(column: $table.active, builder: (column) => ColumnOrderings(column));
+
+  ColumnOrderings<int> get position =>
+      $composableBuilder(column: $table.position, builder: (column) => ColumnOrderings(column));
+}
+
+class $$ExtrasTableTableAnnotationComposer extends Composer<_$GavilanDb, $ExtrasTableTable> {
+  $$ExtrasTableTableAnnotationComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  GeneratedColumn<String> get id => $composableBuilder(column: $table.id, builder: (column) => column);
+
+  GeneratedColumn<String> get name => $composableBuilder(column: $table.name, builder: (column) => column);
+
+  GeneratedColumn<int> get priceCents => $composableBuilder(column: $table.priceCents, builder: (column) => column);
+
+  GeneratedColumn<bool> get active => $composableBuilder(column: $table.active, builder: (column) => column);
+
+  GeneratedColumn<int> get position => $composableBuilder(column: $table.position, builder: (column) => column);
+}
+
+class $$ExtrasTableTableTableManager
+    extends
+        RootTableManager<
+          _$GavilanDb,
+          $ExtrasTableTable,
+          ExtraRow,
+          $$ExtrasTableTableFilterComposer,
+          $$ExtrasTableTableOrderingComposer,
+          $$ExtrasTableTableAnnotationComposer,
+          $$ExtrasTableTableCreateCompanionBuilder,
+          $$ExtrasTableTableUpdateCompanionBuilder,
+          (ExtraRow, BaseReferences<_$GavilanDb, $ExtrasTableTable, ExtraRow>),
+          ExtraRow,
+          PrefetchHooks Function()
+        > {
+  $$ExtrasTableTableTableManager(_$GavilanDb db, $ExtrasTableTable table)
+    : super(
+        TableManagerState(
+          db: db,
+          table: table,
+          createFilteringComposer: () => $$ExtrasTableTableFilterComposer($db: db, $table: table),
+          createOrderingComposer: () => $$ExtrasTableTableOrderingComposer($db: db, $table: table),
+          createComputedFieldComposer: () => $$ExtrasTableTableAnnotationComposer($db: db, $table: table),
+          updateCompanionCallback:
+              ({
+                Value<String> id = const Value.absent(),
+                Value<String> name = const Value.absent(),
+                Value<int> priceCents = const Value.absent(),
+                Value<bool> active = const Value.absent(),
+                Value<int> position = const Value.absent(),
+                Value<int> rowid = const Value.absent(),
+              }) => ExtrasTableCompanion(
+                id: id,
+                name: name,
+                priceCents: priceCents,
+                active: active,
+                position: position,
+                rowid: rowid,
+              ),
+          createCompanionCallback:
+              ({
+                required String id,
+                required String name,
+                required int priceCents,
+                Value<bool> active = const Value.absent(),
+                Value<int> position = const Value.absent(),
+                Value<int> rowid = const Value.absent(),
+              }) => ExtrasTableCompanion.insert(
+                id: id,
+                name: name,
+                priceCents: priceCents,
+                active: active,
+                position: position,
+                rowid: rowid,
+              ),
+          withReferenceMapper: (p0) => p0
+              .map(
+                (e) => (
+                  e.readTable<$ExtrasTableTable, ExtraRow>(table),
+                  BaseReferences<_$GavilanDb, $ExtrasTableTable, ExtraRow>(db, table, e),
+                ),
+              )
+              .toList(),
+          prefetchHooksCallback: null,
+        ),
+      );
+}
+
+typedef $$ExtrasTableTableProcessedTableManager =
+    ProcessedTableManager<
+      _$GavilanDb,
+      $ExtrasTableTable,
+      ExtraRow,
+      $$ExtrasTableTableFilterComposer,
+      $$ExtrasTableTableOrderingComposer,
+      $$ExtrasTableTableAnnotationComposer,
+      $$ExtrasTableTableCreateCompanionBuilder,
+      $$ExtrasTableTableUpdateCompanionBuilder,
+      (ExtraRow, BaseReferences<_$GavilanDb, $ExtrasTableTable, ExtraRow>),
+      ExtraRow,
+      PrefetchHooks Function()
+    >;
 typedef $$OutboxTableTableCreateCompanionBuilder = OutboxTableCompanion Function({
   Value<int> id,
   required String payload,
@@ -7398,6 +7921,7 @@ typedef $$OrderItemsTableTableCreateCompanionBuilder = OrderItemsTableCompanion 
   required double qty,
   required int unitCents,
   Value<String?> notes,
+  Value<String?> extras,
   required KitchenStatus status,
   required DateTime createdAt,
   Value<DateTime?> sentAt,
@@ -7413,6 +7937,7 @@ typedef $$OrderItemsTableTableUpdateCompanionBuilder = OrderItemsTableCompanion 
   Value<double> qty,
   Value<int> unitCents,
   Value<String?> notes,
+  Value<String?> extras,
   Value<KitchenStatus> status,
   Value<DateTime> createdAt,
   Value<DateTime?> sentAt,
@@ -7446,6 +7971,9 @@ class $$OrderItemsTableTableFilterComposer extends Composer<_$GavilanDb, $OrderI
 
   ColumnFilters<String> get notes =>
       $composableBuilder(column: $table.notes, builder: (column) => ColumnFilters(column));
+
+  ColumnFilters<String> get extras =>
+      $composableBuilder(column: $table.extras, builder: (column) => ColumnFilters(column));
 
   ColumnWithTypeConverterFilters<KitchenStatus, KitchenStatus, String> get status =>
       $composableBuilder(column: $table.status, builder: (column) => ColumnWithTypeConverterFilters(column));
@@ -7491,6 +8019,9 @@ class $$OrderItemsTableTableOrderingComposer extends Composer<_$GavilanDb, $Orde
   ColumnOrderings<String> get notes =>
       $composableBuilder(column: $table.notes, builder: (column) => ColumnOrderings(column));
 
+  ColumnOrderings<String> get extras =>
+      $composableBuilder(column: $table.extras, builder: (column) => ColumnOrderings(column));
+
   ColumnOrderings<String> get status =>
       $composableBuilder(column: $table.status, builder: (column) => ColumnOrderings(column));
 
@@ -7528,6 +8059,8 @@ class $$OrderItemsTableTableAnnotationComposer extends Composer<_$GavilanDb, $Or
   GeneratedColumn<int> get unitCents => $composableBuilder(column: $table.unitCents, builder: (column) => column);
 
   GeneratedColumn<String> get notes => $composableBuilder(column: $table.notes, builder: (column) => column);
+
+  GeneratedColumn<String> get extras => $composableBuilder(column: $table.extras, builder: (column) => column);
 
   GeneratedColumnWithTypeConverter<KitchenStatus, String> get status =>
       $composableBuilder(column: $table.status, builder: (column) => column);
@@ -7573,6 +8106,7 @@ class $$OrderItemsTableTableTableManager
                 Value<double> qty = const Value.absent(),
                 Value<int> unitCents = const Value.absent(),
                 Value<String?> notes = const Value.absent(),
+                Value<String?> extras = const Value.absent(),
                 Value<KitchenStatus> status = const Value.absent(),
                 Value<DateTime> createdAt = const Value.absent(),
                 Value<DateTime?> sentAt = const Value.absent(),
@@ -7587,6 +8121,7 @@ class $$OrderItemsTableTableTableManager
                 qty: qty,
                 unitCents: unitCents,
                 notes: notes,
+                extras: extras,
                 status: status,
                 createdAt: createdAt,
                 sentAt: sentAt,
@@ -7603,6 +8138,7 @@ class $$OrderItemsTableTableTableManager
                 required double qty,
                 required int unitCents,
                 Value<String?> notes = const Value.absent(),
+                Value<String?> extras = const Value.absent(),
                 required KitchenStatus status,
                 required DateTime createdAt,
                 Value<DateTime?> sentAt = const Value.absent(),
@@ -7617,6 +8153,7 @@ class $$OrderItemsTableTableTableManager
                 qty: qty,
                 unitCents: unitCents,
                 notes: notes,
+                extras: extras,
                 status: status,
                 createdAt: createdAt,
                 sentAt: sentAt,
@@ -10277,6 +10814,7 @@ typedef $$MetaTableTableProcessedTableManager =
 class $GavilanDbManager {
   final _$GavilanDb _db;
   $GavilanDbManager(this._db);
+  $$ExtrasTableTableTableManager get extrasTable => $$ExtrasTableTableTableManager(_db, _db.extrasTable);
   $$OutboxTableTableTableManager get outboxTable => $$OutboxTableTableTableManager(_db, _db.outboxTable);
   $$DiningTablesTableTableTableManager get diningTablesTable =>
       $$DiningTablesTableTableTableManager(_db, _db.diningTablesTable);
