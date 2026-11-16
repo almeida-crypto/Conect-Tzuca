@@ -10,6 +10,7 @@ import 'package:gavilan/domain/team.dart';
 /// - un movimiento de inventario nuevo suma a products.stock_qty (como el trigger).
 class FakeServer {
   final Map<String, Map<String, Map<String, Object?>>> tables = {};
+
   /// usuario -> {negocio -> puesto}. Una cuenta puede estar en varios negocios.
   final Map<String, Map<String, MemberRole>> membership = {};
   final Map<String, ({String business, MemberRole role, String name})> invites = {}; // código -> invitación

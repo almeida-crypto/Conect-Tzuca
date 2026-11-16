@@ -11,6 +11,8 @@ import '../account/account_screen.dart';
 import 'buttons.dart';
 import '../account/business_switcher.dart';
 import '../../state/profiles.dart';
+import '../../state/clerk_session.dart';
+import '../clerks/pin_pad.dart';
 
 /// Texto y color del estado de respaldo para la pastilla del encabezado.
 (String, Color) syncLabel(SyncStatus s) {
@@ -100,6 +102,7 @@ class BusinessHeader extends ConsumerWidget {
               ],
             ),
           ),
+          if (store.usesPins) ...[const _AttendingChip(), const SizedBox(width: 8)],
           Semantics(
             button: true,
             label: 'Respaldo: $label',
@@ -119,6 +122,76 @@ class BusinessHeader extends ConsumerWidget {
             ),
           ),
         ],
+      ),
+    );
+  }
+}
+
+/// Quién atiende ahora; al tocarlo se bloquea para que entre otra persona (en la computadora también con F4).
+class _AttendingChip extends ConsumerWidget {
+  const _AttendingChip();
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final clerk = ref.watch(activeClerkProvider);
+    final name = clerk?.name ?? 'Nadie';
+    final wide = MediaQuery.sizeOf(context).width >= 900;
+    return Semantics(
+      button: true,
+      label: 'Atiende $name. Cambiar de persona',
+      excludeSemantics: true,
+      child: Tooltip(
+        message: wide ? 'Cambiar de persona (F4)' : 'Cambiar de persona',
+        child: Pressable(
+          onTap: () => ref.read(clerkSessionProvider.notifier).lock(),
+          scale: 0.94,
+          child: Container(
+            constraints: BoxConstraints(maxWidth: wide ? 220 : 112),
+            padding: const EdgeInsets.fromLTRB(4, 4, 10, 4),
+            decoration: BoxDecoration(color: GColors.cenoteSuave, borderRadius: BorderRadius.circular(99)),
+            child: Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                if (clerk != null) ClerkAvatar(clerk: clerk, size: 30),
+                const SizedBox(width: 6),
+                Flexible(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Text(
+                        'Atiende',
+                        style: GText.sans(size: 10.5, weight: FontWeight.w600, color: GColors.cenote),
+                      ),
+                      Text(
+                        // En el celular, solo el primer nombre: que no apriete el nombre del negocio.
+                        wide ? name : name.split(' ').first,
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: GText.sans(size: 13.5, weight: FontWeight.w800, color: GColors.cenoteOscuro),
+                      ),
+                    ],
+                  ),
+                ),
+                if (wide) ...[
+                  const SizedBox(width: 8),
+                  Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 5, vertical: 1),
+                    decoration: BoxDecoration(
+                      color: GColors.superficie,
+                      borderRadius: BorderRadius.circular(5),
+                      border: Border.all(color: GColors.linea),
+                    ),
+                    child: Text(
+                      'F4',
+                      style: GText.sans(size: 10.5, weight: FontWeight.w800, color: GColors.tintaSuave),
+                    ),
+                  ),
+                ],
+              ],
+            ),
+          ),
+        ),
       ),
     );
   }

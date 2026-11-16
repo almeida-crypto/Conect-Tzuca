@@ -12,6 +12,7 @@ import '../domain/team.dart';
 import '../state/store.dart';
 import 'database.dart';
 import 'remote_mapping.dart';
+import '../domain/clerk.dart';
 
 /// Lo que se recupera al abrir la app.
 class LoadedData {
@@ -51,6 +52,9 @@ abstract class StoreRepository {
   Future<void> upsertSession(CashSession session);
   Future<void> insertMovement(CashMovement movement);
   Future<void> setPlan(Plan plan);
+
+  /// Personas del mostrador y minutos para bloquear. Solo en este aparato: nunca suben a la nube.
+  Future<void> setClerks(List<Clerk> clerks, int? lockMinutes);
 
   /// Tipo de negocio y módulos prendidos; sube a Supabase si el teléfono está enlazado.
   Future<void> setBusinessSetup(BusinessType type, Set<Module> modules);
@@ -136,6 +140,8 @@ class MemoryRepository implements StoreRepository {
   @override
   Future<void> setBusinessSetup(BusinessType type, Set<Module> modules) async {}
   @override
+  Future<void> setClerks(List<Clerk> clerks, int? lockMinutes) async {}
+  @override
   Future<void> upsertLot(Lot lot) async {}
   @override
   Future<void> insertLotSale(LotSale sale) async {}
@@ -161,6 +167,8 @@ class MemoryRepository implements StoreRepository {
 
 const _kBusiness = 'business_name';
 const _kType = 'business_type';
+const _kClerks = 'clerks';
+const _kClerkLock = 'clerk_lock';
 const _kModules = 'modules';
 const _kBusinessId = 'business_id';
 const _kDemo = 'is_demo';
@@ -262,6 +270,8 @@ class DriftRepository implements StoreRepository, SyncStore {
       isDemo: meta[_kDemo] == '1',
       businessName: name,
       businessType: BusinessType.fromName(meta[_kType]),
+      clerks: clerksFromJson(meta[_kClerks]),
+      lockMinutes: int.tryParse(meta[_kClerkLock] ?? ''),
       modules: modulesFromText(meta[_kModules]),
       nextFolio: int.tryParse(meta[_kFolio] ?? '') ?? 1,
       products: [for (final p in await db.select(db.productsTable).get()) _product(p)],
@@ -285,6 +295,7 @@ class DriftRepository implements StoreRepository, SyncStore {
             cancelledAt: s.cancelledAt,
             cancelReason: s.cancelReason,
             discountCents: s.discountCents,
+            clerk: s.clerkName,
           ),
       ],
       credit: [
@@ -298,6 +309,7 @@ class DriftRepository implements StoreRepository, SyncStore {
             saleId: e.saleId,
             method: e.method,
             sessionId: e.sessionId,
+            clerk: e.clerkName,
           ),
       ],
       sessions: [
@@ -313,6 +325,7 @@ class DriftRepository implements StoreRepository, SyncStore {
             amountCents: m.amountCents,
             concept: m.concept,
             createdAt: m.createdAt,
+            clerk: m.clerkName,
           ),
       ],
     );
@@ -525,6 +538,7 @@ class DriftRepository implements StoreRepository, SyncStore {
     saleId: e.saleId,
     method: e.method,
     sessionId: e.sessionId,
+    clerkName: e.clerk,
   );
 
   static SessionRow _sessionRow(CashSession s) => SessionRow(
@@ -543,6 +557,7 @@ class DriftRepository implements StoreRepository, SyncStore {
     amountCents: m.amountCents,
     concept: m.concept,
     createdAt: m.createdAt,
+    clerkName: m.clerk,
   );
 
   Future<void> _insertSale(Sale s) async {
@@ -563,6 +578,7 @@ class DriftRepository implements StoreRepository, SyncStore {
             cancelledAt: s.cancelledAt,
             cancelReason: s.cancelReason,
             discountCents: s.discountCents,
+            clerkName: s.clerk,
           ),
         );
     for (var i = 0; i < s.lines.length; i++) {
@@ -631,6 +647,7 @@ class DriftRepository implements StoreRepository, SyncStore {
     await _setMeta(_kBusiness, state.businessName);
     if (state.businessType != null) await _setMeta(_kType, state.businessType!.name);
     if (state.modules != null) await _setMeta(_kModules, modulesToText(state.modules!));
+    if (state.clerks.isNotEmpty) await setClerks(state.clerks, state.lockMinutes);
     await _setMeta(_kDemo, state.isDemo ? '1' : '0');
     await _setMeta(_kFolio, '${state.nextFolio}');
     await _setMeta(_kPlan, plan.name);
@@ -766,6 +783,12 @@ class DriftRepository implements StoreRepository, SyncStore {
       (table: 'cash_movements', rows: [movementToRemote(movement)]),
     ]);
   });
+
+  @override
+  Future<void> setClerks(List<Clerk> clerks, int? lockMinutes) async {
+    await _setMeta(_kClerks, clerksToJson(clerks));
+    await _setMeta(_kClerkLock, lockMinutes?.toString() ?? '');
+  }
 
   @override
   Future<void> setBusinessSetup(BusinessType type, Set<Module> modules) => db.transaction(() async {

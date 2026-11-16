@@ -109,7 +109,11 @@ class Sale {
     this.cancelledAt,
     this.cancelReason,
     this.discountCents = 0,
+    this.clerk,
   });
+
+  /// Quién atendió (cambio de cajero con PIN). null si no se usan PIN.
+  final String? clerk;
 
   final String id;
   final int folio;
@@ -152,6 +156,7 @@ class Sale {
     cancelledAt: at,
     cancelReason: reason,
     discountCents: discountCents,
+    clerk: clerk,
   );
 
   /// "K7-0043": cada teléfono lleva su propia numeración.
@@ -186,8 +191,10 @@ class CreditEntry {
     this.saleId,
     this.method,
     this.sessionId,
+    this.clerk,
   });
 
+  final String? clerk;
   final String id;
   final String customerId;
   final CreditType type;
@@ -198,7 +205,9 @@ class CreditEntry {
   final String? sessionId;
 }
 
-enum CashKind { entrada, gasto }
+/// entrada y gasto mueven el dinero del cajón. arqueo es "Entregar caja": se contó al cambiar de persona
+/// (amountCents = lo contado) y no cambia lo que debe haber.
+enum CashKind { entrada, gasto, arqueo }
 
 class CashMovement {
   const CashMovement({
@@ -208,8 +217,10 @@ class CashMovement {
     required this.amountCents,
     required this.concept,
     required this.createdAt,
+    this.clerk,
   });
 
+  final String? clerk;
   final String id;
   final String sessionId;
   final CashKind kind;

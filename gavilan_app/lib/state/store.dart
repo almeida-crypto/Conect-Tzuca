@@ -15,6 +15,8 @@ import '../domain/restaurant.dart';
 import 'app_state.dart';
 import 'seed.dart';
 import 'sync.dart';
+import '../domain/clerk.dart';
+import 'clerk_session.dart';
 
 const _uuid = Uuid();
 String newId() => _uuid.v4();
@@ -30,6 +32,8 @@ String newDeviceCode() {
 /// (Drift) a través de [StoreRepository]; al abrir la app se vuelve a cargar.
 class StoreState {
   const StoreState({
+    this.clerks = const [],
+    this.lockMinutes,
     this.businessType,
     this.modules,
     required this.businessName,
@@ -73,6 +77,14 @@ class StoreState {
   final List<Tanda> batches;
   final List<BatchOrder> batchOrders;
   final List<DiningTable> tables;
+
+  /// Personas del mostrador con su PIN (solo en este aparato). Vacío = no se usan PIN.
+  final List<Clerk> clerks;
+
+  /// Minutos sin usar para bloquear y pedir el PIN otra vez (null = nunca).
+  final int? lockMinutes;
+
+  bool get usesPins => clerks.isNotEmpty;
 
   /// Tipo de negocio que eligió el dueño (null en negocios de antes: ven todo).
   final BusinessType? businessType;
@@ -268,6 +280,23 @@ class StoreState {
   List<Sale> salesOf(CashSession session) =>
       sales.where((s) => s.sessionId == session.id).toList()..sort((a, b) => b.createdAt.compareTo(a.createdAt));
 
+  /// Lo vendido en el turno por cada persona que atendió (sin las canceladas), de más a menos.
+  /// Vacío si nadie tiene nombre (no se usan PIN).
+  List<({String name, int count, int cents})> salesByClerk(CashSession session) {
+    final totals = <String, (int, int)>{};
+    var named = false;
+    for (final s in sales) {
+      if (s.sessionId != session.id || s.cancelled) continue;
+      if (s.clerk != null) named = true;
+      final key = s.clerk ?? 'Sin nombre';
+      final (count, cents) = totals[key] ?? (0, 0);
+      totals[key] = (count + 1, cents + s.totalCents);
+    }
+    if (!named) return const [];
+    return [for (final e in totals.entries) (name: e.key, count: e.value.$1, cents: e.value.$2)]
+      ..sort((a, b) => b.cents.compareTo(a.cents));
+  }
+
   CashSummary summaryFor(CashSession session) {
     // Una venta cancelada no cuenta: su dinero se le regresó al cliente (o se le quitó la deuda).
     final sessionSales = sales.where((s) => s.sessionId == session.id && !s.cancelled);
@@ -292,10 +321,13 @@ class StoreState {
     }
     var entradas = 0, gastos = 0;
     for (final m in movements.where((m) => m.sessionId == session.id)) {
-      if (m.kind == CashKind.entrada) {
-        entradas += m.amountCents;
-      } else {
-        gastos += m.amountCents;
+      switch (m.kind) {
+        case CashKind.entrada:
+          entradas += m.amountCents;
+        case CashKind.gasto:
+          gastos += m.amountCents;
+        case CashKind.arqueo:
+          break; // "Entregar caja" solo cuenta; no mete ni saca dinero
       }
     }
     var lotCash = 0;
@@ -327,6 +359,9 @@ class StoreState {
   }
 
   StoreState copyWith({
+    List<Clerk>? clerks,
+    int? lockMinutes,
+    bool clearLock = false,
     BusinessType? businessType,
     Set<Module>? modules,
     String? businessId,
@@ -350,6 +385,8 @@ class StoreState {
     List<OrderItem>? orderItems,
     int? nextFolio,
   }) => StoreState(
+    clerks: clerks ?? this.clerks,
+    lockMinutes: clearLock ? null : (lockMinutes ?? this.lockMinutes),
     businessType: businessType ?? this.businessType,
     modules: modules ?? this.modules,
     businessId: businessId ?? this.businessId,
@@ -460,6 +497,50 @@ class StoreNotifier extends Notifier<StoreState> {
     _save((r) => r.setBusinessSetup(t, modules));
   }
 
+  // ---------- Personas del mostrador (cambio de cajero con PIN) ----------
+
+  /// Agrega o cambia a una persona (por su id).
+  void saveClerk(Clerk clerk) {
+    final exists = state.clerks.any((c) => c.id == clerk.id);
+    state = state.copyWith(
+      clerks: exists ? [for (final c in state.clerks) c.id == clerk.id ? clerk : c] : [...state.clerks, clerk],
+    );
+    _saveClerks();
+  }
+
+  void removeClerk(String id) {
+    state = state.copyWith(
+      clerks: [
+        for (final c in state.clerks)
+          if (c.id != id) c,
+      ],
+    );
+    _saveClerks();
+  }
+
+  void setLockMinutes(int? minutes) {
+    state = state.copyWith(lockMinutes: minutes, clearLock: minutes == null);
+    _saveClerks();
+  }
+
+  /// Deja de pedir PIN en este aparato.
+  void disablePins() {
+    state = state.copyWith(clerks: const [], clearLock: true);
+    _saveClerks();
+  }
+
+  void _saveClerks() {
+    final clerks = state.clerks;
+    final lock = state.lockMinutes;
+    _save((r) => r.setClerks(clerks, lock));
+  }
+
+  /// Nombre de quien atiende ahora (para las ventas, gastos y abonos). null si no se usan PIN.
+  String? get _clerkName {
+    final id = ref.read(clerkSessionProvider).activeId;
+    return id == null ? null : state.clerks.where((c) => c.id == id).firstOrNull?.name;
+  }
+
   /// Prende o apaga un módulo.
   void toggleModule(Module m, bool on) {
     final current = {...(state.modules ?? Module.values.toSet())};
@@ -526,6 +607,7 @@ class StoreNotifier extends Notifier<StoreState> {
       device: ref.read(repositoryProvider).deviceCode,
       orderId: orderId,
       discountCents: discountCents.clamp(0, subtotal),
+      clerk: _clerkName,
     );
     final sold = <String, double>{};
     for (final l in lines) {
@@ -657,6 +739,7 @@ class StoreNotifier extends Notifier<StoreState> {
       createdAt: _clock(),
       method: method,
       sessionId: state.openSession?.id,
+      clerk: _clerkName,
     );
     state = state.copyWith(credit: [...state.credit, entry]);
     _save((r) => r.insertCredit(entry));
@@ -681,9 +764,30 @@ class StoreNotifier extends Notifier<StoreState> {
       amountCents: amountCents,
       concept: concept.trim(),
       createdAt: _clock(),
+      clerk: _clerkName,
     );
     state = state.copyWith(movements: [...state.movements, movement]);
     _save((r) => r.insertMovement(movement));
+  }
+
+  /// "Entregar caja": quien se va cuenta el cajón y se anota cuánto había y cuánto debía haber.
+  /// No mueve el dinero de la caja. Devuelve la diferencia (positiva si sobra).
+  int? handOverCash(int countedCents, {required String to}) {
+    final session = state.openSession;
+    if (session == null) return null;
+    final expected = state.summaryFor(session).expectedCashCents;
+    final diff = countedCents - expected;
+    addMovement(
+      CashKind.arqueo,
+      countedCents,
+      // Corto: el monto contado va a la derecha y quién lo entregó, abajo.
+      'Entregó la caja a $to · ${diff == 0
+          ? 'cuadró'
+          : diff > 0
+          ? 'sobraron ${money(diff)}'
+          : 'faltaron ${money(-diff)}'}',
+    );
+    return diff;
   }
 
   CashSession? closeCash(int countedCents) {

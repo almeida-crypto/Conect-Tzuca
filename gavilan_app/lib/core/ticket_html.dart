@@ -58,7 +58,7 @@ String ticketHtml({
 </style></head>
 <body><div class="t">
 <h1>${_esc(business)}</h1>
-<div class="sub">Folio ${_esc(sale.folioLabel)} · ${_esc(dateTimeLabel(sale.createdAt))}${place == null ? '' : '<br>${_esc(place)}'}</div>
+<div class="sub">Folio ${_esc(sale.folioLabel)} · ${_esc(dateTimeLabel(sale.createdAt))}${place == null ? '' : '<br>${_esc(place)}'}${sale.clerk == null ? '' : '<br>Te atendió: ${_esc(sale.clerk!)}'}</div>
 <table>
 $rows</table>
 <div class="sello">${sale.cancelled ? 'CANCELADA' : (paid ? 'PAGADO' : 'FIADO')}</div>

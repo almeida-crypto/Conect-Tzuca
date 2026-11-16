@@ -121,7 +121,9 @@ class _SaleRow extends StatelessWidget {
                   ),
                   const SizedBox(height: 2),
                   Text(
-                    muted ? 'Cancelada · ${s.cancelReason ?? ''}' : '${s.folioLabel} · $how',
+                    muted
+                        ? 'Cancelada · ${s.cancelReason ?? ''}'
+                        : '${s.folioLabel} · $how${s.clerk == null ? '' : ' · ${s.clerk}'}',
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,
                     style: GText.sans(

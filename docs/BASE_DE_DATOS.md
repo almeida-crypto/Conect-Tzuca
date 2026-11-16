@@ -13,6 +13,7 @@ Proyecto de Supabase **proyecto-Gavilan** (`jveklinfbptnxmtavnez`, región us-ea
 | [0005_team.sql](../pos-backend/supabase/migrations/0005_team.sql) | `pos_team` | Invitaciones con código (`business_invites`), funciones del equipo y sin altas ni cambios directos en `business_members` |
 | [0006_restaurant_sync.sql](../pos-backend/supabase/migrations/0006_restaurant_sync.sql) | `pos_restaurant_sync` | `synced_at` en mesas, comandas y platillos; orden de las mesas, nombre de la comanda para llevar, hora de cierre y hora en que se sirvió |
 | [0007_table_zones.sql](../pos-backend/supabase/migrations/0007_table_zones.sql) | `pos_table_zones` | Zona de cada mesa (`restaurant_tables.zone`) |
+| [0014_clerks.sql](../pos-backend/supabase/migrations/0014_clerks.sql) | `0014_clerks` | Cambio de cajero con PIN: `clerk_name` (quién atendió, hasta 50 letras) en `sales`, `cash_movements` y `credit_entries`; `cash_movements.kind` acepta `count` ("Entregar caja", monto = lo contado, puede ser 0). Los PIN no se guardan en la nube |
 | [0013_multi_business.sql](../pos-backend/supabase/migrations/0013_multi_business.sql) | `0013_multi_business` | `accept_invite` ya no rechaza a quien pertenece a otro negocio: una cuenta puede estar en varios, con un puesto en cada uno |
 | [0012_extras.sql](../pos-backend/supabase/migrations/0012_extras.sql) | `0012_extras` | Tabla `extras` (nombre y precio, la ven todos, la cambian dueño y admin) y `order_items.extras` (jsonb con los extras de cada platillo). La cocina tampoco puede cambiar los extras |
 | [0011_sane_numbers.sql](../pos-backend/supabase/migrations/0011_sane_numbers.sql) | `0011_sane_numbers` | Rechaza números irreales: precio y costo de 0 a 999,999.99; mínimo de 0 a 99,999; existencia entre -999,999 y 999,999; nombre de 1 a 120 letras; gastos y fondo de caja hasta 999,999.99 |
@@ -30,7 +31,7 @@ Toda migración nueva va en `pos-backend/supabase/migrations/` con número conse
 | Catálogo | `categories`, `products`, `inventory_movements` |
 | Clientes y fiados | `customers`, `credit_entries` (+ vista `customer_balances`) |
 | Ventas | `sales`, `sale_items`, `sale_payments` |
-| Caja | `cash_sessions` (corte), `cash_movements` (gastos y entradas) |
+| Caja | `cash_sessions` (corte), `cash_movements` (gastos, entradas y conteos al entregar caja) |
 | Restaurante | `restaurant_tables`, `orders`, `order_items` |
 | Apartados | `layaways`, `layaway_payments` |
 | Pacas y lotes | `lots`, `lot_sales` |

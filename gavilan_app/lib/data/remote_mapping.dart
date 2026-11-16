@@ -88,15 +88,21 @@ RemoteRow creditToRemote(CreditEntry e) => {
   'method': _methodOut[e.method],
   'cash_session_id': e.sessionId,
   'created_at': _iso(e.createdAt),
+  'clerk_name': e.clerk,
 };
 
 RemoteRow movementToRemote(CashMovement m) => {
   'id': m.id,
   'cash_session_id': m.sessionId,
-  'kind': m.kind == CashKind.entrada ? 'in' : 'out',
+  'kind': switch (m.kind) {
+    CashKind.entrada => 'in',
+    CashKind.gasto => 'out',
+    CashKind.arqueo => 'count',
+  },
   'amount': _pesos(m.amountCents),
   'concept': m.concept,
   'created_at': _iso(m.createdAt),
+  'clerk_name': m.clerk,
 };
 
 RemoteRow stockToRemote({
@@ -126,6 +132,7 @@ List<RemoteChange> saleToRemote(Sale s, {Set<String> stockTracked = const {}}) {
     'order_id': s.orderId,
     'status': s.cancelled ? 'cancelled' : (s.kind == SaleKind.fiada ? 'credit' : 'paid'),
     'notes': s.cancelReason,
+    'clerk_name': s.clerk,
     'subtotal': _pesos(s.subtotalCents),
     'discount': _pesos(s.discountCents),
     'total': _pesos(s.totalCents),
@@ -213,6 +220,7 @@ SaleRow saleFromRemote(RemoteRow r) => SaleRow(
   cancelledAt: r['status'] == 'cancelled' ? _date(r['updated_at'] ?? r['created_at']) : null,
   cancelReason: r['status'] == 'cancelled' ? r['notes'] as String? : null,
   discountCents: _cents(r['discount']),
+  clerkName: r['clerk_name'] as String?,
   sessionId: r['cash_session_id'] as String?,
   method: _method(r['pay_method']),
   receivedCents: _centsOrNull(r['received_amount']),
@@ -245,15 +253,21 @@ CreditRow creditFromRemote(RemoteRow r) => CreditRow(
   saleId: r['sale_id'] as String?,
   method: _method(r['method']),
   sessionId: r['cash_session_id'] as String?,
+  clerkName: r['clerk_name'] as String?,
 );
 
 MovementRow movementFromRemote(RemoteRow r) => MovementRow(
   id: r['id']! as String,
   sessionId: r['cash_session_id']! as String,
-  kind: r['kind'] == 'in' ? CashKind.entrada : CashKind.gasto,
+  kind: switch (r['kind']) {
+    'in' => CashKind.entrada,
+    'count' => CashKind.arqueo,
+    _ => CashKind.gasto,
+  },
   amountCents: _cents(r['amount']),
   concept: r['concept']! as String,
   createdAt: _date(r['created_at']),
+  clerkName: r['clerk_name'] as String?,
 );
 
 // ---------- Pacas y lotes, apartados y tandas ----------

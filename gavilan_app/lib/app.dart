@@ -10,6 +10,7 @@ import 'theme/colors.dart';
 import 'theme/theme.dart';
 import 'ui/account/auth_link_listener.dart';
 import 'ui/account/business_switcher.dart';
+import 'ui/clerks/clerk_gate.dart';
 import 'ui/onboarding/welcome_screen.dart';
 import 'ui/shell/home_shell.dart';
 import 'ui/splash/splash_screen.dart';
@@ -82,7 +83,7 @@ class _Root extends ConsumerWidget {
     return AnimatedSwitcher(
       duration: const Duration(milliseconds: 350),
       child: hasBusiness
-          ? const HomeShell(key: ValueKey('home'))
+          ? const ClerkGate(key: ValueKey('home'), child: HomeShell())
           : pending != null
           ? _Downloading(key: const ValueKey('bajando'), id: pending.id, name: pending.name)
           : const WelcomeScreen(key: ValueKey('welcome')),

@@ -18,6 +18,7 @@ String ticketText({
     ..writeln('*$business*')
     ..writeln('Folio ${sale.folioLabel} · ${dateTimeLabel(sale.createdAt)}');
   if (place != null) b.writeln(place);
+  if (sale.clerk != null) b.writeln('Te atendió: ${sale.clerk}');
   b.writeln('');
   for (final l in sale.lines) {
     b.writeln('${qtyLabel(l.qty)} x ${l.name}  ${money(l.totalCents)}');

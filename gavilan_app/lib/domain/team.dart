@@ -1,6 +1,8 @@
 /// Equipo del negocio: roles, miembros e invitaciones.
 library;
 
+import 'clerk.dart';
+
 enum MemberRole {
   owner('Dueño'),
   admin('Administrador'),
@@ -17,34 +19,46 @@ enum MemberRole {
 
 /// Qué puede hacer quien usa este teléfono. Sin cuenta, el teléfono es del dueño.
 class Permissions {
-  const Permissions(this.role);
+  const Permissions(this.role, {this.clerk});
 
   final MemberRole? role;
 
+  /// Quien atiende en un aparato compartido (cambio de cajero con PIN). null si no se usan PIN.
+  final ClerkRole? clerk;
+
   bool get _boss => role == null || role == MemberRole.owner || role == MemberRole.admin;
 
-  /// Dar de alta, editar y quitar productos (en la nube solo dueño y administrador).
-  bool get editCatalog => _boss;
+  /// La persona del mostrador puede lo de un encargado (o es el dueño).
+  bool get _clerkManager => clerk == null || clerk != ClerkRole.cajero;
 
-  bool get manageTeam => role == MemberRole.owner || role == MemberRole.admin;
+  /// La persona del mostrador es el dueño (o no se usan PIN).
+  bool get _clerkOwner => clerk == null || clerk == ClerkRole.dueno;
+
+  /// Dar de alta, editar y quitar productos (en la nube solo dueño y administrador).
+  bool get editCatalog => _boss && _clerkManager;
+
+  bool get manageTeam => (role == MemberRole.owner || role == MemberRole.admin) && _clerkOwner;
 
   /// Solo el dueño invita administradores.
-  bool get inviteAdmins => role == MemberRole.owner;
+  bool get inviteAdmins => role == MemberRole.owner && _clerkOwner;
 
   /// Borrar todo lo del teléfono.
-  bool get resetPhone => _boss;
+  bool get resetPhone => _boss && _clerkOwner;
+
+  /// Dar de alta a las personas del mostrador y sus PIN.
+  bool get manageClerks => _boss && _clerkOwner;
 
   /// Agregar, renombrar o quitar mesas.
-  bool get manageTables => _boss;
+  bool get manageTables => _boss && _clerkManager;
 
   /// Cobrar ventas y cuentas de mesa (en la nube, meseros y cocina no registran ventas).
   bool get charge => _boss || role == MemberRole.cashier;
 
   /// Cancelar ventas: regresa dinero y mercancía, así que lo decide el dueño o un administrador.
-  bool get cancelSales => _boss;
+  bool get cancelSales => _boss && _clerkManager;
 
   /// Ver costos y ganancia (en el corte): es información del dueño.
-  bool get seeProfit => _boss;
+  bool get seeProfit => _boss && _clerkManager;
 
   /// Meseros y cocina solo usan el restaurante: la app abre directo en mesas o cocina.
   bool get restaurantOnly => role == MemberRole.waiter || role == MemberRole.kitchen;

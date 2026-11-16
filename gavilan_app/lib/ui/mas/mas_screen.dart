@@ -9,6 +9,7 @@ import '../../state/sync.dart';
 import '../../theme/colors.dart';
 import '../../theme/theme.dart';
 import '../account/account_screen.dart';
+import '../clerks/clerks_screen.dart';
 import '../fiados/fiados_screen.dart';
 import '../modules/layaways_screen.dart';
 import '../onboarding/business_type_screen.dart';
@@ -257,6 +258,35 @@ class MasScreen extends ConsumerWidget {
             );
           },
         ),
+        if (can.manageClerks && !can.restaurantOnly) ...[
+          const SectionTitle('Caja compartida'),
+          GCard(
+            margin: const EdgeInsets.symmetric(horizontal: 16),
+            padding: const EdgeInsets.fromLTRB(14, 12, 10, 12),
+            onTap: () => Navigator.of(context).push(MaterialPageRoute<void>(builder: (_) => const ClerksScreen())),
+            child: Row(
+              children: [
+                const _IconTile(icon: Icons.pin_outlined, color: GColors.cenote),
+                const SizedBox(width: 14),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text('Personas del mostrador', style: GText.sans(size: 15, weight: FontWeight.w700)),
+                      Text(
+                        store.usesPins
+                            ? '${store.clerks.length} con PIN · cada venta a nombre de quien atiende'
+                            : 'Cambiar de cajero con PIN en el mismo aparato',
+                        style: GText.muted(size: 12.5),
+                      ),
+                    ],
+                  ),
+                ),
+                const Icon(Icons.chevron_right_rounded, color: GColors.tintaTenue),
+              ],
+            ),
+          ),
+        ],
         if (can.editCatalog) ...[const SectionTitle('Lo que uso'), const _ModulesCard()],
         const SectionTitle('Respaldo en la nube'),
         Builder(

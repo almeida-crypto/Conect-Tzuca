@@ -5,7 +5,9 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../core/money.dart';
 import '../../domain/models.dart';
+import '../../state/clerk_session.dart';
 import '../../state/store.dart';
+import '../../theme/colors.dart';
 import '../../theme/theme.dart';
 import '../widgets/buttons.dart';
 import '../widgets/common.dart';
@@ -141,6 +143,145 @@ class _MovementSheetState extends ConsumerState<_MovementSheet> {
           kind: _isGasto ? GButtonKind.primary : GButtonKind.money,
           expand: true,
           onPressed: _save,
+        ),
+      ],
+    );
+  }
+}
+
+/// "Entregar caja": quien se va cuenta el cajón y se lo pasa a otra persona, que luego pone su PIN.
+/// Queda anotado cuánto había y cuánto debía haber; no cierra el turno.
+Future<void> showHandOverSheet(BuildContext context) => showGSheet<void>(context, (_) => const _HandOverSheet());
+
+class _HandOverSheet extends ConsumerStatefulWidget {
+  const _HandOverSheet();
+
+  @override
+  ConsumerState<_HandOverSheet> createState() => _HandOverSheetState();
+}
+
+class _HandOverSheetState extends ConsumerState<_HandOverSheet> {
+  final _counted = TextEditingController();
+  String? _to;
+  String? _error;
+
+  @override
+  void dispose() {
+    _counted.dispose();
+    super.dispose();
+  }
+
+  void _save() {
+    final counted = parseMoney(_counted.text);
+    if (_to == null) {
+      setState(() => _error = '¿A quién le entregas?');
+      return;
+    }
+    if (counted == null) {
+      setState(() => _error = 'Escribe cuánto efectivo contaste');
+      return;
+    }
+    final to = _to!;
+    final diff = ref.read(storeProvider.notifier).handOverCash(counted, to: to);
+    final messenger = ScaffoldMessenger.of(context);
+    Navigator.of(context).pop();
+    ref.read(clerkSessionProvider.notifier).lock();
+    messenger.showSnackBar(
+      SnackBar(
+        content: Text(
+          diff == null || diff == 0
+              ? 'Caja entregada. Que $to ponga su PIN.'
+              : diff > 0
+              ? 'Caja entregada con ${money(diff)} de más. Que $to ponga su PIN.'
+              : 'Caja entregada con ${money(-diff)} de menos. Que $to ponga su PIN.',
+        ),
+      ),
+    );
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final store = ref.watch(storeProvider);
+    final me = ref.watch(activeClerkProvider);
+    final session = store.openSession;
+    final expected = session == null ? 0 : store.summaryFor(session).expectedCashCents;
+    final others = [
+      for (final c in store.clerks)
+        if (c.id != me?.id) c,
+    ];
+    final counted = parseMoney(_counted.text);
+    final diff = counted == null ? null : counted - expected;
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        SheetHeader('Entregar caja', caption: me == null ? 'Cambio de turno' : 'Te vas, ${me.name}'),
+        Text(
+          'Cuenta el efectivo del cajón. Se anota cuánto había y la otra persona sigue con la misma caja.',
+          style: GText.sans(size: 14, weight: FontWeight.w400),
+        ),
+        const SizedBox(height: 14),
+        Text('¿A quién se la entregas?', style: GText.sans(size: 14, weight: FontWeight.w800)),
+        const SizedBox(height: 8),
+        if (others.isEmpty)
+          Text('Primero agrega a otra persona en Más › Personas del mostrador.', style: GText.muted(size: 13))
+        else
+          Wrap(
+            spacing: 8,
+            runSpacing: 8,
+            children: [
+              for (final c in others)
+                SizedBox(
+                  width: 130,
+                  child: GChip(
+                    label: c.name,
+                    selected: _to == c.name,
+                    onTap: () => setState(() {
+                      _to = c.name;
+                      _error = null;
+                    }),
+                  ),
+                ),
+            ],
+          ),
+        const SizedBox(height: 16),
+        Row(
+          children: [
+            Expanded(
+              child: Text('Debe haber', style: GText.sans(size: 14, weight: FontWeight.w600)),
+            ),
+            Text(money(expected), style: GText.figures(size: 15, weight: FontWeight.w800)),
+          ],
+        ),
+        const SizedBox(height: 10),
+        TextField(
+          controller: _counted,
+          keyboardType: const TextInputType.numberWithOptions(decimal: true),
+          inputFormatters: const [MoneyInputFormatter()],
+          onChanged: (_) => setState(() => _error = null),
+          onSubmitted: (_) => _save(),
+          style: GText.amount(size: 24),
+          decoration: InputDecoration(labelText: 'Efectivo que contaste', prefixText: '\$ ', errorText: _error),
+        ),
+        if (diff != null)
+          Padding(
+            padding: const EdgeInsets.only(top: 8),
+            child: Text(
+              diff == 0
+                  ? 'Cuadra al peso'
+                  : diff > 0
+                  ? 'Sobran ${money(diff)}'
+                  : 'Faltan ${money(-diff)}',
+              style: GText.sans(size: 14, weight: FontWeight.w800, color: diff < 0 ? GColors.rojo : GColors.cenote),
+            ),
+          ),
+        const SizedBox(height: 16),
+        GButton(
+          label: 'Entregar y bloquear',
+          icon: Icons.handshake_outlined,
+          expand: true,
+          big: true,
+          kind: GButtonKind.money,
+          onPressed: others.isEmpty ? null : _save,
         ),
       ],
     );

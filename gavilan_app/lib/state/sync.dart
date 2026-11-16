@@ -7,7 +7,9 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../config.dart';
 import '../data/repository.dart';
 import '../data/sync_remote.dart';
+import '../domain/clerk.dart';
 import '../domain/team.dart';
+import 'clerk_session.dart';
 import 'store.dart';
 
 /// Conexión con Supabase. main() la configura; en pruebas y en web sin internet queda en null.
@@ -473,4 +475,10 @@ class SyncController extends Notifier<SyncStatus> {
 final syncProvider = NotifierProvider<SyncController, SyncStatus>(SyncController.new);
 
 /// Qué puede hacer quien usa este teléfono, según su rol en el negocio.
-final permissionsProvider = Provider<Permissions>((ref) => Permissions(ref.watch(syncProvider.select((s) => s.role))));
+final permissionsProvider = Provider<Permissions>((ref) {
+  final role = ref.watch(syncProvider.select((s) => s.role));
+  // Con PIN en un aparato compartido, además cuenta quién atiende.
+  final usesPins = ref.watch(storeProvider.select((s) => s.usesPins));
+  final clerk = usesPins ? (ref.watch(activeClerkProvider)?.role ?? ClerkRole.cajero) : null;
+  return Permissions(role, clerk: clerk);
+});

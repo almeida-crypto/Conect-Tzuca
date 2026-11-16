@@ -59,6 +59,8 @@ Prioridad: **Alta** = sin esto no se puede usar con un negocio real · **Media**
 - [x] **Media** · Devolver solo una parte de una venta: se cancela la original y queda una venta nueva con lo que se quedó el cliente. *12/11/2026*
 - [x] **Media** · Descuento a la cuenta al cobrar (porcentaje o pesos), en el ticket y repartido en la ganancia. *12/11/2026*
 - [ ] **Baja** · Cancelar o devolver ventas de turnos ya cerrados (con su ajuste en el siguiente corte).
+- [x] **Alta** · Cambio de cajero con PIN en un aparato compartido: "¿Quién atiende?", "Atiende: X" con F4, bloqueo por tiempo, ventas, gastos y abonos a nombre de quien atiende, "Ventas por persona" en el corte y "Entregar caja". *16/11/2026*
+- [ ] **Media** · Probar el cambio de cajero en un celular real y en la computadora del mostrador con dos personas.
 
 ## Etapa 3 · Módulos por giro
 - [x] **Media** · Apartados: anticipo, abonos, fecha límite con aviso de vencido, liquidación automática, cancelación y comprobante por WhatsApp. *31/10/2026*

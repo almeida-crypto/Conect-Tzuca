@@ -60,6 +60,7 @@ class SalesTable extends Table {
   DateTimeColumn get cancelledAt => dateTime().nullable()();
   TextColumn get cancelReason => text().nullable()();
   IntColumn get discountCents => integer().withDefault(const Constant(0))();
+  TextColumn get clerkName => text().nullable()();
 
   @override
   Set<Column> get primaryKey => {id};
@@ -96,6 +97,7 @@ class CreditEntriesTable extends Table {
   TextColumn get saleId => text().nullable()();
   TextColumn get method => textEnum<PayMethod>().nullable()();
   TextColumn get sessionId => text().nullable()();
+  TextColumn get clerkName => text().nullable()();
 
   @override
   Set<Column> get primaryKey => {id};
@@ -128,6 +130,7 @@ class CashMovementsTable extends Table {
   IntColumn get amountCents => integer()();
   TextColumn get concept => text()();
   DateTimeColumn get createdAt => dateTime()();
+  TextColumn get clerkName => text().nullable()();
 
   @override
   Set<Column> get primaryKey => {id};
@@ -373,7 +376,7 @@ class GavilanDb extends _$GavilanDb {
   );
 
   @override
-  int get schemaVersion => 9;
+  int get schemaVersion => 10;
 
   @override
   MigrationStrategy get migration => MigrationStrategy(
@@ -413,6 +416,11 @@ class GavilanDb extends _$GavilanDb {
         await m.createTable(extrasTable);
         // Antes de la versión 5 la tabla de platillos se crea completa (ya con extras).
         if (from >= 5) await m.addColumn(orderItemsTable, orderItemsTable.extras);
+      }
+      if (from < 10) {
+        await m.addColumn(salesTable, salesTable.clerkName);
+        await m.addColumn(creditEntriesTable, creditEntriesTable.clerkName);
+        await m.addColumn(cashMovementsTable, cashMovementsTable.clerkName);
       }
     },
   );

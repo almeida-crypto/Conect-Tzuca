@@ -15,6 +15,7 @@ import '../../state/sync.dart';
 import '../../theme/colors.dart';
 import '../../theme/theme.dart';
 import '../widgets/buttons.dart';
+import '../clerks/lock_screen.dart';
 import 'return_sheet.dart';
 
 /// Ticket de la venta con sello PAGADO, FIADO o CANCELADA.
@@ -34,7 +35,11 @@ class _TicketScreenState extends ConsumerState<TicketScreen> {
   /// Lo que queda dentro de esta llave es lo que se manda como imagen.
   final _ticketKey = GlobalKey();
 
+  Future<bool> _authorized(String action) =>
+      allowOrAskPin(context, ref, allowed: (can) => can.cancelSales, action: action);
+
   Future<void> _returnItems(Sale sale) async {
+    if (!await _authorized('Devolver productos') || !mounted) return;
     final request = await showReturnSheet(context, sale);
     if (request == null || !mounted) return;
     final newSale = ref.read(storeProvider.notifier).returnItems(sale.id, request.back, reason: request.reason);
@@ -50,6 +55,7 @@ class _TicketScreenState extends ConsumerState<TicketScreen> {
   }
 
   Future<void> _confirmCancel(Sale sale, String? customerName) async {
+    if (!await _authorized('Cancelar la venta ${sale.folioLabel}') || !mounted) return;
     final reason = await showCancelSaleDialog(context, sale, customerName: customerName);
     if (reason == null || !mounted) return;
     final done = ref.read(storeProvider.notifier).cancelSale(sale.id, reason: reason);
@@ -68,7 +74,10 @@ class _TicketScreenState extends ConsumerState<TicketScreen> {
     final paid = sale.kind == SaleKind.pagada;
     final open = store.openSession;
     final canCancel =
-        !sale.cancelled && open != null && sale.sessionId == open.id && ref.watch(permissionsProvider).cancelSales;
+        !sale.cancelled &&
+        open != null &&
+        sale.sessionId == open.id &&
+        (ref.watch(permissionsProvider).cancelSales || store.usesPins);
     final order = sale.orderId == null ? null : store.orderById(sale.orderId!);
     final place = order == null ? null : store.orderTitle(order);
     final text = ticketText(
@@ -151,6 +160,12 @@ class _TicketScreenState extends ConsumerState<TicketScreen> {
                                     place,
                                     textAlign: TextAlign.center,
                                     style: GText.mono(size: 12, weight: FontWeight.w700),
+                                  ),
+                                if (sale.clerk != null)
+                                  Text(
+                                    'Te atendió: ${sale.clerk}',
+                                    textAlign: TextAlign.center,
+                                    style: GText.mono(size: 11, color: GColors.tintaSuave),
                                   ),
                                 const SizedBox(height: 10),
                                 for (final l in sale.lines) _row('${qtyLabel(l.qty)} x ${l.name}', money(l.totalCents)),

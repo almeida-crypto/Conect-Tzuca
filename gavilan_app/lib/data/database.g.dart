@@ -4945,6 +4945,15 @@ class $SalesTableTable extends SalesTable with TableInfo<$SalesTableTable, SaleR
     requiredDuringInsert: false,
     defaultValue: const Constant(0),
   );
+  static const VerificationMeta _clerkNameMeta = const VerificationMeta('clerkName');
+  @override
+  late final GeneratedColumn<String> clerkName = GeneratedColumn<String>(
+    'clerk_name',
+    aliasedName,
+    true,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+  );
   @override
   List<GeneratedColumn> get $columns => [
     id,
@@ -4960,6 +4969,7 @@ class $SalesTableTable extends SalesTable with TableInfo<$SalesTableTable, SaleR
     cancelledAt,
     cancelReason,
     discountCents,
+    clerkName,
   ];
   @override
   String get aliasedName => _alias ?? actualTableName;
@@ -5015,6 +5025,9 @@ class $SalesTableTable extends SalesTable with TableInfo<$SalesTableTable, SaleR
         discountCents.isAcceptableOrUnknown(data['discount_cents']!, _discountCentsMeta),
       );
     }
+    if (data.containsKey('clerk_name')) {
+      context.handle(_clerkNameMeta, clerkName.isAcceptableOrUnknown(data['clerk_name']!, _clerkNameMeta));
+    }
     return context;
   }
 
@@ -5041,6 +5054,7 @@ class $SalesTableTable extends SalesTable with TableInfo<$SalesTableTable, SaleR
       cancelledAt: attachedDatabase.typeMapping.read(DriftSqlType.dateTime, data['${effectivePrefix}cancelled_at']),
       cancelReason: attachedDatabase.typeMapping.read(DriftSqlType.string, data['${effectivePrefix}cancel_reason']),
       discountCents: attachedDatabase.typeMapping.read(DriftSqlType.int, data['${effectivePrefix}discount_cents'])!,
+      clerkName: attachedDatabase.typeMapping.read(DriftSqlType.string, data['${effectivePrefix}clerk_name']),
     );
   }
 
@@ -5074,6 +5088,7 @@ class SaleRow extends DataClass implements Insertable<SaleRow> {
   final DateTime? cancelledAt;
   final String? cancelReason;
   final int discountCents;
+  final String? clerkName;
   const SaleRow({
     required this.id,
     required this.folio,
@@ -5088,6 +5103,7 @@ class SaleRow extends DataClass implements Insertable<SaleRow> {
     this.cancelledAt,
     this.cancelReason,
     required this.discountCents,
+    this.clerkName,
   });
   @override
   Map<String, Expression> toColumns(bool nullToAbsent) {
@@ -5123,6 +5139,9 @@ class SaleRow extends DataClass implements Insertable<SaleRow> {
       map['cancel_reason'] = Variable<String>(cancelReason);
     }
     map['discount_cents'] = Variable<int>(discountCents);
+    if (!nullToAbsent || clerkName != null) {
+      map['clerk_name'] = Variable<String>(clerkName);
+    }
     return map;
   }
 
@@ -5141,6 +5160,7 @@ class SaleRow extends DataClass implements Insertable<SaleRow> {
       cancelledAt: cancelledAt == null && nullToAbsent ? const Value.absent() : Value(cancelledAt),
       cancelReason: cancelReason == null && nullToAbsent ? const Value.absent() : Value(cancelReason),
       discountCents: Value(discountCents),
+      clerkName: clerkName == null && nullToAbsent ? const Value.absent() : Value(clerkName),
     );
   }
 
@@ -5160,6 +5180,7 @@ class SaleRow extends DataClass implements Insertable<SaleRow> {
       cancelledAt: serializer.fromJson<DateTime?>(json['cancelledAt']),
       cancelReason: serializer.fromJson<String?>(json['cancelReason']),
       discountCents: serializer.fromJson<int>(json['discountCents']),
+      clerkName: serializer.fromJson<String?>(json['clerkName']),
     );
   }
   @override
@@ -5179,6 +5200,7 @@ class SaleRow extends DataClass implements Insertable<SaleRow> {
       'cancelledAt': serializer.toJson<DateTime?>(cancelledAt),
       'cancelReason': serializer.toJson<String?>(cancelReason),
       'discountCents': serializer.toJson<int>(discountCents),
+      'clerkName': serializer.toJson<String?>(clerkName),
     };
   }
 
@@ -5196,6 +5218,7 @@ class SaleRow extends DataClass implements Insertable<SaleRow> {
     Value<DateTime?> cancelledAt = const Value.absent(),
     Value<String?> cancelReason = const Value.absent(),
     int? discountCents,
+    Value<String?> clerkName = const Value.absent(),
   }) => SaleRow(
     id: id ?? this.id,
     folio: folio ?? this.folio,
@@ -5210,6 +5233,7 @@ class SaleRow extends DataClass implements Insertable<SaleRow> {
     cancelledAt: cancelledAt.present ? cancelledAt.value : this.cancelledAt,
     cancelReason: cancelReason.present ? cancelReason.value : this.cancelReason,
     discountCents: discountCents ?? this.discountCents,
+    clerkName: clerkName.present ? clerkName.value : this.clerkName,
   );
   SaleRow copyWithCompanion(SalesTableCompanion data) {
     return SaleRow(
@@ -5226,6 +5250,7 @@ class SaleRow extends DataClass implements Insertable<SaleRow> {
       cancelledAt: data.cancelledAt.present ? data.cancelledAt.value : this.cancelledAt,
       cancelReason: data.cancelReason.present ? data.cancelReason.value : this.cancelReason,
       discountCents: data.discountCents.present ? data.discountCents.value : this.discountCents,
+      clerkName: data.clerkName.present ? data.clerkName.value : this.clerkName,
     );
   }
 
@@ -5244,7 +5269,8 @@ class SaleRow extends DataClass implements Insertable<SaleRow> {
           ..write('orderId: $orderId, ')
           ..write('cancelledAt: $cancelledAt, ')
           ..write('cancelReason: $cancelReason, ')
-          ..write('discountCents: $discountCents')
+          ..write('discountCents: $discountCents, ')
+          ..write('clerkName: $clerkName')
           ..write(')'))
         .toString();
   }
@@ -5264,6 +5290,7 @@ class SaleRow extends DataClass implements Insertable<SaleRow> {
     cancelledAt,
     cancelReason,
     discountCents,
+    clerkName,
   );
   @override
   bool operator ==(Object other) =>
@@ -5281,7 +5308,8 @@ class SaleRow extends DataClass implements Insertable<SaleRow> {
           other.orderId == this.orderId &&
           other.cancelledAt == this.cancelledAt &&
           other.cancelReason == this.cancelReason &&
-          other.discountCents == this.discountCents);
+          other.discountCents == this.discountCents &&
+          other.clerkName == this.clerkName);
 }
 
 class SalesTableCompanion extends UpdateCompanion<SaleRow> {
@@ -5298,6 +5326,7 @@ class SalesTableCompanion extends UpdateCompanion<SaleRow> {
   final Value<DateTime?> cancelledAt;
   final Value<String?> cancelReason;
   final Value<int> discountCents;
+  final Value<String?> clerkName;
   final Value<int> rowid;
   const SalesTableCompanion({
     this.id = const Value.absent(),
@@ -5313,6 +5342,7 @@ class SalesTableCompanion extends UpdateCompanion<SaleRow> {
     this.cancelledAt = const Value.absent(),
     this.cancelReason = const Value.absent(),
     this.discountCents = const Value.absent(),
+    this.clerkName = const Value.absent(),
     this.rowid = const Value.absent(),
   });
   SalesTableCompanion.insert({
@@ -5329,6 +5359,7 @@ class SalesTableCompanion extends UpdateCompanion<SaleRow> {
     this.cancelledAt = const Value.absent(),
     this.cancelReason = const Value.absent(),
     this.discountCents = const Value.absent(),
+    this.clerkName = const Value.absent(),
     this.rowid = const Value.absent(),
   }) : id = Value(id),
        folio = Value(folio),
@@ -5348,6 +5379,7 @@ class SalesTableCompanion extends UpdateCompanion<SaleRow> {
     Expression<DateTime>? cancelledAt,
     Expression<String>? cancelReason,
     Expression<int>? discountCents,
+    Expression<String>? clerkName,
     Expression<int>? rowid,
   }) {
     return RawValuesInsertable({
@@ -5364,6 +5396,7 @@ class SalesTableCompanion extends UpdateCompanion<SaleRow> {
       if (cancelledAt != null) 'cancelled_at': cancelledAt,
       if (cancelReason != null) 'cancel_reason': cancelReason,
       if (discountCents != null) 'discount_cents': discountCents,
+      if (clerkName != null) 'clerk_name': clerkName,
       if (rowid != null) 'rowid': rowid,
     });
   }
@@ -5382,6 +5415,7 @@ class SalesTableCompanion extends UpdateCompanion<SaleRow> {
     Value<DateTime?>? cancelledAt,
     Value<String?>? cancelReason,
     Value<int>? discountCents,
+    Value<String?>? clerkName,
     Value<int>? rowid,
   }) {
     return SalesTableCompanion(
@@ -5398,6 +5432,7 @@ class SalesTableCompanion extends UpdateCompanion<SaleRow> {
       cancelledAt: cancelledAt ?? this.cancelledAt,
       cancelReason: cancelReason ?? this.cancelReason,
       discountCents: discountCents ?? this.discountCents,
+      clerkName: clerkName ?? this.clerkName,
       rowid: rowid ?? this.rowid,
     );
   }
@@ -5444,6 +5479,9 @@ class SalesTableCompanion extends UpdateCompanion<SaleRow> {
     if (discountCents.present) {
       map['discount_cents'] = Variable<int>(discountCents.value);
     }
+    if (clerkName.present) {
+      map['clerk_name'] = Variable<String>(clerkName.value);
+    }
     if (rowid.present) {
       map['rowid'] = Variable<int>(rowid.value);
     }
@@ -5466,6 +5504,7 @@ class SalesTableCompanion extends UpdateCompanion<SaleRow> {
           ..write('cancelledAt: $cancelledAt, ')
           ..write('cancelReason: $cancelReason, ')
           ..write('discountCents: $discountCents, ')
+          ..write('clerkName: $clerkName, ')
           ..write('rowid: $rowid')
           ..write(')'))
         .toString();
@@ -5975,8 +6014,27 @@ class $CreditEntriesTableTable extends CreditEntriesTable with TableInfo<$Credit
     type: DriftSqlType.string,
     requiredDuringInsert: false,
   );
+  static const VerificationMeta _clerkNameMeta = const VerificationMeta('clerkName');
   @override
-  List<GeneratedColumn> get $columns => [id, customerId, type, amountCents, createdAt, saleId, method, sessionId];
+  late final GeneratedColumn<String> clerkName = GeneratedColumn<String>(
+    'clerk_name',
+    aliasedName,
+    true,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+  );
+  @override
+  List<GeneratedColumn> get $columns => [
+    id,
+    customerId,
+    type,
+    amountCents,
+    createdAt,
+    saleId,
+    method,
+    sessionId,
+    clerkName,
+  ];
   @override
   String get aliasedName => _alias ?? actualTableName;
   @override
@@ -6012,6 +6070,9 @@ class $CreditEntriesTableTable extends CreditEntriesTable with TableInfo<$Credit
     if (data.containsKey('session_id')) {
       context.handle(_sessionIdMeta, sessionId.isAcceptableOrUnknown(data['session_id']!, _sessionIdMeta));
     }
+    if (data.containsKey('clerk_name')) {
+      context.handle(_clerkNameMeta, clerkName.isAcceptableOrUnknown(data['clerk_name']!, _clerkNameMeta));
+    }
     return context;
   }
 
@@ -6033,6 +6094,7 @@ class $CreditEntriesTableTable extends CreditEntriesTable with TableInfo<$Credit
         attachedDatabase.typeMapping.read(DriftSqlType.string, data['${effectivePrefix}method']),
       ),
       sessionId: attachedDatabase.typeMapping.read(DriftSqlType.string, data['${effectivePrefix}session_id']),
+      clerkName: attachedDatabase.typeMapping.read(DriftSqlType.string, data['${effectivePrefix}clerk_name']),
     );
   }
 
@@ -6061,6 +6123,7 @@ class CreditRow extends DataClass implements Insertable<CreditRow> {
   final String? saleId;
   final PayMethod? method;
   final String? sessionId;
+  final String? clerkName;
   const CreditRow({
     required this.id,
     required this.customerId,
@@ -6070,6 +6133,7 @@ class CreditRow extends DataClass implements Insertable<CreditRow> {
     this.saleId,
     this.method,
     this.sessionId,
+    this.clerkName,
   });
   @override
   Map<String, Expression> toColumns(bool nullToAbsent) {
@@ -6090,6 +6154,9 @@ class CreditRow extends DataClass implements Insertable<CreditRow> {
     if (!nullToAbsent || sessionId != null) {
       map['session_id'] = Variable<String>(sessionId);
     }
+    if (!nullToAbsent || clerkName != null) {
+      map['clerk_name'] = Variable<String>(clerkName);
+    }
     return map;
   }
 
@@ -6103,6 +6170,7 @@ class CreditRow extends DataClass implements Insertable<CreditRow> {
       saleId: saleId == null && nullToAbsent ? const Value.absent() : Value(saleId),
       method: method == null && nullToAbsent ? const Value.absent() : Value(method),
       sessionId: sessionId == null && nullToAbsent ? const Value.absent() : Value(sessionId),
+      clerkName: clerkName == null && nullToAbsent ? const Value.absent() : Value(clerkName),
     );
   }
 
@@ -6117,6 +6185,7 @@ class CreditRow extends DataClass implements Insertable<CreditRow> {
       saleId: serializer.fromJson<String?>(json['saleId']),
       method: $CreditEntriesTableTable.$convertermethodn.fromJson(serializer.fromJson<String?>(json['method'])),
       sessionId: serializer.fromJson<String?>(json['sessionId']),
+      clerkName: serializer.fromJson<String?>(json['clerkName']),
     );
   }
   @override
@@ -6131,6 +6200,7 @@ class CreditRow extends DataClass implements Insertable<CreditRow> {
       'saleId': serializer.toJson<String?>(saleId),
       'method': serializer.toJson<String?>($CreditEntriesTableTable.$convertermethodn.toJson(method)),
       'sessionId': serializer.toJson<String?>(sessionId),
+      'clerkName': serializer.toJson<String?>(clerkName),
     };
   }
 
@@ -6143,6 +6213,7 @@ class CreditRow extends DataClass implements Insertable<CreditRow> {
     Value<String?> saleId = const Value.absent(),
     Value<PayMethod?> method = const Value.absent(),
     Value<String?> sessionId = const Value.absent(),
+    Value<String?> clerkName = const Value.absent(),
   }) => CreditRow(
     id: id ?? this.id,
     customerId: customerId ?? this.customerId,
@@ -6152,6 +6223,7 @@ class CreditRow extends DataClass implements Insertable<CreditRow> {
     saleId: saleId.present ? saleId.value : this.saleId,
     method: method.present ? method.value : this.method,
     sessionId: sessionId.present ? sessionId.value : this.sessionId,
+    clerkName: clerkName.present ? clerkName.value : this.clerkName,
   );
   CreditRow copyWithCompanion(CreditEntriesTableCompanion data) {
     return CreditRow(
@@ -6163,6 +6235,7 @@ class CreditRow extends DataClass implements Insertable<CreditRow> {
       saleId: data.saleId.present ? data.saleId.value : this.saleId,
       method: data.method.present ? data.method.value : this.method,
       sessionId: data.sessionId.present ? data.sessionId.value : this.sessionId,
+      clerkName: data.clerkName.present ? data.clerkName.value : this.clerkName,
     );
   }
 
@@ -6176,13 +6249,14 @@ class CreditRow extends DataClass implements Insertable<CreditRow> {
           ..write('createdAt: $createdAt, ')
           ..write('saleId: $saleId, ')
           ..write('method: $method, ')
-          ..write('sessionId: $sessionId')
+          ..write('sessionId: $sessionId, ')
+          ..write('clerkName: $clerkName')
           ..write(')'))
         .toString();
   }
 
   @override
-  int get hashCode => Object.hash(id, customerId, type, amountCents, createdAt, saleId, method, sessionId);
+  int get hashCode => Object.hash(id, customerId, type, amountCents, createdAt, saleId, method, sessionId, clerkName);
   @override
   bool operator ==(Object other) =>
       identical(this, other) ||
@@ -6194,7 +6268,8 @@ class CreditRow extends DataClass implements Insertable<CreditRow> {
           other.createdAt == this.createdAt &&
           other.saleId == this.saleId &&
           other.method == this.method &&
-          other.sessionId == this.sessionId);
+          other.sessionId == this.sessionId &&
+          other.clerkName == this.clerkName);
 }
 
 class CreditEntriesTableCompanion extends UpdateCompanion<CreditRow> {
@@ -6206,6 +6281,7 @@ class CreditEntriesTableCompanion extends UpdateCompanion<CreditRow> {
   final Value<String?> saleId;
   final Value<PayMethod?> method;
   final Value<String?> sessionId;
+  final Value<String?> clerkName;
   final Value<int> rowid;
   const CreditEntriesTableCompanion({
     this.id = const Value.absent(),
@@ -6216,6 +6292,7 @@ class CreditEntriesTableCompanion extends UpdateCompanion<CreditRow> {
     this.saleId = const Value.absent(),
     this.method = const Value.absent(),
     this.sessionId = const Value.absent(),
+    this.clerkName = const Value.absent(),
     this.rowid = const Value.absent(),
   });
   CreditEntriesTableCompanion.insert({
@@ -6227,6 +6304,7 @@ class CreditEntriesTableCompanion extends UpdateCompanion<CreditRow> {
     this.saleId = const Value.absent(),
     this.method = const Value.absent(),
     this.sessionId = const Value.absent(),
+    this.clerkName = const Value.absent(),
     this.rowid = const Value.absent(),
   }) : id = Value(id),
        customerId = Value(customerId),
@@ -6242,6 +6320,7 @@ class CreditEntriesTableCompanion extends UpdateCompanion<CreditRow> {
     Expression<String>? saleId,
     Expression<String>? method,
     Expression<String>? sessionId,
+    Expression<String>? clerkName,
     Expression<int>? rowid,
   }) {
     return RawValuesInsertable({
@@ -6253,6 +6332,7 @@ class CreditEntriesTableCompanion extends UpdateCompanion<CreditRow> {
       if (saleId != null) 'sale_id': saleId,
       if (method != null) 'method': method,
       if (sessionId != null) 'session_id': sessionId,
+      if (clerkName != null) 'clerk_name': clerkName,
       if (rowid != null) 'rowid': rowid,
     });
   }
@@ -6266,6 +6346,7 @@ class CreditEntriesTableCompanion extends UpdateCompanion<CreditRow> {
     Value<String?>? saleId,
     Value<PayMethod?>? method,
     Value<String?>? sessionId,
+    Value<String?>? clerkName,
     Value<int>? rowid,
   }) {
     return CreditEntriesTableCompanion(
@@ -6277,6 +6358,7 @@ class CreditEntriesTableCompanion extends UpdateCompanion<CreditRow> {
       saleId: saleId ?? this.saleId,
       method: method ?? this.method,
       sessionId: sessionId ?? this.sessionId,
+      clerkName: clerkName ?? this.clerkName,
       rowid: rowid ?? this.rowid,
     );
   }
@@ -6308,6 +6390,9 @@ class CreditEntriesTableCompanion extends UpdateCompanion<CreditRow> {
     if (sessionId.present) {
       map['session_id'] = Variable<String>(sessionId.value);
     }
+    if (clerkName.present) {
+      map['clerk_name'] = Variable<String>(clerkName.value);
+    }
     if (rowid.present) {
       map['rowid'] = Variable<int>(rowid.value);
     }
@@ -6325,6 +6410,7 @@ class CreditEntriesTableCompanion extends UpdateCompanion<CreditRow> {
           ..write('saleId: $saleId, ')
           ..write('method: $method, ')
           ..write('sessionId: $sessionId, ')
+          ..write('clerkName: $clerkName, ')
           ..write('rowid: $rowid')
           ..write(')'))
         .toString();
@@ -6741,8 +6827,17 @@ class $CashMovementsTableTable extends CashMovementsTable with TableInfo<$CashMo
     type: DriftSqlType.dateTime,
     requiredDuringInsert: true,
   );
+  static const VerificationMeta _clerkNameMeta = const VerificationMeta('clerkName');
   @override
-  List<GeneratedColumn> get $columns => [id, sessionId, kind, amountCents, concept, createdAt];
+  late final GeneratedColumn<String> clerkName = GeneratedColumn<String>(
+    'clerk_name',
+    aliasedName,
+    true,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+  );
+  @override
+  List<GeneratedColumn> get $columns => [id, sessionId, kind, amountCents, concept, createdAt, clerkName];
   @override
   String get aliasedName => _alias ?? actualTableName;
   @override
@@ -6777,6 +6872,9 @@ class $CashMovementsTableTable extends CashMovementsTable with TableInfo<$CashMo
     } else if (isInserting) {
       context.missing(_createdAtMeta);
     }
+    if (data.containsKey('clerk_name')) {
+      context.handle(_clerkNameMeta, clerkName.isAcceptableOrUnknown(data['clerk_name']!, _clerkNameMeta));
+    }
     return context;
   }
 
@@ -6794,6 +6892,7 @@ class $CashMovementsTableTable extends CashMovementsTable with TableInfo<$CashMo
       amountCents: attachedDatabase.typeMapping.read(DriftSqlType.int, data['${effectivePrefix}amount_cents'])!,
       concept: attachedDatabase.typeMapping.read(DriftSqlType.string, data['${effectivePrefix}concept'])!,
       createdAt: attachedDatabase.typeMapping.read(DriftSqlType.dateTime, data['${effectivePrefix}created_at'])!,
+      clerkName: attachedDatabase.typeMapping.read(DriftSqlType.string, data['${effectivePrefix}clerk_name']),
     );
   }
 
@@ -6814,6 +6913,7 @@ class MovementRow extends DataClass implements Insertable<MovementRow> {
   final int amountCents;
   final String concept;
   final DateTime createdAt;
+  final String? clerkName;
   const MovementRow({
     required this.id,
     required this.sessionId,
@@ -6821,6 +6921,7 @@ class MovementRow extends DataClass implements Insertable<MovementRow> {
     required this.amountCents,
     required this.concept,
     required this.createdAt,
+    this.clerkName,
   });
   @override
   Map<String, Expression> toColumns(bool nullToAbsent) {
@@ -6833,6 +6934,9 @@ class MovementRow extends DataClass implements Insertable<MovementRow> {
     map['amount_cents'] = Variable<int>(amountCents);
     map['concept'] = Variable<String>(concept);
     map['created_at'] = Variable<DateTime>(createdAt);
+    if (!nullToAbsent || clerkName != null) {
+      map['clerk_name'] = Variable<String>(clerkName);
+    }
     return map;
   }
 
@@ -6844,6 +6948,7 @@ class MovementRow extends DataClass implements Insertable<MovementRow> {
       amountCents: Value(amountCents),
       concept: Value(concept),
       createdAt: Value(createdAt),
+      clerkName: clerkName == null && nullToAbsent ? const Value.absent() : Value(clerkName),
     );
   }
 
@@ -6856,6 +6961,7 @@ class MovementRow extends DataClass implements Insertable<MovementRow> {
       amountCents: serializer.fromJson<int>(json['amountCents']),
       concept: serializer.fromJson<String>(json['concept']),
       createdAt: serializer.fromJson<DateTime>(json['createdAt']),
+      clerkName: serializer.fromJson<String?>(json['clerkName']),
     );
   }
   @override
@@ -6868,6 +6974,7 @@ class MovementRow extends DataClass implements Insertable<MovementRow> {
       'amountCents': serializer.toJson<int>(amountCents),
       'concept': serializer.toJson<String>(concept),
       'createdAt': serializer.toJson<DateTime>(createdAt),
+      'clerkName': serializer.toJson<String?>(clerkName),
     };
   }
 
@@ -6878,6 +6985,7 @@ class MovementRow extends DataClass implements Insertable<MovementRow> {
     int? amountCents,
     String? concept,
     DateTime? createdAt,
+    Value<String?> clerkName = const Value.absent(),
   }) => MovementRow(
     id: id ?? this.id,
     sessionId: sessionId ?? this.sessionId,
@@ -6885,6 +6993,7 @@ class MovementRow extends DataClass implements Insertable<MovementRow> {
     amountCents: amountCents ?? this.amountCents,
     concept: concept ?? this.concept,
     createdAt: createdAt ?? this.createdAt,
+    clerkName: clerkName.present ? clerkName.value : this.clerkName,
   );
   MovementRow copyWithCompanion(CashMovementsTableCompanion data) {
     return MovementRow(
@@ -6894,6 +7003,7 @@ class MovementRow extends DataClass implements Insertable<MovementRow> {
       amountCents: data.amountCents.present ? data.amountCents.value : this.amountCents,
       concept: data.concept.present ? data.concept.value : this.concept,
       createdAt: data.createdAt.present ? data.createdAt.value : this.createdAt,
+      clerkName: data.clerkName.present ? data.clerkName.value : this.clerkName,
     );
   }
 
@@ -6905,13 +7015,14 @@ class MovementRow extends DataClass implements Insertable<MovementRow> {
           ..write('kind: $kind, ')
           ..write('amountCents: $amountCents, ')
           ..write('concept: $concept, ')
-          ..write('createdAt: $createdAt')
+          ..write('createdAt: $createdAt, ')
+          ..write('clerkName: $clerkName')
           ..write(')'))
         .toString();
   }
 
   @override
-  int get hashCode => Object.hash(id, sessionId, kind, amountCents, concept, createdAt);
+  int get hashCode => Object.hash(id, sessionId, kind, amountCents, concept, createdAt, clerkName);
   @override
   bool operator ==(Object other) =>
       identical(this, other) ||
@@ -6921,7 +7032,8 @@ class MovementRow extends DataClass implements Insertable<MovementRow> {
           other.kind == this.kind &&
           other.amountCents == this.amountCents &&
           other.concept == this.concept &&
-          other.createdAt == this.createdAt);
+          other.createdAt == this.createdAt &&
+          other.clerkName == this.clerkName);
 }
 
 class CashMovementsTableCompanion extends UpdateCompanion<MovementRow> {
@@ -6931,6 +7043,7 @@ class CashMovementsTableCompanion extends UpdateCompanion<MovementRow> {
   final Value<int> amountCents;
   final Value<String> concept;
   final Value<DateTime> createdAt;
+  final Value<String?> clerkName;
   final Value<int> rowid;
   const CashMovementsTableCompanion({
     this.id = const Value.absent(),
@@ -6939,6 +7052,7 @@ class CashMovementsTableCompanion extends UpdateCompanion<MovementRow> {
     this.amountCents = const Value.absent(),
     this.concept = const Value.absent(),
     this.createdAt = const Value.absent(),
+    this.clerkName = const Value.absent(),
     this.rowid = const Value.absent(),
   });
   CashMovementsTableCompanion.insert({
@@ -6948,6 +7062,7 @@ class CashMovementsTableCompanion extends UpdateCompanion<MovementRow> {
     required int amountCents,
     required String concept,
     required DateTime createdAt,
+    this.clerkName = const Value.absent(),
     this.rowid = const Value.absent(),
   }) : id = Value(id),
        sessionId = Value(sessionId),
@@ -6962,6 +7077,7 @@ class CashMovementsTableCompanion extends UpdateCompanion<MovementRow> {
     Expression<int>? amountCents,
     Expression<String>? concept,
     Expression<DateTime>? createdAt,
+    Expression<String>? clerkName,
     Expression<int>? rowid,
   }) {
     return RawValuesInsertable({
@@ -6971,6 +7087,7 @@ class CashMovementsTableCompanion extends UpdateCompanion<MovementRow> {
       if (amountCents != null) 'amount_cents': amountCents,
       if (concept != null) 'concept': concept,
       if (createdAt != null) 'created_at': createdAt,
+      if (clerkName != null) 'clerk_name': clerkName,
       if (rowid != null) 'rowid': rowid,
     });
   }
@@ -6982,6 +7099,7 @@ class CashMovementsTableCompanion extends UpdateCompanion<MovementRow> {
     Value<int>? amountCents,
     Value<String>? concept,
     Value<DateTime>? createdAt,
+    Value<String?>? clerkName,
     Value<int>? rowid,
   }) {
     return CashMovementsTableCompanion(
@@ -6991,6 +7109,7 @@ class CashMovementsTableCompanion extends UpdateCompanion<MovementRow> {
       amountCents: amountCents ?? this.amountCents,
       concept: concept ?? this.concept,
       createdAt: createdAt ?? this.createdAt,
+      clerkName: clerkName ?? this.clerkName,
       rowid: rowid ?? this.rowid,
     );
   }
@@ -7016,6 +7135,9 @@ class CashMovementsTableCompanion extends UpdateCompanion<MovementRow> {
     if (createdAt.present) {
       map['created_at'] = Variable<DateTime>(createdAt.value);
     }
+    if (clerkName.present) {
+      map['clerk_name'] = Variable<String>(clerkName.value);
+    }
     if (rowid.present) {
       map['rowid'] = Variable<int>(rowid.value);
     }
@@ -7031,6 +7153,7 @@ class CashMovementsTableCompanion extends UpdateCompanion<MovementRow> {
           ..write('amountCents: $amountCents, ')
           ..write('concept: $concept, ')
           ..write('createdAt: $createdAt, ')
+          ..write('clerkName: $clerkName, ')
           ..write('rowid: $rowid')
           ..write(')'))
         .toString();
@@ -9657,6 +9780,7 @@ typedef $$SalesTableTableCreateCompanionBuilder = SalesTableCompanion Function({
   Value<DateTime?> cancelledAt,
   Value<String?> cancelReason,
   Value<int> discountCents,
+  Value<String?> clerkName,
   Value<int> rowid,
 });
 typedef $$SalesTableTableUpdateCompanionBuilder = SalesTableCompanion Function({
@@ -9673,6 +9797,7 @@ typedef $$SalesTableTableUpdateCompanionBuilder = SalesTableCompanion Function({
   Value<DateTime?> cancelledAt,
   Value<String?> cancelReason,
   Value<int> discountCents,
+  Value<String?> clerkName,
   Value<int> rowid,
 });
 
@@ -9720,6 +9845,9 @@ class $$SalesTableTableFilterComposer extends Composer<_$GavilanDb, $SalesTableT
 
   ColumnFilters<int> get discountCents =>
       $composableBuilder(column: $table.discountCents, builder: (column) => ColumnFilters(column));
+
+  ColumnFilters<String> get clerkName =>
+      $composableBuilder(column: $table.clerkName, builder: (column) => ColumnFilters(column));
 }
 
 class $$SalesTableTableOrderingComposer extends Composer<_$GavilanDb, $SalesTableTable> {
@@ -9767,6 +9895,9 @@ class $$SalesTableTableOrderingComposer extends Composer<_$GavilanDb, $SalesTabl
 
   ColumnOrderings<int> get discountCents =>
       $composableBuilder(column: $table.discountCents, builder: (column) => ColumnOrderings(column));
+
+  ColumnOrderings<String> get clerkName =>
+      $composableBuilder(column: $table.clerkName, builder: (column) => ColumnOrderings(column));
 }
 
 class $$SalesTableTableAnnotationComposer extends Composer<_$GavilanDb, $SalesTableTable> {
@@ -9808,6 +9939,8 @@ class $$SalesTableTableAnnotationComposer extends Composer<_$GavilanDb, $SalesTa
 
   GeneratedColumn<int> get discountCents =>
       $composableBuilder(column: $table.discountCents, builder: (column) => column);
+
+  GeneratedColumn<String> get clerkName => $composableBuilder(column: $table.clerkName, builder: (column) => column);
 }
 
 class $$SalesTableTableTableManager
@@ -9848,6 +9981,7 @@ class $$SalesTableTableTableManager
                 Value<DateTime?> cancelledAt = const Value.absent(),
                 Value<String?> cancelReason = const Value.absent(),
                 Value<int> discountCents = const Value.absent(),
+                Value<String?> clerkName = const Value.absent(),
                 Value<int> rowid = const Value.absent(),
               }) => SalesTableCompanion(
                 id: id,
@@ -9863,6 +9997,7 @@ class $$SalesTableTableTableManager
                 cancelledAt: cancelledAt,
                 cancelReason: cancelReason,
                 discountCents: discountCents,
+                clerkName: clerkName,
                 rowid: rowid,
               ),
           createCompanionCallback:
@@ -9880,6 +10015,7 @@ class $$SalesTableTableTableManager
                 Value<DateTime?> cancelledAt = const Value.absent(),
                 Value<String?> cancelReason = const Value.absent(),
                 Value<int> discountCents = const Value.absent(),
+                Value<String?> clerkName = const Value.absent(),
                 Value<int> rowid = const Value.absent(),
               }) => SalesTableCompanion.insert(
                 id: id,
@@ -9895,6 +10031,7 @@ class $$SalesTableTableTableManager
                 cancelledAt: cancelledAt,
                 cancelReason: cancelReason,
                 discountCents: discountCents,
+                clerkName: clerkName,
                 rowid: rowid,
               ),
           withReferenceMapper: (p0) => p0
@@ -10140,6 +10277,7 @@ typedef $$CreditEntriesTableTableCreateCompanionBuilder = CreditEntriesTableComp
   Value<String?> saleId,
   Value<PayMethod?> method,
   Value<String?> sessionId,
+  Value<String?> clerkName,
   Value<int> rowid,
 });
 typedef $$CreditEntriesTableTableUpdateCompanionBuilder = CreditEntriesTableCompanion Function({
@@ -10151,6 +10289,7 @@ typedef $$CreditEntriesTableTableUpdateCompanionBuilder = CreditEntriesTableComp
   Value<String?> saleId,
   Value<PayMethod?> method,
   Value<String?> sessionId,
+  Value<String?> clerkName,
   Value<int> rowid,
 });
 
@@ -10184,6 +10323,9 @@ class $$CreditEntriesTableTableFilterComposer extends Composer<_$GavilanDb, $Cre
 
   ColumnFilters<String> get sessionId =>
       $composableBuilder(column: $table.sessionId, builder: (column) => ColumnFilters(column));
+
+  ColumnFilters<String> get clerkName =>
+      $composableBuilder(column: $table.clerkName, builder: (column) => ColumnFilters(column));
 }
 
 class $$CreditEntriesTableTableOrderingComposer extends Composer<_$GavilanDb, $CreditEntriesTableTable> {
@@ -10216,6 +10358,9 @@ class $$CreditEntriesTableTableOrderingComposer extends Composer<_$GavilanDb, $C
 
   ColumnOrderings<String> get sessionId =>
       $composableBuilder(column: $table.sessionId, builder: (column) => ColumnOrderings(column));
+
+  ColumnOrderings<String> get clerkName =>
+      $composableBuilder(column: $table.clerkName, builder: (column) => ColumnOrderings(column));
 }
 
 class $$CreditEntriesTableTableAnnotationComposer extends Composer<_$GavilanDb, $CreditEntriesTableTable> {
@@ -10243,6 +10388,8 @@ class $$CreditEntriesTableTableAnnotationComposer extends Composer<_$GavilanDb, 
       $composableBuilder(column: $table.method, builder: (column) => column);
 
   GeneratedColumn<String> get sessionId => $composableBuilder(column: $table.sessionId, builder: (column) => column);
+
+  GeneratedColumn<String> get clerkName => $composableBuilder(column: $table.clerkName, builder: (column) => column);
 }
 
 class $$CreditEntriesTableTableTableManager
@@ -10278,6 +10425,7 @@ class $$CreditEntriesTableTableTableManager
                 Value<String?> saleId = const Value.absent(),
                 Value<PayMethod?> method = const Value.absent(),
                 Value<String?> sessionId = const Value.absent(),
+                Value<String?> clerkName = const Value.absent(),
                 Value<int> rowid = const Value.absent(),
               }) => CreditEntriesTableCompanion(
                 id: id,
@@ -10288,6 +10436,7 @@ class $$CreditEntriesTableTableTableManager
                 saleId: saleId,
                 method: method,
                 sessionId: sessionId,
+                clerkName: clerkName,
                 rowid: rowid,
               ),
           createCompanionCallback:
@@ -10300,6 +10449,7 @@ class $$CreditEntriesTableTableTableManager
                 Value<String?> saleId = const Value.absent(),
                 Value<PayMethod?> method = const Value.absent(),
                 Value<String?> sessionId = const Value.absent(),
+                Value<String?> clerkName = const Value.absent(),
                 Value<int> rowid = const Value.absent(),
               }) => CreditEntriesTableCompanion.insert(
                 id: id,
@@ -10310,6 +10460,7 @@ class $$CreditEntriesTableTableTableManager
                 saleId: saleId,
                 method: method,
                 sessionId: sessionId,
+                clerkName: clerkName,
                 rowid: rowid,
               ),
           withReferenceMapper: (p0) => p0
@@ -10525,6 +10676,7 @@ typedef $$CashMovementsTableTableCreateCompanionBuilder = CashMovementsTableComp
   required int amountCents,
   required String concept,
   required DateTime createdAt,
+  Value<String?> clerkName,
   Value<int> rowid,
 });
 typedef $$CashMovementsTableTableUpdateCompanionBuilder = CashMovementsTableCompanion Function({
@@ -10534,6 +10686,7 @@ typedef $$CashMovementsTableTableUpdateCompanionBuilder = CashMovementsTableComp
   Value<int> amountCents,
   Value<String> concept,
   Value<DateTime> createdAt,
+  Value<String?> clerkName,
   Value<int> rowid,
 });
 
@@ -10561,6 +10714,9 @@ class $$CashMovementsTableTableFilterComposer extends Composer<_$GavilanDb, $Cas
 
   ColumnFilters<DateTime> get createdAt =>
       $composableBuilder(column: $table.createdAt, builder: (column) => ColumnFilters(column));
+
+  ColumnFilters<String> get clerkName =>
+      $composableBuilder(column: $table.clerkName, builder: (column) => ColumnFilters(column));
 }
 
 class $$CashMovementsTableTableOrderingComposer extends Composer<_$GavilanDb, $CashMovementsTableTable> {
@@ -10587,6 +10743,9 @@ class $$CashMovementsTableTableOrderingComposer extends Composer<_$GavilanDb, $C
 
   ColumnOrderings<DateTime> get createdAt =>
       $composableBuilder(column: $table.createdAt, builder: (column) => ColumnOrderings(column));
+
+  ColumnOrderings<String> get clerkName =>
+      $composableBuilder(column: $table.clerkName, builder: (column) => ColumnOrderings(column));
 }
 
 class $$CashMovementsTableTableAnnotationComposer extends Composer<_$GavilanDb, $CashMovementsTableTable> {
@@ -10609,6 +10768,8 @@ class $$CashMovementsTableTableAnnotationComposer extends Composer<_$GavilanDb, 
   GeneratedColumn<String> get concept => $composableBuilder(column: $table.concept, builder: (column) => column);
 
   GeneratedColumn<DateTime> get createdAt => $composableBuilder(column: $table.createdAt, builder: (column) => column);
+
+  GeneratedColumn<String> get clerkName => $composableBuilder(column: $table.clerkName, builder: (column) => column);
 }
 
 class $$CashMovementsTableTableTableManager
@@ -10642,6 +10803,7 @@ class $$CashMovementsTableTableTableManager
                 Value<int> amountCents = const Value.absent(),
                 Value<String> concept = const Value.absent(),
                 Value<DateTime> createdAt = const Value.absent(),
+                Value<String?> clerkName = const Value.absent(),
                 Value<int> rowid = const Value.absent(),
               }) => CashMovementsTableCompanion(
                 id: id,
@@ -10650,6 +10812,7 @@ class $$CashMovementsTableTableTableManager
                 amountCents: amountCents,
                 concept: concept,
                 createdAt: createdAt,
+                clerkName: clerkName,
                 rowid: rowid,
               ),
           createCompanionCallback:
@@ -10660,6 +10823,7 @@ class $$CashMovementsTableTableTableManager
                 required int amountCents,
                 required String concept,
                 required DateTime createdAt,
+                Value<String?> clerkName = const Value.absent(),
                 Value<int> rowid = const Value.absent(),
               }) => CashMovementsTableCompanion.insert(
                 id: id,
@@ -10668,6 +10832,7 @@ class $$CashMovementsTableTableTableManager
                 amountCents: amountCents,
                 concept: concept,
                 createdAt: createdAt,
+                clerkName: clerkName,
                 rowid: rowid,
               ),
           withReferenceMapper: (p0) => p0

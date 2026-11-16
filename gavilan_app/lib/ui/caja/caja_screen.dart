@@ -142,6 +142,8 @@ class _CajaScreenState extends ConsumerState<CajaScreen> {
           ],
         ),
       ),
+      if (store.salesByClerk(session) case final rows when rows.isNotEmpty)
+        ByClerkCard(rows: rows, margin: const EdgeInsets.fromLTRB(16, 10, 16, 0)),
       if (ref.watch(permissionsProvider).seeProfit) ProfitCard(report: store.profitFor(session)),
       Padding(
         padding: const EdgeInsets.fromLTRB(16, 14, 16, 0),
@@ -169,6 +171,17 @@ class _CajaScreenState extends ConsumerState<CajaScreen> {
           ],
         ),
       ),
+      if (store.usesPins)
+        Padding(
+          padding: const EdgeInsets.fromLTRB(16, 8, 16, 0),
+          child: GButton(
+            label: 'Entregar caja',
+            icon: Icons.handshake_outlined,
+            kind: GButtonKind.outline,
+            expand: true,
+            onPressed: () => showHandOverSheet(context),
+          ),
+        ),
       // Lista de ventas del turno: ver tickets, mandarlos otra vez o cancelar una venta.
       Padding(
         padding: const EdgeInsets.fromLTRB(16, 8, 16, 0),
@@ -196,13 +209,17 @@ class _CajaScreenState extends ConsumerState<CajaScreen> {
                         width: 32,
                         height: 32,
                         decoration: BoxDecoration(
-                          color: m.kind == CashKind.gasto ? GColors.rojoSuave : GColors.cenoteSuave,
+                          color: _moveColor(m.kind).withValues(alpha: 0.12),
                           shape: BoxShape.circle,
                         ),
                         child: Icon(
-                          m.kind == CashKind.gasto ? Icons.south_east_rounded : Icons.north_east_rounded,
+                          switch (m.kind) {
+                            CashKind.gasto => Icons.south_east_rounded,
+                            CashKind.entrada => Icons.north_east_rounded,
+                            CashKind.arqueo => Icons.handshake_outlined,
+                          },
                           size: 17,
-                          color: m.kind == CashKind.gasto ? GColors.rojo : GColors.cenote,
+                          color: _moveColor(m.kind),
                         ),
                       ),
                       const SizedBox(width: 12),
@@ -211,18 +228,19 @@ class _CajaScreenState extends ConsumerState<CajaScreen> {
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
                             Text(m.concept, style: GText.sans(size: 14, weight: FontWeight.w600)),
-                            Text(timeLabel(m.createdAt), style: GText.muted()),
+                            Text(
+                              m.clerk == null ? timeLabel(m.createdAt) : '${timeLabel(m.createdAt)} · ${m.clerk}',
+                              style: GText.muted(),
+                            ),
                           ],
                         ),
                       ),
-                      Text(
-                        '${m.kind == CashKind.gasto ? '-' : '+'}${money(m.amountCents)}',
-                        style: GText.figures(
-                          size: 14,
-                          weight: FontWeight.w700,
-                          color: m.kind == CashKind.gasto ? GColors.rojo : GColors.cenote,
-                        ),
-                      ),
+                      // Un conteo al entregar no mete ni saca dinero: se muestra sin signo.
+                      Text(switch (m.kind) {
+                        CashKind.gasto => '-${money(m.amountCents)}',
+                        CashKind.entrada => '+${money(m.amountCents)}',
+                        CashKind.arqueo => money(m.amountCents),
+                      }, style: GText.figures(size: 14, weight: FontWeight.w700, color: _moveColor(m.kind))),
                     ],
                   ),
                 ),
@@ -485,6 +503,8 @@ Future<void> showCutDetail(BuildContext context, CashSession session) {
               color: diff < 0 ? GColors.rojo : GColors.cenote,
             ),
             _Ledger('Total vendido', summary.totalSoldCents, total: true),
+            if (store.salesByClerk(session) case final rows when rows.isNotEmpty)
+              ByClerkCard(rows: rows, margin: const EdgeInsets.only(top: 12)),
             Align(
               alignment: Alignment.centerLeft,
               child: TextButton.icon(
@@ -504,4 +524,75 @@ Future<void> showCutDetail(BuildContext context, CashSession session) {
       },
     ),
   );
+}
+
+Color _moveColor(CashKind kind) => switch (kind) {
+  CashKind.gasto => GColors.rojo,
+  CashKind.entrada => GColors.cenote,
+  CashKind.arqueo => GColors.tintaSuave,
+};
+
+/// "Ventas por persona": cuánto cobró cada quien en el turno, con una barra para comparar.
+class ByClerkCard extends StatelessWidget {
+  const ByClerkCard({super.key, required this.rows, this.margin});
+
+  final List<({String name, int count, int cents})> rows;
+  final EdgeInsetsGeometry? margin;
+
+  @override
+  Widget build(BuildContext context) {
+    final top = rows.fold<int>(0, (m, r) => r.cents > m ? r.cents : m);
+    return GCard(
+      margin: margin,
+      padding: const EdgeInsets.fromLTRB(16, 12, 16, 10),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          Text('Ventas por persona', style: GText.sans(size: 15, weight: FontWeight.w800)),
+          const SizedBox(height: 4),
+          for (final r in rows)
+            Padding(
+              padding: const EdgeInsets.symmetric(vertical: 7),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  Row(
+                    children: [
+                      Expanded(
+                        child: Text(
+                          r.name,
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                          style: GText.sans(size: 14, weight: FontWeight.w700),
+                        ),
+                      ),
+                      Text(r.count == 1 ? '1 venta' : '${r.count} ventas', style: GText.muted(size: 12.5)),
+                      const SizedBox(width: 12),
+                      SizedBox(
+                        width: 104,
+                        child: Text(
+                          money(r.cents),
+                          textAlign: TextAlign.right,
+                          style: GText.figures(size: 14, weight: FontWeight.w700),
+                        ),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 5),
+                  ClipRRect(
+                    borderRadius: BorderRadius.circular(4),
+                    child: LinearProgressIndicator(
+                      value: top == 0 ? 0 : r.cents / top,
+                      minHeight: 6,
+                      backgroundColor: GColors.hundido,
+                      color: GColors.cenote,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+        ],
+      ),
+    );
+  }
 }

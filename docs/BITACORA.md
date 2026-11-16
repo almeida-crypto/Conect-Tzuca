@@ -705,3 +705,33 @@ Se abren desde **Más → Módulos** con el plan Emprendedor o superior. Los tre
   - Al recargar abre el último usado.
   - "Volver a mis negocios" desde un negocio vacío lo quita de la lista.
 - **No probado:** con cuentas reales (unirse con código y bajar un negocio de la cuenta).
+
+## 16 de noviembre de 2026 · Sesión 10
+
+### Cambio de cajero con PIN (una sola caja, "Entregar caja" opcional)
+- **Para qué:** dos o más personas usan la misma computadora o el mismo celular en el mostrador. Cada quien entra con su nombre y un PIN de 4 cifras y lo que cobra queda a su nombre, sin cambiar de aparato.
+- **Más › Personas del mostrador** (solo el dueño):
+  - "Empezar con mi PIN": el dueño pone su nombre y PIN y se queda atendiendo.
+  - Agregar personas con nombre, qué puede hacer (cajero, encargado o dueño) y PIN dos veces; cambiar el PIN o quitar a alguien.
+  - "Bloquear solo": nunca, 1, 3, 5 (al activar), 10 o 30 minutos sin tocar la caja.
+  - "Dejar de pedir PIN en este aparato".
+- **"¿Quién atiende?":** al abrir la app (y al bloquear) tapa todo: se toca el nombre y se pone el PIN con el teclado de la pantalla o el de la computadora. 5 PIN equivocados: un minuto de espera. "¿Se te olvidó el PIN?": el dueño vuelve a entrar con la contraseña de su cuenta y se pone uno nuevo.
+- **"Atiende: Ana"** arriba, junto al respaldo: al tocarlo (o con F4 en la computadora) se bloquea para que entre otra persona.
+- **Permisos:** el cajero cobra, fía, recibe abonos y anota gastos, pero no cancela ventas, no ve ganancias ni cambia productos o mesas. Si hace falta cancelar o devolver, el dueño o un encargado pone su PIN ahí mismo sin cambiar quién atiende. El PIN nunca da más de lo que permite la cuenta del aparato.
+- **A nombre de quien atiende:** ventas, gastos, entradas y abonos guardan `clerk_name`. El ticket dice "Te atendió: Ana" (en pantalla, WhatsApp e impreso) y la lista de ventas también.
+- **Corte:** tarjeta "Ventas por persona" (cuántas ventas y cuánto, con barra) en el turno abierto y en los cortes cerrados. Las ventas de antes de usar PIN salen como "Sin nombre".
+- **"Entregar caja":** quien se va elige a quién se la deja, cuenta el cajón y ve si cuadra. Se anota un movimiento `arqueo` ("Entregó la caja a Ana · sobraron $10.00") que no mete ni saca dinero, y la caja se bloquea para que entre la otra persona. El turno sigue abierto.
+- **Servidor (migración 0014):** `clerk_name` en `sales`, `cash_movements` y `credit_entries`; `cash_movements.kind` acepta `count` (puede ser 0).
+- **Teléfono:** base local versión 10 (columna `clerkName`). Las personas y sus PIN (huella SHA-256 con sal) viven en los datos sueltos del archivo del negocio y nunca suben a la nube.
+
+### Verificación
+- `flutter analyze` sin avisos y 99 pruebas pasan, 12 nuevas (`clerks_test.dart`):
+  - PIN con huella y sal, solo 4 números, ida y vuelta en JSON.
+  - Permisos de cajero, encargado y dueño; el PIN no pasa por encima de la cuenta.
+  - 5 errores bloquean un minuto.
+  - Venta, gasto y abono a nombre de quien atiende; "Ventas por persona".
+  - "Entregar caja" no cambia lo que debe haber y sube como `count`.
+  - Las personas se guardan al reabrir y no se encolan para la nube.
+  - Pantalla: pide quién atiende, PIN equivocado, entra, F4 bloquea; un cajero cancela solo con el PIN del dueño.
+- Revisión de pantallas en celular y computadora: bloqueo, "Atiende", corte, Entregar caja, Personas.
+- **No probado:** en un celular real y con dos personas de verdad.
