@@ -13,6 +13,7 @@ Proyecto de Supabase **proyecto-Gavilan** (`jveklinfbptnxmtavnez`, región us-ea
 | [0005_team.sql](../pos-backend/supabase/migrations/0005_team.sql) | `pos_team` | Invitaciones con código (`business_invites`), funciones del equipo y sin altas ni cambios directos en `business_members` |
 | [0006_restaurant_sync.sql](../pos-backend/supabase/migrations/0006_restaurant_sync.sql) | `pos_restaurant_sync` | `synced_at` en mesas, comandas y platillos; orden de las mesas, nombre de la comanda para llevar, hora de cierre y hora en que se sirvió |
 | [0007_table_zones.sql](../pos-backend/supabase/migrations/0007_table_zones.sql) | `pos_table_zones` | Zona de cada mesa (`restaurant_tables.zone`) |
+| [0013_multi_business.sql](../pos-backend/supabase/migrations/0013_multi_business.sql) | `0013_multi_business` | `accept_invite` ya no rechaza a quien pertenece a otro negocio: una cuenta puede estar en varios, con un puesto en cada uno |
 | [0012_extras.sql](../pos-backend/supabase/migrations/0012_extras.sql) | `0012_extras` | Tabla `extras` (nombre y precio, la ven todos, la cambian dueño y admin) y `order_items.extras` (jsonb con los extras de cada platillo). La cocina tampoco puede cambiar los extras |
 | [0011_sane_numbers.sql](../pos-backend/supabase/migrations/0011_sane_numbers.sql) | `0011_sane_numbers` | Rechaza números irreales: precio y costo de 0 a 999,999.99; mínimo de 0 a 99,999; existencia entre -999,999 y 999,999; nombre de 1 a 120 letras; gastos y fondo de caja hasta 999,999.99 |
 | [0010_cancel_sales.sql](../pos-backend/supabase/migrations/0010_cancel_sales.sql) | `0010_cancel_sales` | Ventas canceladas: `sales.status = 'cancelled'` con el motivo en `notes`, lo vendido regresa con un movimiento `return` y la deuda de una venta fiada se quita con `credit_entries.type = 'reversal'` (nuevo valor de `ledger_type`) |
@@ -53,7 +54,7 @@ Las existencias se calculan desde `inventory_movements`: un trigger actualiza `p
 | `is_member(negocio)` | Usada por RLS: ¿el usuario pertenece al negocio? |
 | `has_role(negocio, roles)` | Usada por RLS: ¿tiene alguno de estos roles? |
 | `create_invite(negocio, rol, nombre)` | Dueño o administrador crean un código de 8 letras que vence en 7 días. Solo el dueño invita administradores |
-| `accept_invite(código)` | Quien entra con su cuenta se une al negocio con el rol del código. Una cuenta pertenece a un solo negocio |
+| `accept_invite(código)` | Quien entra con su cuenta se une al negocio con el rol del código y devuelve su id. Una cuenta puede estar en varios negocios (desde 0013) |
 | `revoke_invite(id)` | Cancela un código sin usar |
 | `remove_member(id)` | Quita a alguien del equipo (nunca al dueño; a un administrador, solo el dueño) |
 | `new_invite_code()` | Interna: genera el código con `gen_random_bytes`. Nadie la puede llamar por la API |

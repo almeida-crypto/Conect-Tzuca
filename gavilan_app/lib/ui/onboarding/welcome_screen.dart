@@ -7,12 +7,14 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../data/sync_remote.dart';
 import '../../domain/business.dart';
+import '../../state/profiles.dart';
 import '../../state/store.dart';
 import '../../state/sync.dart';
 import '../../theme/colors.dart';
 import '../../theme/theme.dart';
 import '../account/account_screen.dart';
 import 'business_type_screen.dart';
+import '../account/business_switcher.dart';
 import '../widgets/buttons.dart';
 
 /// Primer arranque: nombre del negocio, o probar con la tiendita de ejemplo.
@@ -50,7 +52,8 @@ class _WelcomeScreenState extends ConsumerState<WelcomeScreen> {
       final notifier = ref.read(syncProvider.notifier);
       unawaited(() async {
         try {
-          await notifier.ensureLinked();
+          // Recién creado a propósito: si la cuenta ya tiene otros negocios, este se sube como uno más.
+          await notifier.ensureLinked(createIfNew: true);
         } on SyncException catch (e) {
           messenger.showSnackBar(SnackBar(content: Text('Todavía no se respaldó: ${e.message}')));
         }
@@ -96,6 +99,13 @@ class _WelcomeScreenState extends ConsumerState<WelcomeScreen> {
                   ),
                   const SizedBox(height: 14),
                   GButton(label: 'Empezar', expand: true, big: true, onPressed: _start),
+                  // Abrió "Crear otro negocio" y se arrepintió: puede regresar a los que ya tiene.
+                  if ((ref.watch(businessSwitcherProvider)?.profiles.length ?? 0) > 1)
+                    TextButton.icon(
+                      onPressed: () => showBusinessSwitcher(context),
+                      icon: const Icon(Icons.swap_horiz_rounded, size: 18),
+                      label: const Text('Volver a mis negocios'),
+                    ),
                   if (ref.watch(syncProvider).configured) ...[
                     const SizedBox(height: 6),
                     TextButton(

@@ -364,9 +364,10 @@ class GavilanDb extends _$GavilanDb {
 
   /// Base guardada en el teléfono (carpeta de documentos de la app).
   /// En el navegador usa sqlite3.wasm y drift_worker.js (en web/) y guarda en OPFS o IndexedDB.
-  factory GavilanDb.onDevice() => GavilanDb(
+  /// [name]: cada negocio de este teléfono tiene su propio archivo ("gavilan" es el primero).
+  factory GavilanDb.onDevice({String name = 'gavilan'}) => GavilanDb(
     driftDatabase(
-      name: 'gavilan',
+      name: name,
       web: DriftWebOptions(sqlite3Wasm: Uri.parse('sqlite3.wasm'), driftWorker: Uri.parse('drift_worker.js')),
     ),
   );

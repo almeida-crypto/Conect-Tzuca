@@ -19,6 +19,8 @@ import '../team/team_screen.dart';
 import '../widgets/buttons.dart';
 import '../widgets/common.dart';
 import 'plan_screen.dart';
+import '../account/business_switcher.dart';
+import '../../state/profiles.dart';
 
 /// Módulo adicional del documento maestro y qué plan lo incluye.
 class _Module {
@@ -169,6 +171,35 @@ class MasScreen extends ConsumerWidget {
             ),
           ),
         ),
+        if (ref.watch(businessSwitcherProvider) case final switcher?) ...[
+          const SectionTitle('Mis negocios'),
+          GCard(
+            margin: const EdgeInsets.symmetric(horizontal: 16),
+            padding: const EdgeInsets.fromLTRB(14, 12, 10, 12),
+            onTap: () => showBusinessSwitcher(context),
+            child: Row(
+              children: [
+                const _IconTile(icon: Icons.swap_horiz_rounded, color: GColors.cenote),
+                const SizedBox(width: 14),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        switcher.profiles.length > 1
+                            ? '${switcher.profiles.length} negocios en este teléfono'
+                            : 'Cambiar, crear otro o unirme a uno',
+                        style: GText.sans(size: 15, weight: FontWeight.w700),
+                      ),
+                      Text('Por si trabajas en un negocio y tienes otro tuyo', style: GText.muted(size: 12.5)),
+                    ],
+                  ),
+                ),
+                const Icon(Icons.chevron_right_rounded, color: GColors.tintaTenue),
+              ],
+            ),
+          ),
+        ],
         const SectionTitle('Módulos'),
         Builder(
           builder: (context) {

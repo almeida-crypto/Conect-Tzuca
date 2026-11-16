@@ -18,6 +18,8 @@ import '../widgets/buttons.dart';
 import '../widgets/common.dart';
 import 'order_screen.dart';
 import 'extras_screen.dart';
+import '../account/business_switcher.dart';
+import '../../state/profiles.dart';
 
 /// Minutos desde [since], para "hace 12 min".
 int minutesSince(DateTime since) => DateTime.now().difference(since).inMinutes;
@@ -100,6 +102,12 @@ class _RestaurantScreenState extends ConsumerState<RestaurantScreen> {
               icon: const Icon(Icons.add_card_outlined),
               onPressed: () =>
                   Navigator.of(context).push(MaterialPageRoute<void>(builder: (_) => const ExtrasScreen())),
+            ),
+          if (widget.embedded && ref.watch(businessSwitcherProvider) != null)
+            IconButton(
+              tooltip: 'Mis negocios',
+              icon: const Icon(Icons.swap_horiz_rounded),
+              onPressed: () => showBusinessSwitcher(context),
             ),
           if (widget.embedded)
             IconButton(

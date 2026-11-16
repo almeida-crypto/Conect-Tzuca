@@ -674,3 +674,34 @@ Se abren desde **Más → Módulos** con el plan Emprendedor o superior. Los tre
   - Tienda sin mesas.
 - Las pruebas de primer arranque ya pasan por el paso del tipo.
 - Capturas generadas con Flutter (no se subieron): pantalla del tipo, pestaña Mesas y "Lo que uso". Se corrigieron los interruptores apagados (se veían rosas) y "pacas y lotes y apartados".
+
+### Varios negocios en una cuenta ("Mis negocios")
+- **Servidor (migración 0013):** una cuenta puede estar en varios negocios, con un puesto en cada uno. `accept_invite` ya no rechaza a quien es de otro negocio y devuelve el id del negocio.
+- **Teléfono:**
+  - Cada negocio tiene su propio archivo de base (`GavilanDb.onDevice(name:)`).
+  - `ProfileRegistry` (shared_preferences) guarda la lista y cuál está abierto. El archivo de siempre ("gavilan") es el primero, así que los teléfonos de antes no pierden nada.
+  - `ProfileHost` (main.dart) abre el negocio activo y, al cambiar, cierra un archivo y abre el otro: la app arranca de nuevo con sus datos y sin la animación del inicio.
+- **"Mis negocios"** se abre desde Más, desde el nombre del negocio en Cobrar (cuando hay más de uno), desde el botón de los meseros y la cocina en Mesas y desde la bienvenida de un negocio nuevo. Ahí se puede:
+  - Cambiar a otro negocio del teléfono.
+  - Ver los de la cuenta que todavía no están en el teléfono: se bajan al abrirlos ("Bajando…").
+  - Unirse con un código: si el teléfono ya tiene negocio, el nuevo se abre aparte.
+  - Crear otro: abre un archivo vacío y pide nombre y tipo.
+  - Quitar uno del teléfono, lo que no borra lo de la nube.
+- **Al entrar con la cuenta** en un teléfono con otro negocio, se agrega la opción "Tener los dos".
+- **Sincronización:**
+  - `myBusinesses()` reemplaza a `myBusiness()`.
+  - La revisión del puesto mira el negocio del archivo abierto.
+  - `ensureLinked(createIfNew:)` sube un negocio creado a propósito como uno más de la cuenta.
+  - `joinWithCode` devuelve `joinedOther` cuando el teléfono ya tiene otro negocio.
+
+### Verificación
+- `flutter analyze` sin avisos y 87 pruebas pasan, 3 nuevas:
+  - Una cuenta dueña de su negocio y mesera en otro, sin mezclarse, y el dueño del restaurante no ve el otro.
+  - Crear otro negocio con la misma cuenta.
+  - La lista de negocios del teléfono.
+- El servidor de prueba ahora maneja varios negocios por cuenta.
+- **En el navegador (celular):**
+  - Tiendita de ejemplo, luego "Crear otro negocio", "Perfumes Ana" (tienda), cambiar desde el nombre: la tiendita conservó todo.
+  - Al recargar abre el último usado.
+  - "Volver a mis negocios" desde un negocio vacío lo quita de la lista.
+- **No probado:** con cuentas reales (unirse con código y bajar un negocio de la cuenta).

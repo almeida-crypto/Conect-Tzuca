@@ -434,4 +434,66 @@ void main() {
     await _setUpShop(a);
     expect(await a.repo.pendingCount(), 0);
   });
+
+  // ---------- Varios negocios en una cuenta ----------
+  // Cada negocio vive en su propia base del teléfono: aquí, dos "Phone" con la misma cuenta son dos
+  // negocios en el mismo celular.
+
+  test('una cuenta en dos negocios: dueña del suyo y mesera en otro, sin mezclarse', () async {
+    final guero = await phone(device: 'G1');
+    await _setUpShop(guero);
+    await guero.login('guero@correo.mx');
+    await guero.settle();
+    final code = await guero.sync.createInvite(MemberRole.waiter, 'Ana');
+
+    // Ana ya tiene su negocio en el celular y respaldado.
+    final perfumes = await phone(device: 'A1');
+    perfumes.store.startBusiness('Perfumes Ana');
+    perfumes.store.saveProduct(const Product(id: 'p1', name: 'Perfume', priceCents: 45000));
+    await perfumes.store.flush();
+    expect((await perfumes.login('ana@correo.mx')).result, LinkResult.uploaded);
+
+    // Se une al restaurante con el código: como este celular ya tiene su negocio, va aparte.
+    final outcome = await perfumes.sync.joinWithCode(formatInviteCode(code));
+    expect(outcome.result, LinkResult.joinedOther);
+    expect(outcome.remoteName, 'Tienda La Esperanza');
+    expect(perfumes.state.businessName, 'Perfumes Ana'); // no se tocó
+
+    // El otro negocio se abre en su propio archivo y se baja de la nube.
+    final turno = await phone(device: 'A1');
+    await turno.sync.signIn('ana@correo.mx', 'secreta1');
+    await turno.sync.downloadBusiness(outcome.remoteId!, outcome.remoteName!);
+    expect(turno.state.businessName, 'Tienda La Esperanza');
+    expect(turno.status.role, MemberRole.waiter);
+    expect(turno.state.productById('p1'), isNull); // nada de sus perfumes aquí
+
+    // En su negocio sigue siendo la dueña, y su cuenta ve los dos.
+    await perfumes.settle();
+    expect(perfumes.status.role, MemberRole.owner);
+    final mine = await perfumes.sync.accountBusinesses();
+    expect(mine.map((b) => (b.name, b.role)), [
+      ('Perfumes Ana', MemberRole.owner),
+      ('Tienda La Esperanza', MemberRole.waiter),
+    ]);
+    // El dueño del restaurante no ve el negocio de Ana.
+    expect((await guero.sync.accountBusinesses()).map((b) => b.name), ['Tienda La Esperanza']);
+  });
+
+  test('crear otro negocio con la misma cuenta lo sube como uno más', () async {
+    final first = await phone();
+    first.store.startBusiness('Tacos en la noche');
+    await first.store.flush();
+    await first.login('beto@correo.mx');
+
+    final second = await phone();
+    second.store.startBusiness('Tienda en la mañana');
+    await second.store.flush();
+    await second.sync.signIn('beto@correo.mx', 'secreta1');
+    // Sin pedirlo, se pregunta (puede ser un negocio de prueba)…
+    expect((await second.sync.ensureLinked()).result, LinkResult.conflict);
+    // …recién creado a propósito, se sube como otro negocio de la cuenta.
+    expect((await second.sync.ensureLinked(createIfNew: true)).result, LinkResult.uploaded);
+    expect((await second.sync.accountBusinesses()).map((b) => b.name), ['Tacos en la noche', 'Tienda en la mañana']);
+    expect(second.status.role, MemberRole.owner);
+  });
 }

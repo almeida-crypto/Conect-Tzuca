@@ -85,6 +85,9 @@ enum LinkResult {
 
   /// La cuenta tiene otro negocio distinto al de este teléfono.
   conflict,
+
+  /// Se unió a otro negocio con un código, pero este teléfono ya tiene uno: se abre aparte.
+  joinedOther,
 }
 
 /// Qué traía un enlace de los correos de la cuenta.
@@ -178,9 +181,10 @@ class SyncController extends Notifier<SyncStatus> {
     final store = _store;
     if (remote == null || store == null || remote.userId == null || store.linkedBusinessId == null) return;
     try {
-      final mine = await remote.myBusiness();
+      final all = await remote.myBusinesses();
       if (!ref.mounted) return;
-      if (mine == null || mine.id != store.linkedBusinessId) {
+      final mine = all.where((b) => b.id == store.linkedBusinessId).firstOrNull;
+      if (mine == null) {
         state = state.copyWith(problem: 'Tu cuenta ya no pertenece a este negocio. Pregúntale al dueño.');
       } else if (mine.role != store.role) {
         await _setRole(mine.role);
@@ -365,17 +369,34 @@ class SyncController extends Notifier<SyncStatus> {
     state = state.copyWith(clearEmail: true, clearProblem: true);
   }
 
-  /// Enlaza este teléfono con la cuenta que inició sesión.
-  Future<LinkOutcome> ensureLinked() async {
+  /// Negocios de la cuenta (para "Mis negocios"). Vacío sin sesión o sin internet.
+  Future<List<({String id, String name, MemberRole role})>> accountBusinesses() async {
+    final remote = _remote;
+    if (remote == null || remote.userId == null) return const [];
+    try {
+      return await remote.myBusinesses();
+    } on SyncException {
+      return const [];
+    }
+  }
+
+  /// Enlaza el negocio de este teléfono con la cuenta que inició sesión.
+  /// [createIfNew]: si la cuenta ya tiene otros negocios y este no está entre ellos, se sube como uno
+  /// más (se acaba de crear a propósito). Sin él, se pregunta qué hacer ([LinkResult.conflict]).
+  Future<LinkOutcome> ensureLinked({bool createIfNew = false}) async {
     final remote = _remote!;
     final store = _store!;
     final notifier = ref.read(storeProvider.notifier);
     await notifier.flush();
     final local = ref.read(storeProvider);
-    final mine = await remote.myBusiness();
+    final all = await remote.myBusinesses();
+    final hasLocal = local.hasBusiness && !local.isDemo;
+    final match = hasLocal ? all.where((b) => b.id == local.businessId).firstOrNull : null;
+    // Si no hay uno igual: el primero donde es dueño, o el primero.
+    final mine = match ?? all.where((b) => b.role == MemberRole.owner).firstOrNull ?? all.firstOrNull;
 
-    if (mine == null) {
-      if (!local.hasBusiness || local.isDemo) return const LinkOutcome(LinkResult.needsBusiness);
+    if (mine == null || (hasLocal && match == null && createIfNew)) {
+      if (!hasLocal) return const LinkOutcome(LinkResult.needsBusiness);
       await remote.createBusiness(id: local.businessId, name: local.businessName);
       await store.link(local.businessId, uploadAll: local);
       await _setRole(MemberRole.owner);
@@ -404,11 +425,20 @@ class SyncController extends Notifier<SyncStatus> {
   /// Código de invitación que se escribió antes de confirmar el correo; se usa al volver.
   String? pendingInvite;
 
-  /// Se une al negocio de un código de invitación y lo baja a este teléfono.
+  /// Se une al negocio de un código de invitación. Si este teléfono no tiene negocio, lo baja aquí;
+  /// si ya tiene otro, avisa con [LinkResult.joinedOther] para abrirlo aparte en "Mis negocios".
   Future<LinkOutcome> joinWithCode(String code) async {
-    await _remote!.acceptInvite(code);
+    final remote = _remote!;
+    final id = await remote.acceptInvite(code);
     pendingInvite = null;
-    return ensureLinked();
+    final local = ref.read(storeProvider);
+    if (!local.hasBusiness || local.isDemo || local.businessId == id) {
+      final name = (await remote.myBusinesses()).where((b) => b.id == id).firstOrNull?.name ?? 'Mi negocio';
+      await downloadBusiness(id, name);
+      return LinkOutcome(LinkResult.downloaded, remoteId: id, remoteName: name);
+    }
+    final name = (await remote.myBusinesses()).where((b) => b.id == id).firstOrNull?.name ?? 'Mi negocio';
+    return LinkOutcome(LinkResult.joinedOther, remoteId: id, remoteName: name);
   }
 
   String? get myUserId => _remote?.userId;

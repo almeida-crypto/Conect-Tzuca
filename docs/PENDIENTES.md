@@ -27,7 +27,8 @@ Prioridad: **Alta** = sin esto no se puede usar con un negocio real · **Media**
 - [x] **Media** · Primer uso: con el negocio vacío, Cobrar e Inventario muestran "Agrega tus primeros productos": elegir de una lista de ~65 productos comunes de tiendita (se marca y se pone precio), agregar uno por uno o pegar desde Excel (computadora). *12/11/2026*
 - [x] **Media** · Un código de barras desconocido (lector USB o tecleado) ofrece "Darlo de alta" y lo agrega a la cuenta al guardarlo. *12/11/2026*
 - [x] **Media** · Tipo de negocio al crearlo (tienda, restaurante, ropa/pacas, comida por encargo, otro) y "Lo que uso" en Más para prender o apagar módulos. En restaurante, Mesas es la primera pestaña. *15/11/2026*
-- [ ] **Media** · Varios negocios en una cuenta, con un puesto en cada uno y "Cambiar de negocio" (el mesero que además tiene su propio negocio).
+- [x] **Media** · Varios negocios en una cuenta y en un teléfono, cada uno en su propio archivo, con "Mis negocios" para cambiar, crear otro o unirse con un código. *15/11/2026*
+- [ ] **Media** · Probar "Mis negocios" con cuentas reales: unirse con código teniendo ya un negocio y abrir uno de la cuenta que no está en el teléfono.
 - [ ] **Media** · Cambiar de cajero con PIN en un celular compartido, sin cerrar sesión.
 - [ ] **Media** · Al quitar a alguien del equipo, borrar los datos del negocio en su celular.
 - [ ] **Baja** · Corte del dueño que junte las cajas de todos los celulares del día.

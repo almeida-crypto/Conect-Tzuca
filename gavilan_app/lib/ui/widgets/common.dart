@@ -9,6 +9,8 @@ import '../../theme/colors.dart';
 import '../../theme/theme.dart';
 import '../account/account_screen.dart';
 import 'buttons.dart';
+import '../account/business_switcher.dart';
+import '../../state/profiles.dart';
 
 /// Texto y color del estado de respaldo para la pastilla del encabezado.
 (String, Color) syncLabel(SyncStatus s) {
@@ -50,11 +52,27 @@ class BusinessHeader extends ConsumerWidget {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text(
-                  store.businessName,
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                  style: GText.sans(size: 17, weight: FontWeight.w800).copyWith(letterSpacing: -0.2),
+                Builder(
+                  builder: (context) {
+                    final name = Text(
+                      store.businessName,
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: GText.sans(size: 17, weight: FontWeight.w800).copyWith(letterSpacing: -0.2),
+                    );
+                    final switcher = ref.watch(businessSwitcherProvider);
+                    if (switcher == null || switcher.profiles.length < 2) return name;
+                    return GestureDetector(
+                      onTap: () => showBusinessSwitcher(context),
+                      child: Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Flexible(child: name),
+                          const Icon(Icons.expand_more_rounded, size: 20, color: GColors.tintaSuave),
+                        ],
+                      ),
+                    );
+                  },
                 ),
                 const SizedBox(height: 3),
                 Row(

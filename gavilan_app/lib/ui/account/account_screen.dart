@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../core/ticket_text.dart';
 import '../../data/sync_remote.dart';
+import '../../state/profiles.dart';
 import '../../state/store.dart';
 import '../../state/sync.dart';
 import '../../theme/colors.dart';
@@ -150,6 +151,16 @@ class _AccountScreenState extends ConsumerState<AccountScreen> {
           );
         case LinkResult.conflict:
           await _askReplace(outcome);
+        case LinkResult.joinedOther:
+          // Ya tiene otro negocio en este teléfono: el nuevo se abre aparte, en "Mis negocios".
+          final switcher = ref.read(businessSwitcherProvider);
+          if (switcher == null) {
+            _done('Ya eres parte de ${outcome.remoteName}. Ábrelo desde Mis negocios.');
+          } else {
+            await ref.read(storeProvider.notifier).flush();
+            if (mounted) Navigator.of(context).maybePop();
+            await switcher.openCloudBusiness(id: outcome.remoteId!, name: outcome.remoteName!);
+          }
       }
     } on SyncException catch (e) {
       if (mounted) setState(() => _error = e.message);
@@ -165,27 +176,41 @@ class _AccountScreenState extends ConsumerState<AccountScreen> {
 
   Future<void> _askReplace(LinkOutcome outcome) async {
     final local = ref.read(storeProvider).businessName;
-    final ok = await showDialog<bool>(
+    final choice = await showDialog<String>(
       context: context,
       builder: (ctx) => AlertDialog(
         title: const Text('Hay dos negocios distintos'),
         content: Text(
           'Tu cuenta tiene "${outcome.remoteName}" y este teléfono tiene "$local". '
-          '¿Quieres reemplazar lo de este teléfono con lo de tu cuenta? Lo de "$local" que no esté en la nube se pierde.',
+          'Puedes tener los dos (cada uno aparte, en Mis negocios) o reemplazar lo de este teléfono con lo de '
+          'tu cuenta (lo de "$local" que no esté en la nube se pierde).',
           style: GText.sans(size: 14, weight: FontWeight.w400),
         ),
         actions: [
-          TextButton(onPressed: () => Navigator.of(ctx).pop(false), child: const Text('Dejarlo así')),
+          TextButton(onPressed: () => Navigator.of(ctx).pop('dejar'), child: const Text('Dejarlo así')),
           TextButton(
-            onPressed: () => Navigator.of(ctx).pop(true),
+            onPressed: () => Navigator.of(ctx).pop('reemplazar'),
             child: Text(
               'Reemplazar',
               style: GText.sans(size: 14, weight: FontWeight.w800, color: GColors.rojo),
             ),
           ),
+          TextButton(
+            onPressed: () => Navigator.of(ctx).pop('los dos'),
+            child: Text(
+              'Tener los dos',
+              style: GText.sans(size: 14, weight: FontWeight.w800, color: GColors.cenote),
+            ),
+          ),
         ],
       ),
     );
+    if (choice == 'los dos') {
+      await _sync.ensureLinked(createIfNew: true);
+      if (mounted) _done('Listo: "$local" quedó respaldado. "${outcome.remoteName}" está en Mis negocios.');
+      return;
+    }
+    final ok = choice == 'reemplazar';
     if (ok != true) {
       setState(() => _info = 'Este teléfono sigue sin respaldo. Puedes cerrar sesión o reemplazarlo cuando quieras.');
       return;

@@ -40,11 +40,13 @@ abstract class SyncRemote {
   Future<bool> openAuthLink(Uri uri);
 
   /// El negocio al que pertenece el usuario, si tiene, y su rol en él.
-  Future<({String id, String name, MemberRole role})?> myBusiness();
+  /// Los negocios a los que pertenece la cuenta, el más antiguo primero, con el puesto en cada uno.
+  Future<List<({String id, String name, MemberRole role})>> myBusinesses();
   Future<void> createBusiness({required String id, required String name});
 
   // Equipo
-  Future<void> acceptInvite(String code);
+  /// Se une al negocio del código. Devuelve el id de ese negocio.
+  Future<String> acceptInvite(String code);
   Future<String> createInvite(String businessId, MemberRole role, String name);
   Future<List<TeamMember>> members(String businessId);
   Future<List<TeamInvite>> invites(String businessId);
@@ -159,28 +161,28 @@ class SupabaseRemote implements SyncRemote {
   });
 
   @override
-  Future<({String id, String name, MemberRole role})?> myBusiness() => _guard(() async {
+  Future<List<({String id, String name, MemberRole role})>> myBusinesses() => _guard(() async {
     final uid = userId;
-    if (uid == null) return null;
+    if (uid == null) return const [];
     final rows = await client
         .from('business_members')
         .select('business_id, role, businesses(name)')
         .eq('user_id', uid)
         .isFilter('deleted_at', null)
-        .order('created_at')
-        .limit(1);
-    if (rows.isEmpty) return null;
-    final row = rows.first;
-    final business = row['businesses'] as Map<String, dynamic>?;
-    return (
-      id: row['business_id'] as String,
-      name: (business?['name'] as String?) ?? 'Mi negocio',
-      role: MemberRole.fromRemote(row['role'] as String?) ?? MemberRole.cashier,
-    );
+        .order('created_at');
+    return [
+      for (final row in rows)
+        (
+          id: row['business_id'] as String,
+          name: ((row['businesses'] as Map<String, dynamic>?)?['name'] as String?) ?? 'Mi negocio',
+          role: MemberRole.fromRemote(row['role'] as String?) ?? MemberRole.cashier,
+        ),
+    ];
   });
 
   @override
-  Future<void> acceptInvite(String code) => _guard(() => client.rpc('accept_invite', params: {'p_code': code}));
+  Future<String> acceptInvite(String code) =>
+      _guard(() async => '${await client.rpc<dynamic>('accept_invite', params: {'p_code': code})}');
 
   @override
   Future<String> createInvite(String businessId, MemberRole role, String name) => _guard(
