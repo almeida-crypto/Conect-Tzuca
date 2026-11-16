@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../../domain/business.dart';
 import '../../domain/plan.dart';
 import '../../state/app_state.dart';
 import '../../state/store.dart';
@@ -8,7 +9,9 @@ import '../../state/sync.dart';
 import '../../theme/colors.dart';
 import '../../theme/theme.dart';
 import '../account/account_screen.dart';
+import '../fiados/fiados_screen.dart';
 import '../modules/layaways_screen.dart';
+import '../onboarding/business_type_screen.dart';
 import '../modules/lots_screen.dart';
 import '../modules/tandas_screen.dart';
 import '../restaurant/restaurant_screen.dart';
@@ -19,7 +22,10 @@ import 'plan_screen.dart';
 
 /// Módulo adicional del documento maestro y qué plan lo incluye.
 class _Module {
-  const _Module(this.icon, this.title, this.subtitle, this.needed, this.unlocked, {this.screen});
+  const _Module(this.icon, this.title, this.subtitle, this.needed, this.unlocked, {this.screen, this.module});
+
+  /// Si el negocio puede apagarlo en "Lo que uso" (null = siempre se ve).
+  final Module? module;
 
   final IconData icon;
   final String title;
@@ -39,6 +45,7 @@ final _modules = [
     Plan.emprendedor,
     (l) => l.layaways,
     screen: () => const LayawaysScreen(),
+    module: Module.apartados,
   ),
   _Module(
     Icons.checkroom_outlined,
@@ -47,6 +54,7 @@ final _modules = [
     Plan.semilla,
     (l) => true,
     screen: () => const LotsScreen(),
+    module: Module.pacas,
   ),
   _Module(
     Icons.event_note_outlined,
@@ -55,6 +63,7 @@ final _modules = [
     Plan.emprendedor,
     (l) => l.batches,
     screen: () => const TandasScreen(),
+    module: Module.tandas,
   ),
   _Module(
     Icons.table_restaurant_outlined,
@@ -63,6 +72,7 @@ final _modules = [
     Plan.negocio,
     (l) => l.restaurant,
     screen: () => const RestaurantScreen(),
+    module: Module.restaurante,
   ),
   _Module(
     Icons.groups_outlined,
@@ -160,18 +170,63 @@ class MasScreen extends ConsumerWidget {
           ),
         ),
         const SectionTitle('Módulos'),
-        GCard(
-          margin: const EdgeInsets.symmetric(horizontal: 16),
-          padding: EdgeInsets.zero,
-          child: Column(
-            children: [
-              for (final (i, m) in _modules.indexed) ...[
-                if (i > 0) const Divider(height: 1, indent: 68, color: GColors.linea),
-                _ModuleRow(module: m, unlocked: m.unlocked(limits), plan: plan),
-              ],
-            ],
-          ),
+        Builder(
+          builder: (context) {
+            // Solo lo que este negocio usa. Mesas ya es una pestaña cuando el restaurante está prendido.
+            final visible = [
+              for (final m in _modules)
+                if (m.module == null ||
+                    (store.uses(m.module!) && !(m.module == Module.restaurante && restaurantTab(store, plan))))
+                  m,
+            ];
+            final fiadosHere = restaurantTab(store, plan);
+            return GCard(
+              margin: const EdgeInsets.symmetric(horizontal: 16),
+              padding: EdgeInsets.zero,
+              child: Column(
+                children: [
+                  if (fiadosHere) ...[
+                    InkWell(
+                      onTap: () => Navigator.of(context).push(
+                        MaterialPageRoute<void>(
+                          builder: (_) => Scaffold(
+                            appBar: AppBar(backgroundColor: GColors.fondo, surfaceTintColor: Colors.transparent),
+                            body: const SafeArea(top: false, child: FiadosScreen()),
+                          ),
+                        ),
+                      ),
+                      child: Padding(
+                        padding: const EdgeInsets.fromLTRB(14, 12, 12, 12),
+                        child: Row(
+                          children: [
+                            const _IconTile(icon: Icons.menu_book_rounded, color: GColors.marca),
+                            const SizedBox(width: 14),
+                            Expanded(
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Text('Fiados', style: GText.sans(size: 15, weight: FontWeight.w700)),
+                                  Text('Quién te debe y sus abonos', style: GText.muted(size: 12.5)),
+                                ],
+                              ),
+                            ),
+                            const Icon(Icons.chevron_right_rounded, color: GColors.tintaTenue),
+                          ],
+                        ),
+                      ),
+                    ),
+                    if (visible.isNotEmpty) const Divider(height: 1, indent: 68, color: GColors.linea),
+                  ],
+                  for (final (i, m) in visible.indexed) ...[
+                    if (i > 0) const Divider(height: 1, indent: 68, color: GColors.linea),
+                    _ModuleRow(module: m, unlocked: m.unlocked(limits), plan: plan),
+                  ],
+                ],
+              ),
+            );
+          },
         ),
+        if (can.editCatalog) ...[const SectionTitle('Lo que uso'), const _ModulesCard()],
         const SectionTitle('Respaldo en la nube'),
         Builder(
           builder: (context) {
@@ -344,6 +399,82 @@ class _ModuleRow extends StatelessWidget {
               const Icon(Icons.lock_rounded, size: 15, color: GColors.tintaTenue),
               const SizedBox(width: 4),
               PlanBadge(module.needed),
+            ],
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+/// Mesas pasa a ser pestaña principal cuando el restaurante está prendido y el plan lo incluye.
+bool restaurantTab(StoreState store, Plan plan) =>
+    store.modules != null && store.uses(Module.restaurante) && plan.limits.restaurant;
+
+/// Tipo de negocio y qué módulos se ven. Solo dueño y administradores lo cambian.
+class _ModulesCard extends ConsumerWidget {
+  const _ModulesCard();
+
+  Future<void> _changeType(BuildContext context, WidgetRef ref) async {
+    final store = ref.read(storeProvider);
+    final type = await Navigator.of(context)
+        .push<BusinessType>(MaterialPageRoute(builder: (_) => BusinessTypeScreen(current: store.businessType)));
+    if (type == null || type == store.businessType || !context.mounted) return;
+    ref.read(storeProvider.notifier).setBusinessSetup(type: type, modules: type.defaultModules);
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(content: Text('Ahora es ${type.label.toLowerCase()}. Puedes prender o apagar módulos aquí mismo.')),
+    );
+  }
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final store = ref.watch(storeProvider);
+    final type = store.businessType ?? BusinessType.otro;
+    return GCard(
+      margin: const EdgeInsets.symmetric(horizontal: 16),
+      padding: EdgeInsets.zero,
+      child: Material(
+        type: MaterialType.transparency,
+        child: Column(
+          children: [
+            InkWell(
+              onTap: () => _changeType(context, ref),
+              child: Padding(
+                padding: const EdgeInsets.fromLTRB(14, 12, 12, 12),
+                child: Row(
+                  children: [
+                    _IconTile(icon: businessTypeIcon(type), color: GColors.marca),
+                    const SizedBox(width: 14),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text('Tipo de negocio', style: GText.muted(size: 12.5)),
+                          Text(type.label, style: GText.sans(size: 15, weight: FontWeight.w700)),
+                        ],
+                      ),
+                    ),
+                    Text(
+                      'Cambiar',
+                      style: GText.sans(size: 13, weight: FontWeight.w700, color: GColors.marca),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+            for (final m in Module.values) ...[
+              const Divider(height: 1, indent: 14, color: GColors.linea),
+              SwitchListTile(
+                value: store.uses(m),
+                onChanged: (on) => ref.read(storeProvider.notifier).toggleModule(m, on),
+                activeThumbColor: Colors.white,
+                activeTrackColor: GColors.cenote,
+                inactiveThumbColor: GColors.tintaTenue,
+                inactiveTrackColor: GColors.hundido,
+                trackOutlineColor: const WidgetStatePropertyAll(Colors.transparent),
+                title: Text(m.label, style: GText.sans(size: 15, weight: FontWeight.w700)),
+                subtitle: Text(m.description, style: GText.muted(size: 12.5)),
+              ),
             ],
           ],
         ),

@@ -39,6 +39,10 @@ void main() {
     await tester.enterText(find.byType(TextField), 'Tienda de mi tía');
     await tester.tap(find.text('Empezar'));
     await tester.pumpAndSettle();
+    // Segundo paso: el tipo de negocio. (Se llama al toque directo: el efecto de Flutter 3.47 falla en pruebas.)
+    final tipo = find.ancestor(of: find.text('Tienda o abarrotes'), matching: find.byType(InkWell)).first;
+    tester.widget<InkWell>(tipo).onTap!();
+    await tester.pumpAndSettle();
 
     expect(find.text('Agrega tus primeros productos'), findsOneWidget);
     await tapInk(tester, 'Elegir de una lista');

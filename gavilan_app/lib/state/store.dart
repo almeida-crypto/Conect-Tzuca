@@ -1,3 +1,4 @@
+import '../domain/business.dart';
 import '../core/money.dart';
 
 import 'dart:math';
@@ -29,6 +30,8 @@ String newDeviceCode() {
 /// (Drift) a través de [StoreRepository]; al abrir la app se vuelve a cargar.
 class StoreState {
   const StoreState({
+    this.businessType,
+    this.modules,
     required this.businessName,
     required this.products,
     required this.sales,
@@ -70,6 +73,14 @@ class StoreState {
   final List<Tanda> batches;
   final List<BatchOrder> batchOrders;
   final List<DiningTable> tables;
+
+  /// Tipo de negocio que eligió el dueño (null en negocios de antes: ven todo).
+  final BusinessType? businessType;
+
+  /// Módulos prendidos. null = todos (negocios de antes de poder elegir).
+  final Set<Module>? modules;
+
+  bool uses(Module m) => modules == null || modules!.contains(m);
 
   /// Extras con precio del restaurante ("Extra queso" +\$10).
   final List<Extra> extras;
@@ -316,6 +327,8 @@ class StoreState {
   }
 
   StoreState copyWith({
+    BusinessType? businessType,
+    Set<Module>? modules,
     String? businessId,
     bool? isDemo,
     String? businessName,
@@ -337,6 +350,8 @@ class StoreState {
     List<OrderItem>? orderItems,
     int? nextFolio,
   }) => StoreState(
+    businessType: businessType ?? this.businessType,
+    modules: modules ?? this.modules,
     businessId: businessId ?? this.businessId,
     isDemo: isDemo ?? this.isDemo,
     businessName: businessName ?? this.businessName,
@@ -418,8 +433,13 @@ class StoreNotifier extends Notifier<StoreState> {
   // ---------- Negocio ----------
 
   /// Alta de un negocio nuevo, vacío.
-  void startBusiness(String name) {
-    final fresh = StoreState.blank.copyWith(businessId: newId(), businessName: name.trim());
+  void startBusiness(String name, {BusinessType type = BusinessType.otro}) {
+    final fresh = StoreState.blank.copyWith(
+      businessId: newId(),
+      businessName: name.trim(),
+      businessType: type,
+      modules: type.defaultModules,
+    );
     state = fresh;
     final plan = ref.read(planProvider);
     _save((r) => r.replaceAll(fresh, plan));
@@ -431,6 +451,20 @@ class StoreNotifier extends Notifier<StoreState> {
     state = demo;
     final plan = ref.read(planProvider);
     _save((r) => r.replaceAll(demo, plan));
+  }
+
+  /// Cambia el tipo de negocio y los módulos que se ven (dueño y administradores).
+  void setBusinessSetup({BusinessType? type, required Set<Module> modules}) {
+    final t = type ?? state.businessType ?? BusinessType.otro;
+    state = state.copyWith(businessType: t, modules: Set.unmodifiable(modules));
+    _save((r) => r.setBusinessSetup(t, modules));
+  }
+
+  /// Prende o apaga un módulo.
+  void toggleModule(Module m, bool on) {
+    final current = {...(state.modules ?? Module.values.toSet())};
+    on ? current.add(m) : current.remove(m);
+    setBusinessSetup(modules: current);
   }
 
   /// Guarda el plan en la misma fila de escrituras, para que no lo pise un alta posterior.

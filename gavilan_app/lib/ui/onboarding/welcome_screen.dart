@@ -6,11 +6,13 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../data/sync_remote.dart';
+import '../../domain/business.dart';
 import '../../state/store.dart';
 import '../../state/sync.dart';
 import '../../theme/colors.dart';
 import '../../theme/theme.dart';
 import '../account/account_screen.dart';
+import 'business_type_screen.dart';
 import '../widgets/buttons.dart';
 
 /// Primer arranque: nombre del negocio, o probar con la tiendita de ejemplo.
@@ -31,12 +33,16 @@ class _WelcomeScreenState extends ConsumerState<WelcomeScreen> {
     super.dispose();
   }
 
-  void _start() {
+  Future<void> _start() async {
     if (_name.text.trim().isEmpty) {
       setState(() => _error = 'Escribe el nombre de tu negocio');
       return;
     }
-    ref.read(storeProvider.notifier).startBusiness(_name.text);
+    // Segundo paso: qué tipo de negocio es, para mostrar solo lo que va a usar.
+    final type = await Navigator.of(context)
+        .push<BusinessType>(MaterialPageRoute(builder: (_) => const BusinessTypeScreen()));
+    if (type == null || !mounted) return;
+    ref.read(storeProvider.notifier).startBusiness(_name.text, type: type);
     // Con sesión iniciada, el negocio nuevo se da de alta también en la nube.
     final sync = ref.read(syncProvider);
     if (sync.configured && sync.signedIn) {

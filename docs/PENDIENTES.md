@@ -26,6 +26,11 @@ Prioridad: **Alta** = sin esto no se puede usar con un negocio real · **Media**
 - [x] **Alta** · Primer arranque: bienvenida con el nombre del negocio, o probar con la tiendita de ejemplo. En Más se puede borrar todo y empezar de nuevo. *26/10/2026*
 - [x] **Media** · Primer uso: con el negocio vacío, Cobrar e Inventario muestran "Agrega tus primeros productos": elegir de una lista de ~65 productos comunes de tiendita (se marca y se pone precio), agregar uno por uno o pegar desde Excel (computadora). *12/11/2026*
 - [x] **Media** · Un código de barras desconocido (lector USB o tecleado) ofrece "Darlo de alta" y lo agrega a la cuenta al guardarlo. *12/11/2026*
+- [x] **Media** · Tipo de negocio al crearlo (tienda, restaurante, ropa/pacas, comida por encargo, otro) y "Lo que uso" en Más para prender o apagar módulos. En restaurante, Mesas es la primera pestaña. *15/11/2026*
+- [ ] **Media** · Varios negocios en una cuenta, con un puesto en cada uno y "Cambiar de negocio" (el mesero que además tiene su propio negocio).
+- [ ] **Media** · Cambiar de cajero con PIN en un celular compartido, sin cerrar sesión.
+- [ ] **Media** · Al quitar a alguien del equipo, borrar los datos del negocio en su celular.
+- [ ] **Baja** · Corte del dueño que junte las cajas de todos los celulares del día.
 - [ ] **Baja** · Listas de inicio para otros giros (fonda, papelería, ferretería, farmacia).
 - [x] **Media** · En el navegador los datos se guardan (`sqlite3.wasm` y `drift_worker.js` en `web/`) y se respaldan en Supabase igual que en el celular. *11/11/2026*
 - [x] **Alta** · Indicador real en el encabezado: Sin internet, Sin respaldo, Por subir, Respaldado o Revisar respaldo. *26/10/2026*

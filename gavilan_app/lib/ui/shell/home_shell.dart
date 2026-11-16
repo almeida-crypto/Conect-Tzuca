@@ -3,6 +3,8 @@ import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../domain/team.dart';
+import '../../state/app_state.dart';
+import '../../state/store.dart';
 import '../../state/sync.dart';
 import '../../theme/colors.dart';
 import '../../theme/theme.dart';
@@ -23,13 +25,12 @@ class HomeShell extends ConsumerStatefulWidget {
 class _HomeShellState extends ConsumerState<HomeShell> {
   int _tab = 0;
 
-  static const _tabs = [
-    (Icons.point_of_sale_rounded, 'Cobrar'),
-    (Icons.menu_book_rounded, 'Fiados'),
-    (Icons.inventory_2_rounded, 'Inventario'),
-    (Icons.account_balance_wallet_rounded, 'Caja'),
-    (Icons.grid_view_rounded, 'Más'),
-  ];
+  static const _cobrar = (Icons.point_of_sale_rounded, 'Cobrar');
+  static const _mesas = (Icons.table_restaurant_rounded, 'Mesas');
+  static const _fiados = (Icons.menu_book_rounded, 'Fiados');
+  static const _inventario = (Icons.inventory_2_rounded, 'Inventario');
+  static const _caja = (Icons.account_balance_wallet_rounded, 'Caja');
+  static const _mas = (Icons.grid_view_rounded, 'Más');
 
   void _go(int i) => setState(() => _tab = i);
 
@@ -39,6 +40,13 @@ class _HomeShellState extends ConsumerState<HomeShell> {
     if (ref.watch(permissionsProvider).restaurantOnly) {
       return RestaurantScreen(embedded: true, kitchen: ref.watch(syncProvider).role == MemberRole.kitchen);
     }
+    // En un restaurante, Mesas es la primera pestaña y Fiados pasa a "Más" (caben cinco abajo).
+    final restaurant = restaurantTab(ref.watch(storeProvider), ref.watch(planProvider));
+    final tabs = restaurant
+        ? [_mesas, _cobrar, _inventario, _caja, _mas]
+        : [_cobrar, _fiados, _inventario, _caja, _mas];
+    if (_tab >= tabs.length) _tab = 0;
+    final cobrarIndex = tabs.indexOf(_cobrar);
     final wide = MediaQuery.sizeOf(context).width >= wideLayout;
     // En la computadora, las pestañas que son listas no se estiran de lado a lado.
     Widget narrow(Widget child) => wide
@@ -59,11 +67,15 @@ class _HomeShellState extends ConsumerState<HomeShell> {
       child: IndexedStack(
         index: _tab,
         children: [
-          CobrarScreen(active: _tab == 0),
-          narrow(const FiadosScreen()),
-          narrow(const InventarioScreen()),
-          narrow(CajaScreen(onGoToCobrar: () => _go(0))),
-          narrow(const MasScreen()),
+          for (final t in tabs)
+            switch (t) {
+              _mesas => const RestaurantScreen(embedded: true),
+              _cobrar => CobrarScreen(active: _tab == cobrarIndex),
+              _fiados => narrow(const FiadosScreen()),
+              _inventario => narrow(const InventarioScreen()),
+              _caja => narrow(CajaScreen(onGoToCobrar: () => _go(cobrarIndex))),
+              _ => narrow(const MasScreen()),
+            },
         ],
       ),
     );
@@ -73,7 +85,7 @@ class _HomeShellState extends ConsumerState<HomeShell> {
       return Scaffold(
         body: Row(
           children: [
-            _SideNav(tabs: _tabs, selected: _tab, onSelect: _go),
+            _SideNav(tabs: tabs, selected: _tab, onSelect: _go),
             Expanded(child: SafeArea(child: pages)),
           ],
         ),
@@ -93,12 +105,12 @@ class _HomeShellState extends ConsumerState<HomeShell> {
             height: 68,
             child: Row(
               children: [
-                for (var i = 0; i < _tabs.length; i++)
+                for (var i = 0; i < tabs.length; i++)
                   Expanded(
                     child: Semantics(
                       button: true,
                       selected: _tab == i,
-                      label: _tabs[i].$2,
+                      label: tabs[i].$2,
                       excludeSemantics: true,
                       child: GestureDetector(
                         behavior: HitTestBehavior.opaque,
@@ -106,7 +118,7 @@ class _HomeShellState extends ConsumerState<HomeShell> {
                           if (_tab != i) HapticFeedback.selectionClick();
                           _go(i);
                         },
-                        child: _NavItem(icon: _tabs[i].$1, label: _tabs[i].$2, selected: _tab == i),
+                        child: _NavItem(icon: tabs[i].$1, label: tabs[i].$2, selected: _tab == i),
                       ),
                     ),
                   ),

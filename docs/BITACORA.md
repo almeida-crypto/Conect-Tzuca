@@ -648,3 +648,29 @@ Se abren desde **Más → Módulos** con el plan Emprendedor o superior. Los tre
 - Capturas generadas con Flutter (no se subieron): cuenta con extras, hoja de indicaciones y extras, cocina y lista de extras.
 - Se corrigió que el toque de la lista de extras no se veía sobre la tarjeta.
 - **No probado:** con mesero y cocina en dos celulares reales.
+
+## 15 de noviembre de 2026 · Sesión 9
+
+### Tipo de negocio y "Lo que uso"
+- **Al crear el negocio:** después del nombre sale "¿Qué tipo de negocio es?", con cinco tarjetas que dicen qué incluye cada tipo:
+  - Tienda o abarrotes.
+  - Restaurante o fonda.
+  - Ropa, pacas o boutique.
+  - Comida por encargo.
+  - Otro.
+- **Qué se ve:** en Más solo aparecen los módulos prendidos. En restaurante (con un plan que lo incluya), las pestañas son Mesas, Cobrar, Inventario, Caja y Más, y Fiados queda como renglón en Más.
+- **Más → "Lo que uso"** (dueño y administradores): cambiar el tipo (vuelve a prender los módulos de ese tipo) e interruptores para mesas, apartados, pacas y tandas.
+- **Datos:**
+  - Local: `business_type` y `modules` en meta.
+  - Supabase: `businesses.business_type` y `businesses.modules`, que ya existían. Suben como actualización de la fila del negocio, y al bajarla se leen.
+  - La tiendita de ejemplo y los negocios de antes no tienen tipo y ven todo.
+
+### Verificación
+- `flutter analyze` sin avisos y 84 pruebas pasan, 5 nuevas en `test/business_type_test.dart`:
+  - Módulos por tipo.
+  - Ida y vuelta con Supabase.
+  - Se conservan al reabrir.
+  - Pestañas de restaurante.
+  - Tienda sin mesas.
+- Las pruebas de primer arranque ya pasan por el paso del tipo.
+- Capturas generadas con Flutter (no se subieron): pantalla del tipo, pestaña Mesas y "Lo que uso". Se corrigieron los interruptores apagados (se veían rosas) y "pacas y lotes y apartados".

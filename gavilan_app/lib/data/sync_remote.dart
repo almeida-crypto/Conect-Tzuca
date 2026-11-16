@@ -263,6 +263,13 @@ class SupabaseRemote implements SyncRemote {
   @override
   Future<void> upsert(String table, String businessId, List<RemoteRow> rows) => _guard(() async {
     if (rows.isEmpty) return;
+    // El negocio ya existe (lo crea create_business): aquí solo se cambian sus datos.
+    if (table == 'businesses') {
+      for (final r in rows) {
+        await client.from('businesses').update({...r}..remove('id')).eq('id', businessId);
+      }
+      return;
+    }
     await client.from(table).upsert([
       for (final r in rows) {...r, 'business_id': businessId},
     ], onConflict: 'id');

@@ -1,3 +1,4 @@
+import '../domain/business.dart';
 import '../core/limits.dart';
 
 import 'dart:convert';
@@ -50,6 +51,9 @@ abstract class StoreRepository {
   Future<void> upsertSession(CashSession session);
   Future<void> insertMovement(CashMovement movement);
   Future<void> setPlan(Plan plan);
+
+  /// Tipo de negocio y módulos prendidos; sube a Supabase si el teléfono está enlazado.
+  Future<void> setBusinessSetup(BusinessType type, Set<Module> modules);
 
   Future<void> upsertLot(Lot lot);
   Future<void> insertLotSale(LotSale sale);
@@ -130,6 +134,8 @@ class MemoryRepository implements StoreRepository {
   @override
   Future<void> setPlan(Plan plan) async {}
   @override
+  Future<void> setBusinessSetup(BusinessType type, Set<Module> modules) async {}
+  @override
   Future<void> upsertLot(Lot lot) async {}
   @override
   Future<void> insertLotSale(LotSale sale) async {}
@@ -154,6 +160,8 @@ class MemoryRepository implements StoreRepository {
 }
 
 const _kBusiness = 'business_name';
+const _kType = 'business_type';
+const _kModules = 'modules';
 const _kBusinessId = 'business_id';
 const _kDemo = 'is_demo';
 const _kFolio = 'next_folio';
@@ -253,6 +261,8 @@ class DriftRepository implements StoreRepository, SyncStore {
       businessId: meta[_kBusinessId] ?? '',
       isDemo: meta[_kDemo] == '1',
       businessName: name,
+      businessType: BusinessType.fromName(meta[_kType]),
+      modules: modulesFromText(meta[_kModules]),
       nextFolio: int.tryParse(meta[_kFolio] ?? '') ?? 1,
       products: [for (final p in await db.select(db.productsTable).get()) _product(p)],
       customers: [
@@ -619,6 +629,8 @@ class DriftRepository implements StoreRepository, SyncStore {
     }
     await _setMeta(_kBusinessId, state.businessId);
     await _setMeta(_kBusiness, state.businessName);
+    if (state.businessType != null) await _setMeta(_kType, state.businessType!.name);
+    if (state.modules != null) await _setMeta(_kModules, modulesToText(state.modules!));
     await _setMeta(_kDemo, state.isDemo ? '1' : '0');
     await _setMeta(_kFolio, '${state.nextFolio}');
     await _setMeta(_kPlan, plan.name);
@@ -756,6 +768,15 @@ class DriftRepository implements StoreRepository, SyncStore {
   });
 
   @override
+  Future<void> setBusinessSetup(BusinessType type, Set<Module> modules) => db.transaction(() async {
+    await _setMeta(_kType, type.name);
+    await _setMeta(_kModules, modulesToText(modules));
+    await _enqueue([
+      (table: 'businesses', rows: [businessSetupToRemote(type, modules)]),
+    ]);
+  });
+
+  @override
   Future<void> setPlan(Plan plan) => _setMeta(_kPlan, plan.name);
 
   @override
@@ -850,6 +871,11 @@ class DriftRepository implements StoreRepository, SyncStore {
     _linked = businessId;
     final s = uploadAll;
     if (s == null) return;
+    if (s.businessType != null || s.modules != null) {
+      await _enqueue([
+        (table: 'businesses', rows: [businessSetupToRemote(s.businessType, s.modules)]),
+      ]);
+    }
     // Todo lo que ya existía en el teléfono, en orden de dependencias. Los productos
     // suben con su existencia actual, por eso las ventas viejas no vuelven a descontar.
     if (s.customers.isNotEmpty) {
@@ -940,6 +966,10 @@ class DriftRepository implements StoreRepository, SyncStore {
       switch (table) {
         case 'businesses':
           await _setMeta(_kBusiness, r['name']! as String);
+          final type = BusinessType.fromName(r['business_type'] as String?);
+          if (type != null) await _setMeta(_kType, type.name);
+          final modules = modulesFromRemote(r['modules']);
+          if (modules != null) await _setMeta(_kModules, modulesToText(modules));
         case 'customers':
           await db.into(db.customersTable).insertOnConflictUpdate(customerFromRemote(r));
         case 'products':

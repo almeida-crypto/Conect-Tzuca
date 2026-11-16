@@ -1,3 +1,5 @@
+import '../domain/business.dart';
+
 import 'dart:convert';
 
 import 'package:uuid/uuid.dart';
@@ -507,4 +509,18 @@ List<ItemExtra> extrasFromJson(String? json) {
     for (final e in list)
       if (e is Map) ItemExtra('${e['name'] ?? ''}', (e['cents'] as num?)?.toInt() ?? 0),
   ];
+}
+
+/// Tipo de negocio y módulos en la fila del negocio: {"business_type": "restaurante", "modules": {"restaurante": true, …}}.
+RemoteRow businessSetupToRemote(BusinessType? type, Set<Module>? modules) => {
+  if (type != null) 'business_type': type.name,
+  if (modules != null) 'modules': {for (final m in Module.values) m.name: modules.contains(m)},
+};
+
+Set<Module>? modulesFromRemote(Object? value) {
+  if (value is! Map || value.isEmpty) return null;
+  return {
+    for (final m in Module.values)
+      if (value[m.name] == true) m,
+  };
 }

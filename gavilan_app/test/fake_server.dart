@@ -182,7 +182,8 @@ class FakeRemote implements SyncRemote {
       throw const SyncException(SyncFailure.rejected, 'RLS: products');
     }
     for (final r in rows) {
-      server._write(table, {...r, 'business_id': businessId});
+      // Como en Supabase: la fila del negocio solo se actualiza (la crea create_business).
+      server._write(table, table == 'businesses' ? {...r, 'id': businessId} : {...r, 'business_id': businessId});
     }
     if (table == 'orders' || table == 'order_items') server.liveEvents.add(null);
   }
