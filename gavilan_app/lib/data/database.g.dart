@@ -4638,8 +4638,17 @@ class $CustomersTableTable extends CustomersTable with TableInfo<$CustomersTable
     type: DriftSqlType.string,
     requiredDuringInsert: false,
   );
+  static const VerificationMeta _creditLimitCentsMeta = const VerificationMeta('creditLimitCents');
   @override
-  List<GeneratedColumn> get $columns => [id, name, phone];
+  late final GeneratedColumn<int> creditLimitCents = GeneratedColumn<int>(
+    'credit_limit_cents',
+    aliasedName,
+    true,
+    type: DriftSqlType.int,
+    requiredDuringInsert: false,
+  );
+  @override
+  List<GeneratedColumn> get $columns => [id, name, phone, creditLimitCents];
   @override
   String get aliasedName => _alias ?? actualTableName;
   @override
@@ -4662,6 +4671,12 @@ class $CustomersTableTable extends CustomersTable with TableInfo<$CustomersTable
     if (data.containsKey('phone')) {
       context.handle(_phoneMeta, phone.isAcceptableOrUnknown(data['phone']!, _phoneMeta));
     }
+    if (data.containsKey('credit_limit_cents')) {
+      context.handle(
+        _creditLimitCentsMeta,
+        creditLimitCents.isAcceptableOrUnknown(data['credit_limit_cents']!, _creditLimitCentsMeta),
+      );
+    }
     return context;
   }
 
@@ -4674,6 +4689,10 @@ class $CustomersTableTable extends CustomersTable with TableInfo<$CustomersTable
       id: attachedDatabase.typeMapping.read(DriftSqlType.string, data['${effectivePrefix}id'])!,
       name: attachedDatabase.typeMapping.read(DriftSqlType.string, data['${effectivePrefix}name'])!,
       phone: attachedDatabase.typeMapping.read(DriftSqlType.string, data['${effectivePrefix}phone']),
+      creditLimitCents: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}credit_limit_cents'],
+      ),
     );
   }
 
@@ -4687,7 +4706,8 @@ class CustomerRow extends DataClass implements Insertable<CustomerRow> {
   final String id;
   final String name;
   final String? phone;
-  const CustomerRow({required this.id, required this.name, this.phone});
+  final int? creditLimitCents;
+  const CustomerRow({required this.id, required this.name, this.phone, this.creditLimitCents});
   @override
   Map<String, Expression> toColumns(bool nullToAbsent) {
     final map = <String, Expression>{};
@@ -4695,6 +4715,9 @@ class CustomerRow extends DataClass implements Insertable<CustomerRow> {
     map['name'] = Variable<String>(name);
     if (!nullToAbsent || phone != null) {
       map['phone'] = Variable<String>(phone);
+    }
+    if (!nullToAbsent || creditLimitCents != null) {
+      map['credit_limit_cents'] = Variable<int>(creditLimitCents);
     }
     return map;
   }
@@ -4704,6 +4727,7 @@ class CustomerRow extends DataClass implements Insertable<CustomerRow> {
       id: Value(id),
       name: Value(name),
       phone: phone == null && nullToAbsent ? const Value.absent() : Value(phone),
+      creditLimitCents: creditLimitCents == null && nullToAbsent ? const Value.absent() : Value(creditLimitCents),
     );
   }
 
@@ -4713,6 +4737,7 @@ class CustomerRow extends DataClass implements Insertable<CustomerRow> {
       id: serializer.fromJson<String>(json['id']),
       name: serializer.fromJson<String>(json['name']),
       phone: serializer.fromJson<String?>(json['phone']),
+      creditLimitCents: serializer.fromJson<int?>(json['creditLimitCents']),
     );
   }
   @override
@@ -4722,16 +4747,27 @@ class CustomerRow extends DataClass implements Insertable<CustomerRow> {
       'id': serializer.toJson<String>(id),
       'name': serializer.toJson<String>(name),
       'phone': serializer.toJson<String?>(phone),
+      'creditLimitCents': serializer.toJson<int?>(creditLimitCents),
     };
   }
 
-  CustomerRow copyWith({String? id, String? name, Value<String?> phone = const Value.absent()}) =>
-      CustomerRow(id: id ?? this.id, name: name ?? this.name, phone: phone.present ? phone.value : this.phone);
+  CustomerRow copyWith({
+    String? id,
+    String? name,
+    Value<String?> phone = const Value.absent(),
+    Value<int?> creditLimitCents = const Value.absent(),
+  }) => CustomerRow(
+    id: id ?? this.id,
+    name: name ?? this.name,
+    phone: phone.present ? phone.value : this.phone,
+    creditLimitCents: creditLimitCents.present ? creditLimitCents.value : this.creditLimitCents,
+  );
   CustomerRow copyWithCompanion(CustomersTableCompanion data) {
     return CustomerRow(
       id: data.id.present ? data.id.value : this.id,
       name: data.name.present ? data.name.value : this.name,
       phone: data.phone.present ? data.phone.value : this.phone,
+      creditLimitCents: data.creditLimitCents.present ? data.creditLimitCents.value : this.creditLimitCents,
     );
   }
 
@@ -4740,34 +4776,42 @@ class CustomerRow extends DataClass implements Insertable<CustomerRow> {
     return (StringBuffer('CustomerRow(')
           ..write('id: $id, ')
           ..write('name: $name, ')
-          ..write('phone: $phone')
+          ..write('phone: $phone, ')
+          ..write('creditLimitCents: $creditLimitCents')
           ..write(')'))
         .toString();
   }
 
   @override
-  int get hashCode => Object.hash(id, name, phone);
+  int get hashCode => Object.hash(id, name, phone, creditLimitCents);
   @override
   bool operator ==(Object other) =>
       identical(this, other) ||
-      (other is CustomerRow && other.id == this.id && other.name == this.name && other.phone == this.phone);
+      (other is CustomerRow &&
+          other.id == this.id &&
+          other.name == this.name &&
+          other.phone == this.phone &&
+          other.creditLimitCents == this.creditLimitCents);
 }
 
 class CustomersTableCompanion extends UpdateCompanion<CustomerRow> {
   final Value<String> id;
   final Value<String> name;
   final Value<String?> phone;
+  final Value<int?> creditLimitCents;
   final Value<int> rowid;
   const CustomersTableCompanion({
     this.id = const Value.absent(),
     this.name = const Value.absent(),
     this.phone = const Value.absent(),
+    this.creditLimitCents = const Value.absent(),
     this.rowid = const Value.absent(),
   });
   CustomersTableCompanion.insert({
     required String id,
     required String name,
     this.phone = const Value.absent(),
+    this.creditLimitCents = const Value.absent(),
     this.rowid = const Value.absent(),
   }) : id = Value(id),
        name = Value(name);
@@ -4775,21 +4819,30 @@ class CustomersTableCompanion extends UpdateCompanion<CustomerRow> {
     Expression<String>? id,
     Expression<String>? name,
     Expression<String>? phone,
+    Expression<int>? creditLimitCents,
     Expression<int>? rowid,
   }) {
     return RawValuesInsertable({
       if (id != null) 'id': id,
       if (name != null) 'name': name,
       if (phone != null) 'phone': phone,
+      if (creditLimitCents != null) 'credit_limit_cents': creditLimitCents,
       if (rowid != null) 'rowid': rowid,
     });
   }
 
-  CustomersTableCompanion copyWith({Value<String>? id, Value<String>? name, Value<String?>? phone, Value<int>? rowid}) {
+  CustomersTableCompanion copyWith({
+    Value<String>? id,
+    Value<String>? name,
+    Value<String?>? phone,
+    Value<int?>? creditLimitCents,
+    Value<int>? rowid,
+  }) {
     return CustomersTableCompanion(
       id: id ?? this.id,
       name: name ?? this.name,
       phone: phone ?? this.phone,
+      creditLimitCents: creditLimitCents ?? this.creditLimitCents,
       rowid: rowid ?? this.rowid,
     );
   }
@@ -4806,6 +4859,9 @@ class CustomersTableCompanion extends UpdateCompanion<CustomerRow> {
     if (phone.present) {
       map['phone'] = Variable<String>(phone.value);
     }
+    if (creditLimitCents.present) {
+      map['credit_limit_cents'] = Variable<int>(creditLimitCents.value);
+    }
     if (rowid.present) {
       map['rowid'] = Variable<int>(rowid.value);
     }
@@ -4818,6 +4874,7 @@ class CustomersTableCompanion extends UpdateCompanion<CustomerRow> {
           ..write('id: $id, ')
           ..write('name: $name, ')
           ..write('phone: $phone, ')
+          ..write('creditLimitCents: $creditLimitCents, ')
           ..write('rowid: $rowid')
           ..write(')'))
         .toString();
@@ -9647,12 +9704,14 @@ typedef $$CustomersTableTableCreateCompanionBuilder = CustomersTableCompanion Fu
   required String id,
   required String name,
   Value<String?> phone,
+  Value<int?> creditLimitCents,
   Value<int> rowid,
 });
 typedef $$CustomersTableTableUpdateCompanionBuilder = CustomersTableCompanion Function({
   Value<String> id,
   Value<String> name,
   Value<String?> phone,
+  Value<int?> creditLimitCents,
   Value<int> rowid,
 });
 
@@ -9670,6 +9729,9 @@ class $$CustomersTableTableFilterComposer extends Composer<_$GavilanDb, $Custome
 
   ColumnFilters<String> get phone =>
       $composableBuilder(column: $table.phone, builder: (column) => ColumnFilters(column));
+
+  ColumnFilters<int> get creditLimitCents =>
+      $composableBuilder(column: $table.creditLimitCents, builder: (column) => ColumnFilters(column));
 }
 
 class $$CustomersTableTableOrderingComposer extends Composer<_$GavilanDb, $CustomersTableTable> {
@@ -9687,6 +9749,9 @@ class $$CustomersTableTableOrderingComposer extends Composer<_$GavilanDb, $Custo
 
   ColumnOrderings<String> get phone =>
       $composableBuilder(column: $table.phone, builder: (column) => ColumnOrderings(column));
+
+  ColumnOrderings<int> get creditLimitCents =>
+      $composableBuilder(column: $table.creditLimitCents, builder: (column) => ColumnOrderings(column));
 }
 
 class $$CustomersTableTableAnnotationComposer extends Composer<_$GavilanDb, $CustomersTableTable> {
@@ -9702,6 +9767,9 @@ class $$CustomersTableTableAnnotationComposer extends Composer<_$GavilanDb, $Cus
   GeneratedColumn<String> get name => $composableBuilder(column: $table.name, builder: (column) => column);
 
   GeneratedColumn<String> get phone => $composableBuilder(column: $table.phone, builder: (column) => column);
+
+  GeneratedColumn<int> get creditLimitCents =>
+      $composableBuilder(column: $table.creditLimitCents, builder: (column) => column);
 }
 
 class $$CustomersTableTableTableManager
@@ -9727,18 +9795,34 @@ class $$CustomersTableTableTableManager
           createFilteringComposer: () => $$CustomersTableTableFilterComposer($db: db, $table: table),
           createOrderingComposer: () => $$CustomersTableTableOrderingComposer($db: db, $table: table),
           createComputedFieldComposer: () => $$CustomersTableTableAnnotationComposer($db: db, $table: table),
-          updateCompanionCallback: ({
-            Value<String> id = const Value.absent(),
-            Value<String> name = const Value.absent(),
-            Value<String?> phone = const Value.absent(),
-            Value<int> rowid = const Value.absent(),
-          }) => CustomersTableCompanion(id: id, name: name, phone: phone, rowid: rowid),
-          createCompanionCallback: ({
-            required String id,
-            required String name,
-            Value<String?> phone = const Value.absent(),
-            Value<int> rowid = const Value.absent(),
-          }) => CustomersTableCompanion.insert(id: id, name: name, phone: phone, rowid: rowid),
+          updateCompanionCallback:
+              ({
+                Value<String> id = const Value.absent(),
+                Value<String> name = const Value.absent(),
+                Value<String?> phone = const Value.absent(),
+                Value<int?> creditLimitCents = const Value.absent(),
+                Value<int> rowid = const Value.absent(),
+              }) => CustomersTableCompanion(
+                id: id,
+                name: name,
+                phone: phone,
+                creditLimitCents: creditLimitCents,
+                rowid: rowid,
+              ),
+          createCompanionCallback:
+              ({
+                required String id,
+                required String name,
+                Value<String?> phone = const Value.absent(),
+                Value<int?> creditLimitCents = const Value.absent(),
+                Value<int> rowid = const Value.absent(),
+              }) => CustomersTableCompanion.insert(
+                id: id,
+                name: name,
+                phone: phone,
+                creditLimitCents: creditLimitCents,
+                rowid: rowid,
+              ),
           withReferenceMapper: (p0) => p0
               .map(
                 (e) => (

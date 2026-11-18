@@ -171,11 +171,30 @@ class Sale {
 }
 
 class Customer {
-  const Customer({required this.id, required this.name, this.phone});
+  const Customer({required this.id, required this.name, this.phone, this.creditLimitCents});
 
   final String id;
   final String name;
   final String? phone;
+
+  /// Lo más que puede deber (lo pone el dueño). null = usa el tope general del negocio.
+  final int? creditLimitCents;
+
+  Customer withCreditLimit(int? cents) => Customer(id: id, name: name, phone: phone, creditLimitCents: cents);
+}
+
+/// Cómo quedaría la cuenta de un cliente al fiarle [extra] más.
+class CreditCheck {
+  const CreditCheck({required this.balanceCents, required this.extraCents, this.limitCents});
+
+  final int balanceCents;
+  final int extraCents;
+  final int? limitCents;
+
+  int get afterCents => balanceCents + extraCents;
+
+  /// Se pasaría de su tope.
+  bool get over => limitCents != null && afterCents > limitCents!;
 }
 
 /// cargo: compró fiado. abono: pagó. cancelacion: se canceló una venta fiada y se le quita esa deuda.

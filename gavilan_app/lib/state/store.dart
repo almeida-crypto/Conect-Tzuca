@@ -1,4 +1,5 @@
 import '../domain/business.dart';
+import '../core/limits.dart';
 import '../core/money.dart';
 
 import 'dart:math';
@@ -32,6 +33,7 @@ String newDeviceCode() {
 /// (Drift) a través de [StoreRepository]; al abrir la app se vuelve a cargar.
 class StoreState {
   const StoreState({
+    this.defaultCreditLimitCents,
     this.clerks = const [],
     this.lockMinutes,
     this.businessType,
@@ -77,6 +79,16 @@ class StoreState {
   final List<Tanda> batches;
   final List<BatchOrder> batchOrders;
   final List<DiningTable> tables;
+
+  /// Tope general de fiado del negocio (null = sin tope). Cada cliente puede tener el suyo.
+  final int? defaultCreditLimitCents;
+
+  /// Tope del cliente: el suyo o, si no tiene, el general.
+  int? creditLimitOf(String customerId) => customerById(customerId)?.creditLimitCents ?? defaultCreditLimitCents;
+
+  /// Cómo quedaría la cuenta de un cliente al fiarle [extraCents] más.
+  CreditCheck creditCheck(String customerId, int extraCents) =>
+      CreditCheck(balanceCents: balanceOf(customerId), extraCents: extraCents, limitCents: creditLimitOf(customerId));
 
   /// Personas del mostrador con su PIN (solo en este aparato). Vacío = no se usan PIN.
   final List<Clerk> clerks;
@@ -359,6 +371,8 @@ class StoreState {
   }
 
   StoreState copyWith({
+    int? defaultCreditLimitCents,
+    bool clearCreditLimit = false,
     List<Clerk>? clerks,
     int? lockMinutes,
     bool clearLock = false,
@@ -385,6 +399,7 @@ class StoreState {
     List<OrderItem>? orderItems,
     int? nextFolio,
   }) => StoreState(
+    defaultCreditLimitCents: clearCreditLimit ? null : (defaultCreditLimitCents ?? this.defaultCreditLimitCents),
     clerks: clerks ?? this.clerks,
     lockMinutes: clearLock ? null : (lockMinutes ?? this.lockMinutes),
     businessType: businessType ?? this.businessType,
@@ -728,6 +743,22 @@ class StoreNotifier extends Notifier<StoreState> {
     state = state.copyWith(customers: [...state.customers, c]);
     _save((r) => r.upsertCustomer(c));
     return c;
+  }
+
+  /// Tope de un cliente (null = usa el general).
+  void setCustomerCreditLimit(String customerId, int? cents) {
+    final c = state.customerById(customerId);
+    if (c == null) return;
+    final updated = c.withCreditLimit(cents?.clamp(0, Limits.maxMoneyCents));
+    state = state.copyWith(customers: [for (final x in state.customers) x.id == customerId ? updated : x]);
+    _save((r) => r.upsertCustomer(updated));
+  }
+
+  /// Tope general de fiado (null = sin tope).
+  void setDefaultCreditLimit(int? cents) {
+    final value = cents?.clamp(0, Limits.maxMoneyCents);
+    state = state.copyWith(defaultCreditLimitCents: value, clearCreditLimit: value == null);
+    _save((r) => r.setDefaultCreditLimit(value));
   }
 
   void addAbono(String customerId, int amountCents, PayMethod method) {

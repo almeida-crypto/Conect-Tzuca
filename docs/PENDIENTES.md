@@ -81,7 +81,7 @@ Prioridad: **Alta** = sin esto no se puede usar con un negocio real · **Media**
 - [x] **Media** · Invitar meseros y cocina. *09/11/2026*
 - [ ] **Baja** · Validar en la base que solo el plan Negocio pueda invitar (hoy solo lo limita la app, con la vista previa).
 - [ ] **Baja** · Impresora térmica Bluetooth o USB.
-- [ ] **Baja** · Límite de crédito por cliente y alertas de vencimiento (plan Negocio).
+- [x] **Baja** · Tope de fiado general y por cliente, aviso al fiar de más (el cajero necesita PIN) y atraso en ámbar (30 días) y rojo (60). *18/11/2026*
 - [x] **Media** · Ganancia por producto en el corte (vendido, precio, costo, ganancia y margen), para dueño y administradores. También en los cortes anteriores. *12/11/2026*
 - [ ] **Baja** · Ganancia por producto en el panel web y por rango de fechas; costos por proveedor.
 

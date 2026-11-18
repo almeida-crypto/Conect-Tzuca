@@ -12,6 +12,7 @@ import '../../theme/colors.dart';
 import '../../theme/theme.dart';
 import '../widgets/buttons.dart';
 import '../widgets/common.dart';
+import '../fiados/credit_limit.dart';
 import 'customer_picker.dart';
 import 'ticket_screen.dart';
 
@@ -154,9 +155,11 @@ class _PaySheetState extends ConsumerState<_PaySheet> {
     });
   }
 
-  Future<void> _fiar() async {
+  Future<void> _fiar(int totalCents) async {
     final customer = await pickCustomerForCredit(context, ref);
     if (customer == null || !mounted) return;
+    // Si se pasa de su tope: aviso y, para un cajero, el PIN del dueño o un encargado.
+    if (!await confirmCreditLimit(context, ref, customer, totalCents) || !mounted) return;
     _finish(kind: SaleKind.fiada, customerId: customer.id);
   }
 
@@ -309,7 +312,12 @@ class _PaySheetState extends ConsumerState<_PaySheet> {
           const SizedBox(height: 14),
           Row(
             children: [
-              GButton(label: 'Fiar', kind: GButtonKind.outline, icon: Icons.menu_book_outlined, onPressed: _fiar),
+              GButton(
+                label: 'Fiar',
+                kind: GButtonKind.outline,
+                icon: Icons.menu_book_outlined,
+                onPressed: () => _fiar(total),
+              ),
               const SizedBox(width: 8),
               Expanded(
                 child: GButton(

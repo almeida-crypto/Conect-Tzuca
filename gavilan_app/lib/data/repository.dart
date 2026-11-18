@@ -48,6 +48,9 @@ abstract class StoreRepository {
   /// Guarda una venta cancelada: lo que regresó al inventario y, si fue fiada, lo que se le quita al cliente.
   Future<void> cancelSale({required Sale sale, required List<Product> restocked, CreditEntry? reversal});
   Future<void> upsertCustomer(Customer customer);
+
+  /// Tope general de fiado; sube a la fila del negocio si está enlazado.
+  Future<void> setDefaultCreditLimit(int? cents);
   Future<void> insertCredit(CreditEntry entry);
   Future<void> upsertSession(CashSession session);
   Future<void> insertMovement(CashMovement movement);
@@ -150,6 +153,8 @@ class MemoryRepository implements StoreRepository {
   @override
   Future<void> upsertCustomer(Customer customer) async {}
   @override
+  Future<void> setDefaultCreditLimit(int? cents) async {}
+  @override
   Future<void> insertCredit(CreditEntry entry) async {}
   @override
   Future<void> upsertSession(CashSession session) async {}
@@ -190,6 +195,7 @@ const _kType = 'business_type';
 const _kClerks = 'clerks';
 const _kClerkLock = 'clerk_lock';
 const _kModules = 'modules';
+const _kCreditLimit = 'credit_limit';
 const _kBusinessId = 'business_id';
 const _kDemo = 'is_demo';
 const _kFolio = 'next_folio';
@@ -318,10 +324,12 @@ class DriftRepository implements StoreRepository, SyncStore {
       clerks: clerksFromJson(meta[_kClerks]),
       lockMinutes: int.tryParse(meta[_kClerkLock] ?? ''),
       modules: modulesFromText(meta[_kModules]),
+      defaultCreditLimitCents: int.tryParse(meta[_kCreditLimit] ?? ''),
       nextFolio: int.tryParse(meta[_kFolio] ?? '') ?? 1,
       products: [for (final p in await db.select(db.productsTable).get()) _product(p)],
       customers: [
-        for (final c in await db.select(db.customersTable).get()) Customer(id: c.id, name: c.name, phone: c.phone),
+        for (final c in await db.select(db.customersTable).get())
+          Customer(id: c.id, name: c.name, phone: c.phone, creditLimitCents: c.creditLimitCents),
       ],
       sales: [
         for (final s in await (db.select(db.salesTable)..orderBy([(t) => OrderingTerm.asc(t.createdAt)])).get())
@@ -670,7 +678,12 @@ class DriftRepository implements StoreRepository, SyncStore {
     await _deleteEverything();
     await db.batch((b) {
       b.insertAll(db.productsTable, state.products.map(_productRow));
-      b.insertAll(db.customersTable, state.customers.map((c) => CustomerRow(id: c.id, name: c.name, phone: c.phone)));
+      b.insertAll(
+        db.customersTable,
+        state.customers.map(
+          (c) => CustomerRow(id: c.id, name: c.name, phone: c.phone, creditLimitCents: c.creditLimitCents),
+        ),
+      );
       b.insertAll(db.creditEntriesTable, state.credit.map(_creditRow));
       b.insertAll(db.cashSessionsTable, state.sessions.map(_sessionRow));
       b.insertAll(db.cashMovementsTable, state.movements.map(_movementRow));
@@ -692,6 +705,7 @@ class DriftRepository implements StoreRepository, SyncStore {
     await _setMeta(_kBusiness, state.businessName);
     if (state.businessType != null) await _setMeta(_kType, state.businessType!.name);
     if (state.modules != null) await _setMeta(_kModules, modulesToText(state.modules!));
+    if (state.defaultCreditLimitCents != null) await _setMeta(_kCreditLimit, '${state.defaultCreditLimitCents}');
     if (state.clerks.isNotEmpty) await setClerks(state.clerks, state.lockMinutes);
     await _setMeta(_kDemo, state.isDemo ? '1' : '0');
     await _setMeta(_kFolio, '${state.nextFolio}');
@@ -800,9 +814,24 @@ class DriftRepository implements StoreRepository, SyncStore {
   Future<void> upsertCustomer(Customer customer) => db.transaction(() async {
     await db
         .into(db.customersTable)
-        .insertOnConflictUpdate(CustomerRow(id: customer.id, name: customer.name, phone: customer.phone));
+        .insertOnConflictUpdate(
+          CustomerRow(
+            id: customer.id,
+            name: customer.name,
+            phone: customer.phone,
+            creditLimitCents: customer.creditLimitCents,
+          ),
+        );
     await _enqueue([
       (table: 'customers', rows: [customerToRemote(customer)]),
+    ]);
+  });
+
+  @override
+  Future<void> setDefaultCreditLimit(int? cents) => db.transaction(() async {
+    await _setMeta(_kCreditLimit, cents?.toString() ?? '');
+    await _enqueue([
+      (table: 'businesses', rows: [creditLimitToRemote(cents)]),
     ]);
   });
 
@@ -1078,6 +1107,9 @@ class DriftRepository implements StoreRepository, SyncStore {
           if (type != null) await _setMeta(_kType, type.name);
           final modules = modulesFromRemote(r['modules']);
           if (modules != null) await _setMeta(_kModules, modulesToText(modules));
+          if (r.containsKey('credit_limit')) {
+            await _setMeta(_kCreditLimit, _centsText(r['credit_limit']));
+          }
         case 'customers':
           await db.into(db.customersTable).insertOnConflictUpdate(customerFromRemote(r));
         case 'products':
@@ -1122,3 +1154,11 @@ class DriftRepository implements StoreRepository, SyncStore {
     }
   });
 }
+
+/// Pesos de Supabase a centavos en texto para los datos sueltos ('' si no hay).
+String _centsText(Object? pesos) => switch (pesos) {
+  null => '',
+  final num n => '${(n * 100).round()}',
+  final String s => double.tryParse(s) == null ? '' : '${(double.parse(s) * 100).round()}',
+  _ => '',
+};

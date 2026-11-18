@@ -57,6 +57,9 @@ class Permissions {
   /// Cancelar ventas: regresa dinero y mercancía, así que lo decide el dueño o un administrador.
   bool get cancelSales => _boss && _clerkManager;
 
+  /// Poner topes de fiado y fiarle a alguien más de su tope.
+  bool get manageCredit => _boss && _clerkManager;
+
   /// Ver costos y ganancia (en el corte): es información del dueño.
   bool get seeProfit => _boss && _clerkManager;
 

@@ -37,6 +37,7 @@ class CustomersTable extends Table {
   TextColumn get id => text()();
   TextColumn get name => text()();
   TextColumn get phone => text().nullable()();
+  IntColumn get creditLimitCents => integer().nullable()();
 
   @override
   Set<Column> get primaryKey => {id};
@@ -376,7 +377,7 @@ class GavilanDb extends _$GavilanDb {
   );
 
   @override
-  int get schemaVersion => 10;
+  int get schemaVersion => 11;
 
   @override
   MigrationStrategy get migration => MigrationStrategy(
@@ -422,6 +423,7 @@ class GavilanDb extends _$GavilanDb {
         await m.addColumn(creditEntriesTable, creditEntriesTable.clerkName);
         await m.addColumn(cashMovementsTable, cashMovementsTable.clerkName);
       }
+      if (from < 11) await m.addColumn(customersTable, customersTable.creditLimitCents);
     },
   );
 }

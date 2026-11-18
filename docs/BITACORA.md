@@ -795,3 +795,20 @@ Se abren desde **Más → Módulos** con el plan Emprendedor o superior. Los tre
   - El dueño saca al cajero: el celular del cajero queda vacío (también al reabrir) y el del dueño sigue igual.
   - El celular del dueño no se borra aunque el servidor no lo encuentre, y en un celular con otra cuenta abierta tampoco.
 - **No probado:** con la lista de negocios real (`ProfileHost`) en un celular y cuentas reales.
+
+### Tope de fiado (18/11/2026)
+- **Lo pone el dueño** (o un administrador; con PIN, también un encargado). No hay tope predeterminado.
+  - **Tope general** en Fiados ("Tope general: $1,000 · Cambiar"). Sin él, nadie tiene tope, como antes.
+  - **Tope por cliente** en el detalle de cada cliente ("Tope · Cambiar"), con "Usar el general".
+- **Al fiar** (hoja de cobro, también en el restaurante): si con la venta se pasa de su tope, sale "Don Beto se pasa de su tope. Debe $580.00 y su tope es $300. Con esta venta quedaría en $830.00".
+  - Dueño y encargado: "Fiar de todos modos".
+  - Cajero con PIN: "Pedir PIN" (el dueño o un encargado autoriza sin cambiar quién atiende).
+  - Cajero sin PIN: solo "No fiar" y le dice que pida al dueño que suba el tope.
+- **Lista de Fiados:** "más tiempo sin pagar primero"; los días sin abonar en ámbar desde 30 y en rojo desde 60 (antes rojo desde 14); "Pasó su tope de $300" en rojo.
+- **Servidor (migración 0017):** `businesses.credit_limit` nueva; `customers.credit_limit` ya existía desde 0001 sin usar y ahora tiene rango. Trigger `credit_limit_bosses_only`: un cajero da de alta clientes, pero sin tope, y no lo cambia. Probado en la base con un cajero y el dueño simulados (transacción deshecha).
+- **Teléfono:** base local versión 11 (`customers.creditLimitCents`); el tope general en los datos sueltos (`credit_limit`) y sube a la fila del negocio. `StoreState.creditLimitOf` y `creditCheck`, `Permissions.manageCredit`, `ui/fiados/credit_limit.dart`.
+- La base no frena fiar de más: una venta puede llegar tarde desde un celular sin internet.
+
+### Verificación
+- `flutter analyze` sin avisos y 109 pruebas pasan, 5 nuevas (`credit_limit_test.dart`): tope del cliente, general y ninguno; se guarda, sube y baja; dentro del tope no pregunta; el dueño fía de todos modos; el cajero necesita el PIN y con "No fiar" no se fía.
+- Revisión de pantallas (Fiados, tope de un cliente y aviso) con imágenes de prueba, borradas al terminar.

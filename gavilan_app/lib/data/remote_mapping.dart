@@ -64,7 +64,15 @@ RemoteRow productToRemote(Product p, {required bool withStock}) => {
   if (withStock) 'stock_qty': p.stock,
 };
 
-RemoteRow customerToRemote(Customer c) => {'id': c.id, 'name': c.name, 'phone': c.phone};
+RemoteRow customerToRemote(Customer c) => {
+  'id': c.id,
+  'name': c.name,
+  'phone': c.phone,
+  'credit_limit': c.creditLimitCents == null ? null : _pesos(c.creditLimitCents!),
+};
+
+/// Tope general de fiado del negocio (se actualiza en su fila de `businesses`).
+RemoteRow creditLimitToRemote(int? cents) => {'credit_limit': cents == null ? null : _pesos(cents)};
 
 RemoteRow sessionToRemote(CashSession s) => {
   'id': s.id,
@@ -197,8 +205,12 @@ ProductRow productFromRemote(RemoteRow r) => ProductRow(
   active: ((r['is_active'] as bool?) ?? true) && r['deleted_at'] == null,
 );
 
-CustomerRow customerFromRemote(RemoteRow r) =>
-    CustomerRow(id: r['id']! as String, name: r['name']! as String, phone: r['phone'] as String?);
+CustomerRow customerFromRemote(RemoteRow r) => CustomerRow(
+  id: r['id']! as String,
+  name: r['name']! as String,
+  phone: r['phone'] as String?,
+  creditLimitCents: _centsOrNull(r['credit_limit']),
+);
 
 SessionRow sessionFromRemote(RemoteRow r) => SessionRow(
   id: r['id']! as String,

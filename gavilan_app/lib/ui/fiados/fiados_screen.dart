@@ -10,10 +10,12 @@ import '../../domain/models.dart';
 import '../../domain/plan.dart';
 import '../../state/app_state.dart';
 import '../../state/store.dart';
+import '../../state/sync.dart';
 import '../../theme/colors.dart';
 import '../../theme/theme.dart';
 import '../widgets/buttons.dart';
 import '../widgets/common.dart';
+import 'credit_limit.dart';
 
 /// Libreta digital de fiados.
 class FiadosScreen extends ConsumerWidget {
@@ -43,7 +45,32 @@ class FiadosScreen extends ConsumerWidget {
               ? 'Nadie te debe'
               : '${debtors.length} ${debtors.length == 1 ? 'cliente' : 'clientes'} con cuenta abierta',
         ),
-        if (debtors.isNotEmpty) const SectionTitle('Quién debe'),
+        if (ref.watch(permissionsProvider).manageCredit)
+          GCard(
+            margin: const EdgeInsets.fromLTRB(16, 0, 16, 0),
+            padding: const EdgeInsets.fromLTRB(14, 10, 8, 10),
+            onTap: () => showCreditLimitSheet(context),
+            child: Row(
+              children: [
+                const Icon(Icons.speed_rounded, size: 20, color: GColors.tintaSuave),
+                const SizedBox(width: 10),
+                Expanded(
+                  child: Text(
+                    store.defaultCreditLimitCents == null
+                        ? 'Sin tope de fiado'
+                        : 'Tope general: ${money(store.defaultCreditLimitCents!, hideZeroCents: true)}',
+                    style: GText.sans(size: 14, weight: FontWeight.w700),
+                  ),
+                ),
+                Text(
+                  'Cambiar',
+                  style: GText.sans(size: 13.5, weight: FontWeight.w800, color: GColors.marca),
+                ),
+                const Icon(Icons.chevron_right_rounded, color: GColors.tintaTenue),
+              ],
+            ),
+          ),
+        if (debtors.isNotEmpty) const SectionTitle('Quién debe', trailing: _OrderNote()),
         if (debtors.isEmpty)
           Padding(
             padding: const EdgeInsets.all(24),
@@ -61,7 +88,10 @@ class FiadosScreen extends ConsumerWidget {
         if (debtors.isNotEmpty)
           Padding(
             padding: const EdgeInsets.fromLTRB(16, 6, 16, 0),
-            child: Text('En rojo: más de 2 semanas sin pagar.', style: GText.muted()),
+            child: Text(
+              'En ámbar: más de $lateAmberDays días sin abonar. En rojo: más de $lateRedDays.',
+              style: GText.muted(),
+            ),
           ),
       ],
     );
@@ -76,8 +106,16 @@ class _DebtorRow extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final late = now.difference(debtor.since).inDays > 14;
-    final business = ref.watch(storeProvider).businessName;
+    final days = DateTime(
+      now.year,
+      now.month,
+      now.day,
+    ).difference(DateTime(debtor.since.year, debtor.since.month, debtor.since.day)).inDays;
+    final late = lateColor(days);
+    final store = ref.watch(storeProvider);
+    final business = store.businessName;
+    final limit = store.creditLimitOf(debtor.customer.id);
+    final over = limit != null && debtor.balanceCents > limit;
     return GCard(
       margin: const EdgeInsets.fromLTRB(16, 0, 16, 10),
       padding: const EdgeInsets.fromLTRB(14, 12, 6, 12),
@@ -98,10 +136,15 @@ class _DebtorRow extends ConsumerWidget {
                       : 'Debe desde ${daysAgo(debtor.since, now)}',
                   style: GText.sans(
                     size: 12.5,
-                    weight: late ? FontWeight.w700 : FontWeight.w500,
-                    color: late ? GColors.rojo : GColors.tintaSuave,
+                    weight: late != null ? FontWeight.w700 : FontWeight.w500,
+                    color: late ?? GColors.tintaSuave,
                   ),
                 ),
+                if (over)
+                  Text(
+                    'Pasó su tope de ${money(limit, hideZeroCents: true)}',
+                    style: GText.sans(size: 12.5, weight: FontWeight.w700, color: GColors.rojo),
+                  ),
               ],
             ),
           ),
@@ -151,6 +194,29 @@ class _DebtorDetail extends ConsumerWidget {
             Text(money(balance), style: GText.amount(size: 26, color: balance > 0 ? GColors.rojo : GColors.cenote)),
           ],
         ),
+        if (ref.watch(permissionsProvider).manageCredit || store.creditLimitOf(customerId) != null)
+          Padding(
+            padding: const EdgeInsets.only(top: 6),
+            child: Row(
+              children: [
+                Text('Tope', style: GText.sans(size: 14)),
+                const Spacer(),
+                Text(switch ((c.creditLimitCents, store.defaultCreditLimitCents)) {
+                  (final own?, _) => money(own, hideZeroCents: true),
+                  (null, final general?) => '${money(general, hideZeroCents: true)} (el general)',
+                  _ => 'Sin tope',
+                }, style: GText.figures(size: 14, weight: FontWeight.w700)),
+                if (ref.watch(permissionsProvider).manageCredit)
+                  TextButton(
+                    onPressed: () => showCreditLimitSheet(context, customerId: customerId),
+                    child: Text(
+                      'Cambiar',
+                      style: GText.sans(size: 13.5, weight: FontWeight.w800, color: GColors.marca),
+                    ),
+                  ),
+              ],
+            ),
+          ),
         const SizedBox(height: 10),
         for (final e in entries)
           Container(
@@ -299,4 +365,12 @@ class _AbonoSheetState extends ConsumerState<_AbonoSheet> {
       ],
     );
   }
+}
+
+/// Recordatorio del orden de la lista.
+class _OrderNote extends StatelessWidget {
+  const _OrderNote();
+
+  @override
+  Widget build(BuildContext context) => Text('Más tiempo sin pagar primero', style: GText.muted(size: 12));
 }
