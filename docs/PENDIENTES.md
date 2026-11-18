@@ -35,7 +35,7 @@ Prioridad: **Alta** = sin esto no se puede usar con un negocio real · **Media**
 - [ ] **Media** · Probar "Quitar del equipo" con dos celulares y cuentas reales.
 - [x] **Baja** · Corte del dueño que junte las cajas de todos los celulares del día ("Todas las cajas"). *18/11/2026*
 - [x] **Alta** · Cada celular con su propia caja (antes uno podía tomar la caja abierta de otro). *18/11/2026*
-- [ ] **Baja** · Ponerle nombre a cada caja ("Mostrador", "Barra") en lugar de la clave del celular.
+- [x] **Baja** · Ponerle nombre a cada caja ("Mostrador", "Barra") en lugar de la clave del celular. *18/11/2026*
 - [ ] **Baja** · Listas de inicio para otros giros (fonda, papelería, ferretería, farmacia).
 - [x] **Media** · En el navegador los datos se guardan (`sqlite3.wasm` y `drift_worker.js` en `web/`) y se respaldan en Supabase igual que en el celular. *11/11/2026*
 - [x] **Alta** · Indicador real en el encabezado: Sin internet, Sin respaldo, Por subir, Respaldado o Revisar respaldo. *26/10/2026*
@@ -62,7 +62,8 @@ Prioridad: **Alta** = sin esto no se puede usar con un negocio real · **Media**
 - [x] **Alta** · Ventas del turno (lista con cada ticket) y cancelar una venta del turno abierto: regresa al inventario, deja de contar en la caja y la ganancia, y si fue fiada le quita la deuda al cliente. Solo dueño y administradores. *12/11/2026*
 - [x] **Media** · Devolver solo una parte de una venta: se cancela la original y queda una venta nueva con lo que se quedó el cliente. *12/11/2026*
 - [x] **Media** · Descuento a la cuenta al cobrar (porcentaje o pesos), en el ticket y repartido en la ganancia. *12/11/2026*
-- [ ] **Baja** · Cancelar o devolver ventas de turnos ya cerrados (con su ajuste en el siguiente corte).
+- [x] **Baja** · Cancelar ventas de cortes ya cerrados: el corte no cambia y la devolución se anota en la caja de hoy. *18/11/2026*
+- [ ] **Baja** · Devolver solo una parte de una venta de un corte ya cerrado.
 - [x] **Alta** · Cambio de cajero con PIN en un aparato compartido: "¿Quién atiende?", "Atiende: X" con F4, bloqueo por tiempo, ventas, gastos y abonos a nombre de quien atiende, "Ventas por persona" en el corte y "Entregar caja". *16/11/2026*
 - [ ] **Media** · Probar el cambio de cajero en un celular real y en la computadora del mostrador con dos personas.
 

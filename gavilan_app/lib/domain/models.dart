@@ -111,7 +111,15 @@ class Sale {
     this.discountCents = 0,
     this.clerk,
     this.payments = const [],
+    this.cancelledInSession,
   });
+
+  /// Turno donde se canceló, si fue en otro (un corte ya cerrado): esa venta sigue contando en el corte de
+  /// su día y el dinero que se regresó se anota como gasto en el turno de la cancelación.
+  final String? cancelledInSession;
+
+  /// Cuenta en el corte de su propio turno: no se canceló, o se canceló después en otro turno.
+  bool get countsInItsCut => !cancelled || (cancelledInSession != null && cancelledInSession != sessionId);
 
   /// Quién atendió (cambio de cajero con PIN). null si no se usan PIN.
   final String? clerk;
@@ -159,7 +167,7 @@ class Sale {
   bool get cancelled => cancelledAt != null;
 
   /// La misma venta, cancelada: deja de contar en la caja, la ganancia y lo vendido.
-  Sale cancel(DateTime at, String reason) => Sale(
+  Sale cancel(DateTime at, String reason, {String? inSession}) => Sale(
     id: id,
     folio: folio,
     createdAt: createdAt,
@@ -176,6 +184,7 @@ class Sale {
     discountCents: discountCents,
     clerk: clerk,
     payments: payments,
+    cancelledInSession: inSession,
   );
 
   /// "K7-0043": cada teléfono lleva su propia numeración.
@@ -318,7 +327,11 @@ class CashSession {
     this.expectedCents,
     this.countedCents,
     this.device,
+    this.name,
   });
+
+  /// Nombre de la caja cuando se abrió ("Mostrador", "Barra"). null = se ve la clave del celular.
+  final String? name;
 
   final String id;
   final DateTime openedAt;
@@ -341,6 +354,18 @@ class CashSession {
     expectedCents: expected,
     countedCents: counted,
     device: device,
+    name: name,
+  );
+
+  CashSession renamed(String? newName) => CashSession(
+    id: id,
+    openedAt: openedAt,
+    openingCents: openingCents,
+    closedAt: closedAt,
+    expectedCents: expectedCents,
+    countedCents: countedCents,
+    device: device,
+    name: newName,
   );
 }
 
@@ -417,6 +442,7 @@ class CashSummary {
 /// La caja de un celular en un día: sus turnos y lo que suman.
 class DeviceCut {
   const DeviceCut({
+    this.name,
     required this.device,
     required this.mine,
     required this.sessions,
@@ -426,6 +452,9 @@ class DeviceCut {
 
   /// Clave del celular ("K7"); null en turnos de antes que no la guardaron.
   final String? device;
+
+  /// Nombre de la caja ("Mostrador"), del turno más reciente.
+  final String? name;
 
   /// Es este celular.
   final bool mine;

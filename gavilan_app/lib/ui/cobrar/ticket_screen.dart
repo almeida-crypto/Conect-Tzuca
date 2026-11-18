@@ -55,13 +55,23 @@ class _TicketScreenState extends ConsumerState<TicketScreen> {
   }
 
   Future<void> _confirmCancel(Sale sale, String? customerName) async {
+    final store = ref.read(storeProvider);
+    final late = !store.sessionIsOpen(sale.sessionId);
+    // De un corte ya cerrado: lo que se devuelve sale de la caja abierta de hoy.
+    if (late && store.openSession == null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Abre tu caja para cancelar una venta de otro día: lo que devuelvas sale de la caja de hoy.'),
+        ),
+      );
+      return;
+    }
     if (!await _authorized('Cancelar la venta ${sale.folioLabel}') || !mounted) return;
-    final reason = await showCancelSaleDialog(context, sale, customerName: customerName);
+    final reason = await showCancelSaleDialog(context, sale, customerName: customerName, late: late);
     if (reason == null || !mounted) return;
     final done = ref.read(storeProvider.notifier).cancelSale(sale.id, reason: reason);
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(content: Text(done == null ? 'No se pudo cancelar: el turno ya se cerró' : 'Venta cancelada')),
-    );
+    ScaffoldMessenger.of(context)
+        .showSnackBar(SnackBar(content: Text(done == null ? 'No se pudo cancelar la venta' : 'Venta cancelada')));
   }
 
   @override
@@ -75,10 +85,8 @@ class _TicketScreenState extends ConsumerState<TicketScreen> {
     final open = store.openSession;
     // Se cancela una venta de un turno abierto (también de otro celular); devolver una parte solo en el
     // turno de este celular, porque la venta nueva entra a esta caja.
-    final canCancel =
-        !sale.cancelled &&
-        store.sessionIsOpen(sale.sessionId) &&
-        (ref.watch(permissionsProvider).cancelSales || store.usesPins);
+    // También las de días pasados: su corte no cambia y la devolución se anota en la caja de hoy.
+    final canCancel = !sale.cancelled && (ref.watch(permissionsProvider).cancelSales || store.usesPins);
     final canReturn = canCancel && open != null && sale.sessionId == open.id;
     final order = sale.orderId == null ? null : store.orderById(sale.orderId!);
     final place = order == null ? null : store.orderTitle(order);
@@ -397,11 +405,19 @@ class _Stamp extends StatelessWidget {
 }
 
 /// Pregunta por qué se cancela la venta y explica qué va a pasar. Devuelve el motivo, o null si no se cancela.
-Future<String?> showCancelSaleDialog(BuildContext context, Sale sale, {String? customerName}) {
+Future<String?> showCancelSaleDialog(BuildContext context, Sale sale, {String? customerName, bool late = false}) {
   const reasons = ['Se cobró mal', 'El cliente se arrepintió', 'Producto en mal estado', 'Otro'];
   var picked = reasons.first;
   final total = money(sale.totalCents);
+  final other = sale.totalCents - sale.cashCents;
   final effect = switch ((sale.kind, sale.method)) {
+    _ when late && sale.kind == SaleKind.fiada =>
+      'Es de un corte ya cerrado, que no cambia. Se le quitan $total de la deuda'
+          '${customerName == null ? '' : ' a $customerName'}.',
+    _ when late =>
+      'Es de un corte ya cerrado, que no cambia.'
+          '${sale.cashCents > 0 ? ' Los ${money(sale.cashCents)} en efectivo que le devuelves se anotan hoy como gasto en tu caja.' : ''}'
+          '${other > 0 ? ' Devuélvele ${money(other)} por tarjeta o transferencia; la app solo lo anota.' : ''}',
     (SaleKind.fiada, _) => 'Se le quitan $total de la deuda${customerName == null ? '' : ' a $customerName'}.',
     _ when sale.split =>
       'Devuélvele lo que pagó: ${[for (final p in sale.payments) '${money(p.amountCents)} en ${p.method.label.toLowerCase()}'].join(', ')}.',

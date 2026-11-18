@@ -1,6 +1,7 @@
 import '../../core/limits.dart';
 
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../core/money.dart';
@@ -104,6 +105,7 @@ class _CajaScreenState extends ConsumerState<CajaScreen> {
 
     return [
       const ScreenTitle('Corte de hoy'),
+      const RegisterNameChip(),
       StatCard(
         label: 'Debe haber en caja',
         cents: s.expectedCashCents,
@@ -335,6 +337,7 @@ class _CajaScreenState extends ConsumerState<CajaScreen> {
     final last = store.closedSessions.isEmpty ? null : store.closedSessions.first;
     return [
       const ScreenTitle('Caja cerrada', subtitle: 'Abre la caja para empezar a cobrar'),
+      const RegisterNameChip(),
       if (store.severalRegisters && ref.watch(permissionsProvider).seeProfit)
         Padding(
           padding: const EdgeInsets.fromLTRB(16, 8, 16, 0),
@@ -616,6 +619,110 @@ class ByClerkCard extends StatelessWidget {
             ),
         ],
       ),
+    );
+  }
+}
+
+/// "Caja K7 · Cambiar nombre": cómo se llama la caja de este celular (se ve en "Todas las cajas").
+class RegisterNameChip extends ConsumerWidget {
+  const RegisterNameChip({super.key});
+
+  Future<void> _rename(BuildContext context, WidgetRef ref) async {
+    final store = ref.read(storeProvider);
+    final name = await showDialog<String>(
+      context: context,
+      builder: (_) => _RenameRegisterDialog(current: store.registerName ?? ''),
+    );
+    if (name != null) ref.read(storeProvider.notifier).renameRegister(name);
+  }
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final store = ref.watch(storeProvider);
+    final label = StoreState.registerLabel(store.registerName, store.device);
+    final can = ref.watch(permissionsProvider).editCatalog;
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(16, 0, 16, 4),
+      child: Row(
+        children: [
+          const Icon(Icons.point_of_sale_rounded, size: 16, color: GColors.tintaSuave),
+          const SizedBox(width: 6),
+          Flexible(
+            child: Text(
+              store.severalRegisters ? '$label · este celular' : label,
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+              style: GText.sans(size: 13.5, weight: FontWeight.w700, color: GColors.tintaSuave),
+            ),
+          ),
+          if (can)
+            TextButton(
+              onPressed: () => _rename(context, ref),
+              child: Text(
+                store.registerName == null ? 'Ponerle nombre' : 'Cambiar',
+                style: GText.sans(size: 13, weight: FontWeight.w800, color: GColors.marca),
+              ),
+            ),
+        ],
+      ),
+    );
+  }
+}
+
+class _RenameRegisterDialog extends StatefulWidget {
+  const _RenameRegisterDialog({required this.current});
+
+  final String current;
+
+  @override
+  State<_RenameRegisterDialog> createState() => _RenameRegisterDialogState();
+}
+
+class _RenameRegisterDialogState extends State<_RenameRegisterDialog> {
+  late final _name = TextEditingController(text: widget.current);
+
+  @override
+  void dispose() {
+    _name.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return AlertDialog(
+      title: const Text('Nombre de esta caja'),
+      content: Column(
+        mainAxisSize: MainAxisSize.min,
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            'Así la vas a reconocer en "Todas las cajas". Si no le pones, se ve la clave del celular.',
+            style: GText.muted(size: 13),
+          ),
+          const SizedBox(height: 10),
+          TextField(
+            controller: _name,
+            autofocus: true,
+            textCapitalization: TextCapitalization.sentences,
+            inputFormatters: [LengthLimitingTextInputFormatter(30)],
+            decoration: const InputDecoration(hintText: 'Ej. Mostrador'),
+            onSubmitted: (v) => Navigator.of(context).pop(v),
+          ),
+          const SizedBox(height: 10),
+          Wrap(
+            spacing: 6,
+            runSpacing: 6,
+            children: [
+              for (final s in const ['Mostrador', 'Barra', 'Caja 2', 'Cocina'])
+                ActionChip(label: Text(s), onPressed: () => setState(() => _name.text = s)),
+            ],
+          ),
+        ],
+      ),
+      actions: [
+        TextButton(onPressed: () => Navigator.of(context).pop(), child: const Text('Cancelar')),
+        TextButton(onPressed: () => Navigator.of(context).pop(_name.text), child: const Text('Guardar')),
+      ],
     );
   }
 }

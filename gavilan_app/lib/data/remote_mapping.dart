@@ -96,6 +96,7 @@ RemoteRow sessionToRemote(CashSession s) => {
   'expected_amount': s.expectedCents == null ? null : _pesos(s.expectedCents!),
   'counted_amount': s.countedCents == null ? null : _pesos(s.countedCents!),
   'device_id': s.device,
+  'register_name': s.name,
 };
 
 RemoteRow creditToRemote(CreditEntry e) => {
@@ -155,6 +156,7 @@ List<RemoteChange> saleToRemote(Sale s, {Set<String> stockTracked = const {}}) {
     'order_id': s.orderId,
     'status': s.cancelled ? 'cancelled' : (s.kind == SaleKind.fiada ? 'credit' : 'paid'),
     'notes': s.cancelReason,
+    'cancelled_session_id': s.cancelledInSession,
     'clerk_name': s.clerk,
     'subtotal': _pesos(s.subtotalCents),
     'discount': _pesos(s.discountCents),
@@ -250,6 +252,7 @@ SessionRow sessionFromRemote(RemoteRow r) => SessionRow(
   expectedCents: _centsOrNull(r['expected_amount']),
   countedCents: _centsOrNull(r['counted_amount']),
   device: r['device_id'] as String?,
+  name: r['register_name'] as String?,
 );
 
 SaleRow saleFromRemote(RemoteRow r) => SaleRow(
@@ -262,6 +265,7 @@ SaleRow saleFromRemote(RemoteRow r) => SaleRow(
       : SaleKind.pagada,
   cancelledAt: r['status'] == 'cancelled' ? _date(r['updated_at'] ?? r['created_at']) : null,
   cancelReason: r['status'] == 'cancelled' ? r['notes'] as String? : null,
+  cancelledInSession: r['cancelled_session_id'] as String?,
   discountCents: _cents(r['discount']),
   clerkName: r['clerk_name'] as String?,
   sessionId: r['cash_session_id'] as String?,

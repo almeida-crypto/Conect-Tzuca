@@ -867,3 +867,19 @@ Se abren desde **Más → Módulos** con el plan Emprendedor o superior. Los tre
 ### Verificación
 - `flutter analyze` sin avisos y 119 pruebas pasan. Prueba nueva en `sync_test.dart`: el cajero no toma la caja del dueño, abre la suya, vende, y el dueño ve las dos cajas con sus montos y el total. Se corrigieron 3 pruebas que daban por bueno el error (el segundo celular tomaba la caja del primero).
 - Revisión de la pantalla con tres cajas (abierta, cerrada con faltante, de otro celular), imágenes borradas al terminar.
+
+### Nombre a cada caja
+- En Caja, bajo el título: "Caja K7 · Ponerle nombre" (o "Mostrador · Cambiar"). Dueño, administrador y encargado le ponen nombre ("Mostrador", "Barra", "Caja 2"); se guarda en el celular y cada turno lo lleva a la nube.
+- "Todas las cajas" muestra el nombre ("Mostrador · este celular"). Sin nombre se ve "Caja K7".
+- Si la caja está abierta, el turno también cambia de nombre.
+
+### Cancelar ventas de días pasados
+- Desde el ticket de una venta de un corte ya cerrado (Caja › Cortes anteriores › Ver las ventas, o Todas las cajas › Ventas) sale "Cancelar esta venta".
+- **El corte de ese día no cambia:** la venta sigue contando ahí (vendido, efectivo y ganancia). Queda con el sello CANCELADA y "(cancelada el 18/11)" en el motivo.
+- **Hoy:** lo que se le devuelve en efectivo sale como gasto "Devolución de la venta K7-0043" en la caja abierta de este celular; lo de tarjeta o transferencia solo se avisa. Si fue fiada, se le quita la deuda. La mercancía regresa al inventario.
+- Hace falta la caja abierta en ese celular (si no, avisa que la abra). Devolver solo una parte sigue siendo del turno abierto.
+- **Servidor (migración 0021):** `cash_sessions.register_name` y `sales.cancelled_session_id`. Base local versión 14.
+
+### Verificación
+- `flutter analyze` sin avisos y 123 pruebas pasan, 4 nuevas (`late_cancel_test.dart`): venta de un corte cerrado (el corte no cambia, gasto solo por lo de efectivo, inventario, sin caja abierta no se puede, no se cancela dos veces); fiada de otro día; hacia la nube; nombre de la caja (se guarda, lo toma el turno, Todas las cajas).
+- Revisión de pantallas (nombre en Caja, aviso al cancelar una venta de otro día, ticket viejo), imágenes borradas al terminar.

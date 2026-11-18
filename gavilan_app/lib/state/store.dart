@@ -34,6 +34,7 @@ String newDeviceCode() {
 class StoreState {
   const StoreState({
     this.device,
+    this.registerName,
     this.defaultCreditLimitCents,
     this.clerks = const [],
     this.lockMinutes,
@@ -84,6 +85,13 @@ class StoreState {
 
   /// Clave de este celular (la misma de los folios, "K7"). La pone el repositorio al abrir.
   final String? device;
+
+  /// Nombre de la caja de este celular ("Mostrador"). null = se ve "Caja K7".
+  final String? registerName;
+
+  /// Cómo se llama una caja: su nombre o la clave del celular.
+  static String registerLabel(String? name, String? device) =>
+      name != null && name.isNotEmpty ? name : (device == null ? 'Caja' : 'Caja $device');
 
   /// Tope general de fiado del negocio (null = sin tope). Cada cliente puede tener el suyo.
   final int? defaultCreditLimitCents;
@@ -167,6 +175,7 @@ class StoreState {
     final cuts = [
       for (final e in byDevice.entries)
         DeviceCut(
+          name: (e.value..sort((a, b) => b.openedAt.compareTo(a.openedAt))).first.name,
           device: e.key,
           mine: e.key == device,
           sessions: e.value..sort((a, b) => b.openedAt.compareTo(a.openedAt)),
@@ -367,7 +376,7 @@ class StoreState {
 
   /// Lo que dejó cada producto vendido en el turno: precio, costo y ganancia.
   ProfitReport profitFor(CashSession session) =>
-      profitOf(sales.where((s) => s.sessionId == session.id && !s.cancelled));
+      profitOf(sales.where((s) => s.sessionId == session.id && s.countsInItsCut));
 
   /// Ventas de un turno, la más reciente primero (las canceladas también, marcadas).
   List<Sale> salesOf(CashSession session) =>
@@ -379,7 +388,7 @@ class StoreState {
     final totals = <String, (int, int)>{};
     var named = false;
     for (final s in sales) {
-      if (s.sessionId != session.id || s.cancelled) continue;
+      if (s.sessionId != session.id || !s.countsInItsCut) continue;
       if (s.clerk != null) named = true;
       final key = s.clerk ?? 'Sin nombre';
       final (count, cents) = totals[key] ?? (0, 0);
@@ -392,7 +401,9 @@ class StoreState {
 
   CashSummary summaryFor(CashSession session) {
     // Una venta cancelada no cuenta: su dinero se le regresó al cliente (o se le quitó la deuda).
-    final sessionSales = sales.where((s) => s.sessionId == session.id && !s.cancelled);
+    // Una venta cancelada en su mismo turno no cuenta (se le regresó el dinero ahí). Si se canceló después,
+    // en otro turno, el corte de su día no cambia: la devolución quedó como gasto en el turno nuevo.
+    final sessionSales = sales.where((s) => s.sessionId == session.id && s.countsInItsCut);
     var cash = 0, other = 0, onCredit = 0, count = 0;
     for (final s in sessionSales) {
       count++;
@@ -454,6 +465,8 @@ class StoreState {
 
   StoreState copyWith({
     String? device,
+    String? registerName,
+    bool clearRegisterName = false,
     int? defaultCreditLimitCents,
     bool clearCreditLimit = false,
     List<Clerk>? clerks,
@@ -484,6 +497,7 @@ class StoreState {
     int? nextFolio,
   }) => StoreState(
     device: device ?? this.device,
+    registerName: clearRegisterName ? null : (registerName ?? this.registerName),
     defaultCreditLimitCents: clearCreditLimit ? null : (defaultCreditLimitCents ?? this.defaultCreditLimitCents),
     clerks: clerks ?? this.clerks,
     lockMinutes: clearLock ? null : (lockMinutes ?? this.lockMinutes),
@@ -786,10 +800,19 @@ class StoreNotifier extends Notifier<StoreState> {
   /// si fue fiada, se le quita esa deuda al cliente. Devuelve la venta cancelada (null si no se pudo).
   Sale? cancelSale(String saleId, {required String reason}) {
     final sale = state.sales.where((s) => s.id == saleId).firstOrNull;
-    // Solo ventas de un turno abierto (de este celular o de otro: el dueño puede cancelar una del cajero).
-    if (sale == null || sale.cancelled || !state.sessionIsOpen(sale.sessionId)) return null;
+    if (sale == null || sale.cancelled) return null;
+    // De un turno abierto (de este celular o de otro: el dueño puede cancelar una del cajero), o de un corte
+    // ya cerrado: entonces ese corte no cambia y lo que se devuelve se anota en la caja abierta de este celular.
+    final late = !state.sessionIsOpen(sale.sessionId);
+    final open = state.openSession;
+    if (late && open == null) return null;
     final now = _now();
-    final cancelled = sale.cancel(now, reason.trim().isEmpty ? 'Cancelada' : reason.trim());
+    final why = reason.trim().isEmpty ? 'Cancelada' : reason.trim();
+    final cancelled = sale.cancel(
+      now,
+      late ? '$why (cancelada el ${now.day}/${now.month})' : why,
+      inSession: late ? open!.id : null,
+    );
 
     final back = <String, double>{};
     for (final l in sale.lines) {
@@ -809,7 +832,7 @@ class StoreNotifier extends Notifier<StoreState> {
             amountCents: sale.totalCents,
             createdAt: now,
             saleId: sale.id,
-            sessionId: sale.sessionId,
+            sessionId: late ? open!.id : sale.sessionId,
           )
         : null;
     state = state.copyWith(
@@ -818,6 +841,10 @@ class StoreNotifier extends Notifier<StoreState> {
       credit: reversal == null ? state.credit : [...state.credit, reversal],
     );
     _save((r) => r.cancelSale(sale: cancelled, restocked: restocked, reversal: reversal));
+    // Lo que se le regresa en efectivo sale de la caja de hoy.
+    if (late && sale.kind == SaleKind.pagada && sale.cashCents > 0) {
+      addMovement(CashKind.gasto, sale.cashCents, 'Devolución de la venta ${sale.folioLabel}');
+    }
     return cancelled;
   }
 
@@ -912,9 +939,27 @@ class StoreNotifier extends Notifier<StoreState> {
       openedAt: _clock(),
       openingCents: openingCents,
       device: ref.read(repositoryProvider).deviceCode,
+      name: state.registerName,
     );
     state = state.copyWith(sessions: [...state.sessions, session]);
     _save((r) => r.upsertSession(session));
+  }
+
+  /// Nombre de la caja de este celular. Si la caja está abierta, el turno también lo toma.
+  void renameRegister(String? name) {
+    final clean = name?.trim();
+    final value = clean == null || clean.isEmpty ? null : clean;
+    final open = state.openSession;
+    final renamed = open?.renamed(value);
+    state = state.copyWith(
+      registerName: value,
+      clearRegisterName: value == null,
+      sessions: renamed == null ? null : [for (final s in state.sessions) s.id == renamed.id ? renamed : s],
+    );
+    _save((r) async {
+      await r.setRegisterName(value);
+      if (renamed != null) await r.upsertSession(renamed);
+    });
   }
 
   void addMovement(CashKind kind, int amountCents, String concept) {

@@ -60,6 +60,7 @@ class SalesTable extends Table {
   TextColumn get orderId => text().nullable()();
   DateTimeColumn get cancelledAt => dateTime().nullable()();
   TextColumn get cancelReason => text().nullable()();
+  TextColumn get cancelledInSession => text().nullable()();
   IntColumn get discountCents => integer().withDefault(const Constant(0))();
   TextColumn get clerkName => text().nullable()();
 
@@ -132,6 +133,7 @@ class CashSessionsTable extends Table {
   IntColumn get expectedCents => integer().nullable()();
   IntColumn get countedCents => integer().nullable()();
   TextColumn get device => text().nullable()();
+  TextColumn get name => text().nullable()();
 
   @override
   Set<Column> get primaryKey => {id};
@@ -398,7 +400,7 @@ class GavilanDb extends _$GavilanDb {
   );
 
   @override
-  int get schemaVersion => 13;
+  int get schemaVersion => 14;
 
   @override
   MigrationStrategy get migration => MigrationStrategy(
@@ -450,6 +452,10 @@ class GavilanDb extends _$GavilanDb {
         if (from >= 5) await m.addColumn(orderItemsTable, orderItemsTable.paidQty);
       }
       if (from < 13) await m.addColumn(cashSessionsTable, cashSessionsTable.device);
+      if (from < 14) {
+        await m.addColumn(cashSessionsTable, cashSessionsTable.name);
+        await m.addColumn(salesTable, salesTable.cancelledInSession);
+      }
     },
   );
 }

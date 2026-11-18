@@ -54,6 +54,9 @@ abstract class StoreRepository {
 
   /// Formas de pago que acepta; sube a la fila del negocio si está enlazado.
   Future<void> setPayMethods(Set<PayMethod> methods);
+
+  /// Nombre de la caja de este celular (solo en este celular; cada turno lo lleva consigo a la nube).
+  Future<void> setRegisterName(String? name);
   Future<void> insertCredit(CreditEntry entry);
   Future<void> upsertSession(CashSession session);
   Future<void> insertMovement(CashMovement movement);
@@ -160,6 +163,8 @@ class MemoryRepository implements StoreRepository {
   @override
   Future<void> setPayMethods(Set<PayMethod> methods) async {}
   @override
+  Future<void> setRegisterName(String? name) async {}
+  @override
   Future<void> insertCredit(CreditEntry entry) async {}
   @override
   Future<void> upsertSession(CashSession session) async {}
@@ -202,6 +207,7 @@ const _kClerkLock = 'clerk_lock';
 const _kModules = 'modules';
 const _kCreditLimit = 'credit_limit';
 const _kPayMethods = 'pay_methods';
+const _kRegisterName = 'register_name';
 const _kBusinessId = 'business_id';
 const _kDemo = 'is_demo';
 const _kFolio = 'next_folio';
@@ -340,6 +346,7 @@ class DriftRepository implements StoreRepository, SyncStore {
       modules: modulesFromText(meta[_kModules]),
       defaultCreditLimitCents: int.tryParse(meta[_kCreditLimit] ?? ''),
       payMethods: payMethodsFromText(meta[_kPayMethods]),
+      registerName: (meta[_kRegisterName] ?? '').isEmpty ? null : meta[_kRegisterName],
       nextFolio: int.tryParse(meta[_kFolio] ?? '') ?? 1,
       products: [for (final p in await db.select(db.productsTable).get()) _product(p)],
       customers: [
@@ -362,6 +369,7 @@ class DriftRepository implements StoreRepository, SyncStore {
             orderId: s.orderId,
             cancelledAt: s.cancelledAt,
             cancelReason: s.cancelReason,
+            cancelledInSession: s.cancelledInSession,
             discountCents: s.discountCents,
             clerk: s.clerkName,
             payments: List.unmodifiable(paysBySale[s.id] ?? const <SalePayment>[]),
@@ -443,6 +451,7 @@ class DriftRepository implements StoreRepository, SyncStore {
     expectedCents: s.expectedCents,
     countedCents: s.countedCents,
     device: s.device,
+    name: s.name,
   );
 
   static Lot _lot(LotRow r) =>
@@ -621,6 +630,7 @@ class DriftRepository implements StoreRepository, SyncStore {
     expectedCents: s.expectedCents,
     countedCents: s.countedCents,
     device: s.device,
+    name: s.name,
   );
 
   static MovementRow _movementRow(CashMovement m) => MovementRow(
@@ -650,6 +660,7 @@ class DriftRepository implements StoreRepository, SyncStore {
             orderId: s.orderId,
             cancelledAt: s.cancelledAt,
             cancelReason: s.cancelReason,
+            cancelledInSession: s.cancelledInSession,
             discountCents: s.discountCents,
             clerkName: s.clerk,
           ),
@@ -860,6 +871,9 @@ class DriftRepository implements StoreRepository, SyncStore {
       (table: 'customers', rows: [customerToRemote(customer)]),
     ]);
   });
+
+  @override
+  Future<void> setRegisterName(String? name) => _setMeta(_kRegisterName, name ?? '');
 
   @override
   Future<void> setPayMethods(Set<PayMethod> methods) => db.transaction(() async {

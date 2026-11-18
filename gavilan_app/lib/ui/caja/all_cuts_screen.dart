@@ -190,7 +190,7 @@ class _DeviceCard extends StatelessWidget {
             children: [
               Expanded(
                 child: Text(
-                  cut.device == null ? 'Caja' : 'Caja ${cut.device}${cut.mine ? ' · este celular' : ''}',
+                  '${StoreState.registerLabel(cut.name, cut.device)}${cut.mine ? ' · este celular' : ''}',
                   style: GText.sans(size: 15.5, weight: FontWeight.w800),
                 ),
               ),

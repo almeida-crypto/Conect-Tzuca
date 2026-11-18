@@ -5032,6 +5032,15 @@ class $SalesTableTable extends SalesTable with TableInfo<$SalesTableTable, SaleR
     type: DriftSqlType.string,
     requiredDuringInsert: false,
   );
+  static const VerificationMeta _cancelledInSessionMeta = const VerificationMeta('cancelledInSession');
+  @override
+  late final GeneratedColumn<String> cancelledInSession = GeneratedColumn<String>(
+    'cancelled_in_session',
+    aliasedName,
+    true,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+  );
   static const VerificationMeta _discountCentsMeta = const VerificationMeta('discountCents');
   @override
   late final GeneratedColumn<int> discountCents = GeneratedColumn<int>(
@@ -5065,6 +5074,7 @@ class $SalesTableTable extends SalesTable with TableInfo<$SalesTableTable, SaleR
     orderId,
     cancelledAt,
     cancelReason,
+    cancelledInSession,
     discountCents,
     clerkName,
   ];
@@ -5116,6 +5126,12 @@ class $SalesTableTable extends SalesTable with TableInfo<$SalesTableTable, SaleR
     if (data.containsKey('cancel_reason')) {
       context.handle(_cancelReasonMeta, cancelReason.isAcceptableOrUnknown(data['cancel_reason']!, _cancelReasonMeta));
     }
+    if (data.containsKey('cancelled_in_session')) {
+      context.handle(
+        _cancelledInSessionMeta,
+        cancelledInSession.isAcceptableOrUnknown(data['cancelled_in_session']!, _cancelledInSessionMeta),
+      );
+    }
     if (data.containsKey('discount_cents')) {
       context.handle(
         _discountCentsMeta,
@@ -5150,6 +5166,10 @@ class $SalesTableTable extends SalesTable with TableInfo<$SalesTableTable, SaleR
       orderId: attachedDatabase.typeMapping.read(DriftSqlType.string, data['${effectivePrefix}order_id']),
       cancelledAt: attachedDatabase.typeMapping.read(DriftSqlType.dateTime, data['${effectivePrefix}cancelled_at']),
       cancelReason: attachedDatabase.typeMapping.read(DriftSqlType.string, data['${effectivePrefix}cancel_reason']),
+      cancelledInSession: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}cancelled_in_session'],
+      ),
       discountCents: attachedDatabase.typeMapping.read(DriftSqlType.int, data['${effectivePrefix}discount_cents'])!,
       clerkName: attachedDatabase.typeMapping.read(DriftSqlType.string, data['${effectivePrefix}clerk_name']),
     );
@@ -5184,6 +5204,7 @@ class SaleRow extends DataClass implements Insertable<SaleRow> {
   final String? orderId;
   final DateTime? cancelledAt;
   final String? cancelReason;
+  final String? cancelledInSession;
   final int discountCents;
   final String? clerkName;
   const SaleRow({
@@ -5199,6 +5220,7 @@ class SaleRow extends DataClass implements Insertable<SaleRow> {
     this.orderId,
     this.cancelledAt,
     this.cancelReason,
+    this.cancelledInSession,
     required this.discountCents,
     this.clerkName,
   });
@@ -5235,6 +5257,9 @@ class SaleRow extends DataClass implements Insertable<SaleRow> {
     if (!nullToAbsent || cancelReason != null) {
       map['cancel_reason'] = Variable<String>(cancelReason);
     }
+    if (!nullToAbsent || cancelledInSession != null) {
+      map['cancelled_in_session'] = Variable<String>(cancelledInSession);
+    }
     map['discount_cents'] = Variable<int>(discountCents);
     if (!nullToAbsent || clerkName != null) {
       map['clerk_name'] = Variable<String>(clerkName);
@@ -5256,6 +5281,7 @@ class SaleRow extends DataClass implements Insertable<SaleRow> {
       orderId: orderId == null && nullToAbsent ? const Value.absent() : Value(orderId),
       cancelledAt: cancelledAt == null && nullToAbsent ? const Value.absent() : Value(cancelledAt),
       cancelReason: cancelReason == null && nullToAbsent ? const Value.absent() : Value(cancelReason),
+      cancelledInSession: cancelledInSession == null && nullToAbsent ? const Value.absent() : Value(cancelledInSession),
       discountCents: Value(discountCents),
       clerkName: clerkName == null && nullToAbsent ? const Value.absent() : Value(clerkName),
     );
@@ -5276,6 +5302,7 @@ class SaleRow extends DataClass implements Insertable<SaleRow> {
       orderId: serializer.fromJson<String?>(json['orderId']),
       cancelledAt: serializer.fromJson<DateTime?>(json['cancelledAt']),
       cancelReason: serializer.fromJson<String?>(json['cancelReason']),
+      cancelledInSession: serializer.fromJson<String?>(json['cancelledInSession']),
       discountCents: serializer.fromJson<int>(json['discountCents']),
       clerkName: serializer.fromJson<String?>(json['clerkName']),
     );
@@ -5296,6 +5323,7 @@ class SaleRow extends DataClass implements Insertable<SaleRow> {
       'orderId': serializer.toJson<String?>(orderId),
       'cancelledAt': serializer.toJson<DateTime?>(cancelledAt),
       'cancelReason': serializer.toJson<String?>(cancelReason),
+      'cancelledInSession': serializer.toJson<String?>(cancelledInSession),
       'discountCents': serializer.toJson<int>(discountCents),
       'clerkName': serializer.toJson<String?>(clerkName),
     };
@@ -5314,6 +5342,7 @@ class SaleRow extends DataClass implements Insertable<SaleRow> {
     Value<String?> orderId = const Value.absent(),
     Value<DateTime?> cancelledAt = const Value.absent(),
     Value<String?> cancelReason = const Value.absent(),
+    Value<String?> cancelledInSession = const Value.absent(),
     int? discountCents,
     Value<String?> clerkName = const Value.absent(),
   }) => SaleRow(
@@ -5329,6 +5358,7 @@ class SaleRow extends DataClass implements Insertable<SaleRow> {
     orderId: orderId.present ? orderId.value : this.orderId,
     cancelledAt: cancelledAt.present ? cancelledAt.value : this.cancelledAt,
     cancelReason: cancelReason.present ? cancelReason.value : this.cancelReason,
+    cancelledInSession: cancelledInSession.present ? cancelledInSession.value : this.cancelledInSession,
     discountCents: discountCents ?? this.discountCents,
     clerkName: clerkName.present ? clerkName.value : this.clerkName,
   );
@@ -5346,6 +5376,7 @@ class SaleRow extends DataClass implements Insertable<SaleRow> {
       orderId: data.orderId.present ? data.orderId.value : this.orderId,
       cancelledAt: data.cancelledAt.present ? data.cancelledAt.value : this.cancelledAt,
       cancelReason: data.cancelReason.present ? data.cancelReason.value : this.cancelReason,
+      cancelledInSession: data.cancelledInSession.present ? data.cancelledInSession.value : this.cancelledInSession,
       discountCents: data.discountCents.present ? data.discountCents.value : this.discountCents,
       clerkName: data.clerkName.present ? data.clerkName.value : this.clerkName,
     );
@@ -5366,6 +5397,7 @@ class SaleRow extends DataClass implements Insertable<SaleRow> {
           ..write('orderId: $orderId, ')
           ..write('cancelledAt: $cancelledAt, ')
           ..write('cancelReason: $cancelReason, ')
+          ..write('cancelledInSession: $cancelledInSession, ')
           ..write('discountCents: $discountCents, ')
           ..write('clerkName: $clerkName')
           ..write(')'))
@@ -5386,6 +5418,7 @@ class SaleRow extends DataClass implements Insertable<SaleRow> {
     orderId,
     cancelledAt,
     cancelReason,
+    cancelledInSession,
     discountCents,
     clerkName,
   );
@@ -5405,6 +5438,7 @@ class SaleRow extends DataClass implements Insertable<SaleRow> {
           other.orderId == this.orderId &&
           other.cancelledAt == this.cancelledAt &&
           other.cancelReason == this.cancelReason &&
+          other.cancelledInSession == this.cancelledInSession &&
           other.discountCents == this.discountCents &&
           other.clerkName == this.clerkName);
 }
@@ -5422,6 +5456,7 @@ class SalesTableCompanion extends UpdateCompanion<SaleRow> {
   final Value<String?> orderId;
   final Value<DateTime?> cancelledAt;
   final Value<String?> cancelReason;
+  final Value<String?> cancelledInSession;
   final Value<int> discountCents;
   final Value<String?> clerkName;
   final Value<int> rowid;
@@ -5438,6 +5473,7 @@ class SalesTableCompanion extends UpdateCompanion<SaleRow> {
     this.orderId = const Value.absent(),
     this.cancelledAt = const Value.absent(),
     this.cancelReason = const Value.absent(),
+    this.cancelledInSession = const Value.absent(),
     this.discountCents = const Value.absent(),
     this.clerkName = const Value.absent(),
     this.rowid = const Value.absent(),
@@ -5455,6 +5491,7 @@ class SalesTableCompanion extends UpdateCompanion<SaleRow> {
     this.orderId = const Value.absent(),
     this.cancelledAt = const Value.absent(),
     this.cancelReason = const Value.absent(),
+    this.cancelledInSession = const Value.absent(),
     this.discountCents = const Value.absent(),
     this.clerkName = const Value.absent(),
     this.rowid = const Value.absent(),
@@ -5475,6 +5512,7 @@ class SalesTableCompanion extends UpdateCompanion<SaleRow> {
     Expression<String>? orderId,
     Expression<DateTime>? cancelledAt,
     Expression<String>? cancelReason,
+    Expression<String>? cancelledInSession,
     Expression<int>? discountCents,
     Expression<String>? clerkName,
     Expression<int>? rowid,
@@ -5492,6 +5530,7 @@ class SalesTableCompanion extends UpdateCompanion<SaleRow> {
       if (orderId != null) 'order_id': orderId,
       if (cancelledAt != null) 'cancelled_at': cancelledAt,
       if (cancelReason != null) 'cancel_reason': cancelReason,
+      if (cancelledInSession != null) 'cancelled_in_session': cancelledInSession,
       if (discountCents != null) 'discount_cents': discountCents,
       if (clerkName != null) 'clerk_name': clerkName,
       if (rowid != null) 'rowid': rowid,
@@ -5511,6 +5550,7 @@ class SalesTableCompanion extends UpdateCompanion<SaleRow> {
     Value<String?>? orderId,
     Value<DateTime?>? cancelledAt,
     Value<String?>? cancelReason,
+    Value<String?>? cancelledInSession,
     Value<int>? discountCents,
     Value<String?>? clerkName,
     Value<int>? rowid,
@@ -5528,6 +5568,7 @@ class SalesTableCompanion extends UpdateCompanion<SaleRow> {
       orderId: orderId ?? this.orderId,
       cancelledAt: cancelledAt ?? this.cancelledAt,
       cancelReason: cancelReason ?? this.cancelReason,
+      cancelledInSession: cancelledInSession ?? this.cancelledInSession,
       discountCents: discountCents ?? this.discountCents,
       clerkName: clerkName ?? this.clerkName,
       rowid: rowid ?? this.rowid,
@@ -5573,6 +5614,9 @@ class SalesTableCompanion extends UpdateCompanion<SaleRow> {
     if (cancelReason.present) {
       map['cancel_reason'] = Variable<String>(cancelReason.value);
     }
+    if (cancelledInSession.present) {
+      map['cancelled_in_session'] = Variable<String>(cancelledInSession.value);
+    }
     if (discountCents.present) {
       map['discount_cents'] = Variable<int>(discountCents.value);
     }
@@ -5600,6 +5644,7 @@ class SalesTableCompanion extends UpdateCompanion<SaleRow> {
           ..write('orderId: $orderId, ')
           ..write('cancelledAt: $cancelledAt, ')
           ..write('cancelReason: $cancelReason, ')
+          ..write('cancelledInSession: $cancelledInSession, ')
           ..write('discountCents: $discountCents, ')
           ..write('clerkName: $clerkName, ')
           ..write('rowid: $rowid')
@@ -6891,8 +6936,26 @@ class $CashSessionsTableTable extends CashSessionsTable with TableInfo<$CashSess
     type: DriftSqlType.string,
     requiredDuringInsert: false,
   );
+  static const VerificationMeta _nameMeta = const VerificationMeta('name');
   @override
-  List<GeneratedColumn> get $columns => [id, openedAt, openingCents, closedAt, expectedCents, countedCents, device];
+  late final GeneratedColumn<String> name = GeneratedColumn<String>(
+    'name',
+    aliasedName,
+    true,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+  );
+  @override
+  List<GeneratedColumn> get $columns => [
+    id,
+    openedAt,
+    openingCents,
+    closedAt,
+    expectedCents,
+    countedCents,
+    device,
+    name,
+  ];
   @override
   String get aliasedName => _alias ?? actualTableName;
   @override
@@ -6932,6 +6995,9 @@ class $CashSessionsTableTable extends CashSessionsTable with TableInfo<$CashSess
     if (data.containsKey('device')) {
       context.handle(_deviceMeta, device.isAcceptableOrUnknown(data['device']!, _deviceMeta));
     }
+    if (data.containsKey('name')) {
+      context.handle(_nameMeta, name.isAcceptableOrUnknown(data['name']!, _nameMeta));
+    }
     return context;
   }
 
@@ -6948,6 +7014,7 @@ class $CashSessionsTableTable extends CashSessionsTable with TableInfo<$CashSess
       expectedCents: attachedDatabase.typeMapping.read(DriftSqlType.int, data['${effectivePrefix}expected_cents']),
       countedCents: attachedDatabase.typeMapping.read(DriftSqlType.int, data['${effectivePrefix}counted_cents']),
       device: attachedDatabase.typeMapping.read(DriftSqlType.string, data['${effectivePrefix}device']),
+      name: attachedDatabase.typeMapping.read(DriftSqlType.string, data['${effectivePrefix}name']),
     );
   }
 
@@ -6965,6 +7032,7 @@ class SessionRow extends DataClass implements Insertable<SessionRow> {
   final int? expectedCents;
   final int? countedCents;
   final String? device;
+  final String? name;
   const SessionRow({
     required this.id,
     required this.openedAt,
@@ -6973,6 +7041,7 @@ class SessionRow extends DataClass implements Insertable<SessionRow> {
     this.expectedCents,
     this.countedCents,
     this.device,
+    this.name,
   });
   @override
   Map<String, Expression> toColumns(bool nullToAbsent) {
@@ -6992,6 +7061,9 @@ class SessionRow extends DataClass implements Insertable<SessionRow> {
     if (!nullToAbsent || device != null) {
       map['device'] = Variable<String>(device);
     }
+    if (!nullToAbsent || name != null) {
+      map['name'] = Variable<String>(name);
+    }
     return map;
   }
 
@@ -7004,6 +7076,7 @@ class SessionRow extends DataClass implements Insertable<SessionRow> {
       expectedCents: expectedCents == null && nullToAbsent ? const Value.absent() : Value(expectedCents),
       countedCents: countedCents == null && nullToAbsent ? const Value.absent() : Value(countedCents),
       device: device == null && nullToAbsent ? const Value.absent() : Value(device),
+      name: name == null && nullToAbsent ? const Value.absent() : Value(name),
     );
   }
 
@@ -7017,6 +7090,7 @@ class SessionRow extends DataClass implements Insertable<SessionRow> {
       expectedCents: serializer.fromJson<int?>(json['expectedCents']),
       countedCents: serializer.fromJson<int?>(json['countedCents']),
       device: serializer.fromJson<String?>(json['device']),
+      name: serializer.fromJson<String?>(json['name']),
     );
   }
   @override
@@ -7030,6 +7104,7 @@ class SessionRow extends DataClass implements Insertable<SessionRow> {
       'expectedCents': serializer.toJson<int?>(expectedCents),
       'countedCents': serializer.toJson<int?>(countedCents),
       'device': serializer.toJson<String?>(device),
+      'name': serializer.toJson<String?>(name),
     };
   }
 
@@ -7041,6 +7116,7 @@ class SessionRow extends DataClass implements Insertable<SessionRow> {
     Value<int?> expectedCents = const Value.absent(),
     Value<int?> countedCents = const Value.absent(),
     Value<String?> device = const Value.absent(),
+    Value<String?> name = const Value.absent(),
   }) => SessionRow(
     id: id ?? this.id,
     openedAt: openedAt ?? this.openedAt,
@@ -7049,6 +7125,7 @@ class SessionRow extends DataClass implements Insertable<SessionRow> {
     expectedCents: expectedCents.present ? expectedCents.value : this.expectedCents,
     countedCents: countedCents.present ? countedCents.value : this.countedCents,
     device: device.present ? device.value : this.device,
+    name: name.present ? name.value : this.name,
   );
   SessionRow copyWithCompanion(CashSessionsTableCompanion data) {
     return SessionRow(
@@ -7059,6 +7136,7 @@ class SessionRow extends DataClass implements Insertable<SessionRow> {
       expectedCents: data.expectedCents.present ? data.expectedCents.value : this.expectedCents,
       countedCents: data.countedCents.present ? data.countedCents.value : this.countedCents,
       device: data.device.present ? data.device.value : this.device,
+      name: data.name.present ? data.name.value : this.name,
     );
   }
 
@@ -7071,13 +7149,14 @@ class SessionRow extends DataClass implements Insertable<SessionRow> {
           ..write('closedAt: $closedAt, ')
           ..write('expectedCents: $expectedCents, ')
           ..write('countedCents: $countedCents, ')
-          ..write('device: $device')
+          ..write('device: $device, ')
+          ..write('name: $name')
           ..write(')'))
         .toString();
   }
 
   @override
-  int get hashCode => Object.hash(id, openedAt, openingCents, closedAt, expectedCents, countedCents, device);
+  int get hashCode => Object.hash(id, openedAt, openingCents, closedAt, expectedCents, countedCents, device, name);
   @override
   bool operator ==(Object other) =>
       identical(this, other) ||
@@ -7088,7 +7167,8 @@ class SessionRow extends DataClass implements Insertable<SessionRow> {
           other.closedAt == this.closedAt &&
           other.expectedCents == this.expectedCents &&
           other.countedCents == this.countedCents &&
-          other.device == this.device);
+          other.device == this.device &&
+          other.name == this.name);
 }
 
 class CashSessionsTableCompanion extends UpdateCompanion<SessionRow> {
@@ -7099,6 +7179,7 @@ class CashSessionsTableCompanion extends UpdateCompanion<SessionRow> {
   final Value<int?> expectedCents;
   final Value<int?> countedCents;
   final Value<String?> device;
+  final Value<String?> name;
   final Value<int> rowid;
   const CashSessionsTableCompanion({
     this.id = const Value.absent(),
@@ -7108,6 +7189,7 @@ class CashSessionsTableCompanion extends UpdateCompanion<SessionRow> {
     this.expectedCents = const Value.absent(),
     this.countedCents = const Value.absent(),
     this.device = const Value.absent(),
+    this.name = const Value.absent(),
     this.rowid = const Value.absent(),
   });
   CashSessionsTableCompanion.insert({
@@ -7118,6 +7200,7 @@ class CashSessionsTableCompanion extends UpdateCompanion<SessionRow> {
     this.expectedCents = const Value.absent(),
     this.countedCents = const Value.absent(),
     this.device = const Value.absent(),
+    this.name = const Value.absent(),
     this.rowid = const Value.absent(),
   }) : id = Value(id),
        openedAt = Value(openedAt),
@@ -7130,6 +7213,7 @@ class CashSessionsTableCompanion extends UpdateCompanion<SessionRow> {
     Expression<int>? expectedCents,
     Expression<int>? countedCents,
     Expression<String>? device,
+    Expression<String>? name,
     Expression<int>? rowid,
   }) {
     return RawValuesInsertable({
@@ -7140,6 +7224,7 @@ class CashSessionsTableCompanion extends UpdateCompanion<SessionRow> {
       if (expectedCents != null) 'expected_cents': expectedCents,
       if (countedCents != null) 'counted_cents': countedCents,
       if (device != null) 'device': device,
+      if (name != null) 'name': name,
       if (rowid != null) 'rowid': rowid,
     });
   }
@@ -7152,6 +7237,7 @@ class CashSessionsTableCompanion extends UpdateCompanion<SessionRow> {
     Value<int?>? expectedCents,
     Value<int?>? countedCents,
     Value<String?>? device,
+    Value<String?>? name,
     Value<int>? rowid,
   }) {
     return CashSessionsTableCompanion(
@@ -7162,6 +7248,7 @@ class CashSessionsTableCompanion extends UpdateCompanion<SessionRow> {
       expectedCents: expectedCents ?? this.expectedCents,
       countedCents: countedCents ?? this.countedCents,
       device: device ?? this.device,
+      name: name ?? this.name,
       rowid: rowid ?? this.rowid,
     );
   }
@@ -7190,6 +7277,9 @@ class CashSessionsTableCompanion extends UpdateCompanion<SessionRow> {
     if (device.present) {
       map['device'] = Variable<String>(device.value);
     }
+    if (name.present) {
+      map['name'] = Variable<String>(name.value);
+    }
     if (rowid.present) {
       map['rowid'] = Variable<int>(rowid.value);
     }
@@ -7206,6 +7296,7 @@ class CashSessionsTableCompanion extends UpdateCompanion<SessionRow> {
           ..write('expectedCents: $expectedCents, ')
           ..write('countedCents: $countedCents, ')
           ..write('device: $device, ')
+          ..write('name: $name, ')
           ..write('rowid: $rowid')
           ..write(')'))
         .toString();
@@ -10265,6 +10356,7 @@ typedef $$SalesTableTableCreateCompanionBuilder = SalesTableCompanion Function({
   Value<String?> orderId,
   Value<DateTime?> cancelledAt,
   Value<String?> cancelReason,
+  Value<String?> cancelledInSession,
   Value<int> discountCents,
   Value<String?> clerkName,
   Value<int> rowid,
@@ -10282,6 +10374,7 @@ typedef $$SalesTableTableUpdateCompanionBuilder = SalesTableCompanion Function({
   Value<String?> orderId,
   Value<DateTime?> cancelledAt,
   Value<String?> cancelReason,
+  Value<String?> cancelledInSession,
   Value<int> discountCents,
   Value<String?> clerkName,
   Value<int> rowid,
@@ -10328,6 +10421,9 @@ class $$SalesTableTableFilterComposer extends Composer<_$GavilanDb, $SalesTableT
 
   ColumnFilters<String> get cancelReason =>
       $composableBuilder(column: $table.cancelReason, builder: (column) => ColumnFilters(column));
+
+  ColumnFilters<String> get cancelledInSession =>
+      $composableBuilder(column: $table.cancelledInSession, builder: (column) => ColumnFilters(column));
 
   ColumnFilters<int> get discountCents =>
       $composableBuilder(column: $table.discountCents, builder: (column) => ColumnFilters(column));
@@ -10379,6 +10475,9 @@ class $$SalesTableTableOrderingComposer extends Composer<_$GavilanDb, $SalesTabl
   ColumnOrderings<String> get cancelReason =>
       $composableBuilder(column: $table.cancelReason, builder: (column) => ColumnOrderings(column));
 
+  ColumnOrderings<String> get cancelledInSession =>
+      $composableBuilder(column: $table.cancelledInSession, builder: (column) => ColumnOrderings(column));
+
   ColumnOrderings<int> get discountCents =>
       $composableBuilder(column: $table.discountCents, builder: (column) => ColumnOrderings(column));
 
@@ -10423,6 +10522,9 @@ class $$SalesTableTableAnnotationComposer extends Composer<_$GavilanDb, $SalesTa
   GeneratedColumn<String> get cancelReason =>
       $composableBuilder(column: $table.cancelReason, builder: (column) => column);
 
+  GeneratedColumn<String> get cancelledInSession =>
+      $composableBuilder(column: $table.cancelledInSession, builder: (column) => column);
+
   GeneratedColumn<int> get discountCents =>
       $composableBuilder(column: $table.discountCents, builder: (column) => column);
 
@@ -10466,6 +10568,7 @@ class $$SalesTableTableTableManager
                 Value<String?> orderId = const Value.absent(),
                 Value<DateTime?> cancelledAt = const Value.absent(),
                 Value<String?> cancelReason = const Value.absent(),
+                Value<String?> cancelledInSession = const Value.absent(),
                 Value<int> discountCents = const Value.absent(),
                 Value<String?> clerkName = const Value.absent(),
                 Value<int> rowid = const Value.absent(),
@@ -10482,6 +10585,7 @@ class $$SalesTableTableTableManager
                 orderId: orderId,
                 cancelledAt: cancelledAt,
                 cancelReason: cancelReason,
+                cancelledInSession: cancelledInSession,
                 discountCents: discountCents,
                 clerkName: clerkName,
                 rowid: rowid,
@@ -10500,6 +10604,7 @@ class $$SalesTableTableTableManager
                 Value<String?> orderId = const Value.absent(),
                 Value<DateTime?> cancelledAt = const Value.absent(),
                 Value<String?> cancelReason = const Value.absent(),
+                Value<String?> cancelledInSession = const Value.absent(),
                 Value<int> discountCents = const Value.absent(),
                 Value<String?> clerkName = const Value.absent(),
                 Value<int> rowid = const Value.absent(),
@@ -10516,6 +10621,7 @@ class $$SalesTableTableTableManager
                 orderId: orderId,
                 cancelledAt: cancelledAt,
                 cancelReason: cancelReason,
+                cancelledInSession: cancelledInSession,
                 discountCents: discountCents,
                 clerkName: clerkName,
                 rowid: rowid,
@@ -11149,6 +11255,7 @@ typedef $$CashSessionsTableTableCreateCompanionBuilder = CashSessionsTableCompan
   Value<int?> expectedCents,
   Value<int?> countedCents,
   Value<String?> device,
+  Value<String?> name,
   Value<int> rowid,
 });
 typedef $$CashSessionsTableTableUpdateCompanionBuilder = CashSessionsTableCompanion Function({
@@ -11159,6 +11266,7 @@ typedef $$CashSessionsTableTableUpdateCompanionBuilder = CashSessionsTableCompan
   Value<int?> expectedCents,
   Value<int?> countedCents,
   Value<String?> device,
+  Value<String?> name,
   Value<int> rowid,
 });
 
@@ -11189,6 +11297,8 @@ class $$CashSessionsTableTableFilterComposer extends Composer<_$GavilanDb, $Cash
 
   ColumnFilters<String> get device =>
       $composableBuilder(column: $table.device, builder: (column) => ColumnFilters(column));
+
+  ColumnFilters<String> get name => $composableBuilder(column: $table.name, builder: (column) => ColumnFilters(column));
 }
 
 class $$CashSessionsTableTableOrderingComposer extends Composer<_$GavilanDb, $CashSessionsTableTable> {
@@ -11218,6 +11328,9 @@ class $$CashSessionsTableTableOrderingComposer extends Composer<_$GavilanDb, $Ca
 
   ColumnOrderings<String> get device =>
       $composableBuilder(column: $table.device, builder: (column) => ColumnOrderings(column));
+
+  ColumnOrderings<String> get name =>
+      $composableBuilder(column: $table.name, builder: (column) => ColumnOrderings(column));
 }
 
 class $$CashSessionsTableTableAnnotationComposer extends Composer<_$GavilanDb, $CashSessionsTableTable> {
@@ -11242,6 +11355,8 @@ class $$CashSessionsTableTableAnnotationComposer extends Composer<_$GavilanDb, $
   GeneratedColumn<int> get countedCents => $composableBuilder(column: $table.countedCents, builder: (column) => column);
 
   GeneratedColumn<String> get device => $composableBuilder(column: $table.device, builder: (column) => column);
+
+  GeneratedColumn<String> get name => $composableBuilder(column: $table.name, builder: (column) => column);
 }
 
 class $$CashSessionsTableTableTableManager
@@ -11276,6 +11391,7 @@ class $$CashSessionsTableTableTableManager
                 Value<int?> expectedCents = const Value.absent(),
                 Value<int?> countedCents = const Value.absent(),
                 Value<String?> device = const Value.absent(),
+                Value<String?> name = const Value.absent(),
                 Value<int> rowid = const Value.absent(),
               }) => CashSessionsTableCompanion(
                 id: id,
@@ -11285,6 +11401,7 @@ class $$CashSessionsTableTableTableManager
                 expectedCents: expectedCents,
                 countedCents: countedCents,
                 device: device,
+                name: name,
                 rowid: rowid,
               ),
           createCompanionCallback:
@@ -11296,6 +11413,7 @@ class $$CashSessionsTableTableTableManager
                 Value<int?> expectedCents = const Value.absent(),
                 Value<int?> countedCents = const Value.absent(),
                 Value<String?> device = const Value.absent(),
+                Value<String?> name = const Value.absent(),
                 Value<int> rowid = const Value.absent(),
               }) => CashSessionsTableCompanion.insert(
                 id: id,
@@ -11305,6 +11423,7 @@ class $$CashSessionsTableTableTableManager
                 expectedCents: expectedCents,
                 countedCents: countedCents,
                 device: device,
+                name: name,
                 rowid: rowid,
               ),
           withReferenceMapper: (p0) => p0
