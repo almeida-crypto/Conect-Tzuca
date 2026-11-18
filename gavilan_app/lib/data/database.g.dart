@@ -6882,8 +6882,17 @@ class $CashSessionsTableTable extends CashSessionsTable with TableInfo<$CashSess
     type: DriftSqlType.int,
     requiredDuringInsert: false,
   );
+  static const VerificationMeta _deviceMeta = const VerificationMeta('device');
   @override
-  List<GeneratedColumn> get $columns => [id, openedAt, openingCents, closedAt, expectedCents, countedCents];
+  late final GeneratedColumn<String> device = GeneratedColumn<String>(
+    'device',
+    aliasedName,
+    true,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+  );
+  @override
+  List<GeneratedColumn> get $columns => [id, openedAt, openingCents, closedAt, expectedCents, countedCents, device];
   @override
   String get aliasedName => _alias ?? actualTableName;
   @override
@@ -6920,6 +6929,9 @@ class $CashSessionsTableTable extends CashSessionsTable with TableInfo<$CashSess
     if (data.containsKey('counted_cents')) {
       context.handle(_countedCentsMeta, countedCents.isAcceptableOrUnknown(data['counted_cents']!, _countedCentsMeta));
     }
+    if (data.containsKey('device')) {
+      context.handle(_deviceMeta, device.isAcceptableOrUnknown(data['device']!, _deviceMeta));
+    }
     return context;
   }
 
@@ -6935,6 +6947,7 @@ class $CashSessionsTableTable extends CashSessionsTable with TableInfo<$CashSess
       closedAt: attachedDatabase.typeMapping.read(DriftSqlType.dateTime, data['${effectivePrefix}closed_at']),
       expectedCents: attachedDatabase.typeMapping.read(DriftSqlType.int, data['${effectivePrefix}expected_cents']),
       countedCents: attachedDatabase.typeMapping.read(DriftSqlType.int, data['${effectivePrefix}counted_cents']),
+      device: attachedDatabase.typeMapping.read(DriftSqlType.string, data['${effectivePrefix}device']),
     );
   }
 
@@ -6951,6 +6964,7 @@ class SessionRow extends DataClass implements Insertable<SessionRow> {
   final DateTime? closedAt;
   final int? expectedCents;
   final int? countedCents;
+  final String? device;
   const SessionRow({
     required this.id,
     required this.openedAt,
@@ -6958,6 +6972,7 @@ class SessionRow extends DataClass implements Insertable<SessionRow> {
     this.closedAt,
     this.expectedCents,
     this.countedCents,
+    this.device,
   });
   @override
   Map<String, Expression> toColumns(bool nullToAbsent) {
@@ -6974,6 +6989,9 @@ class SessionRow extends DataClass implements Insertable<SessionRow> {
     if (!nullToAbsent || countedCents != null) {
       map['counted_cents'] = Variable<int>(countedCents);
     }
+    if (!nullToAbsent || device != null) {
+      map['device'] = Variable<String>(device);
+    }
     return map;
   }
 
@@ -6985,6 +7003,7 @@ class SessionRow extends DataClass implements Insertable<SessionRow> {
       closedAt: closedAt == null && nullToAbsent ? const Value.absent() : Value(closedAt),
       expectedCents: expectedCents == null && nullToAbsent ? const Value.absent() : Value(expectedCents),
       countedCents: countedCents == null && nullToAbsent ? const Value.absent() : Value(countedCents),
+      device: device == null && nullToAbsent ? const Value.absent() : Value(device),
     );
   }
 
@@ -6997,6 +7016,7 @@ class SessionRow extends DataClass implements Insertable<SessionRow> {
       closedAt: serializer.fromJson<DateTime?>(json['closedAt']),
       expectedCents: serializer.fromJson<int?>(json['expectedCents']),
       countedCents: serializer.fromJson<int?>(json['countedCents']),
+      device: serializer.fromJson<String?>(json['device']),
     );
   }
   @override
@@ -7009,6 +7029,7 @@ class SessionRow extends DataClass implements Insertable<SessionRow> {
       'closedAt': serializer.toJson<DateTime?>(closedAt),
       'expectedCents': serializer.toJson<int?>(expectedCents),
       'countedCents': serializer.toJson<int?>(countedCents),
+      'device': serializer.toJson<String?>(device),
     };
   }
 
@@ -7019,6 +7040,7 @@ class SessionRow extends DataClass implements Insertable<SessionRow> {
     Value<DateTime?> closedAt = const Value.absent(),
     Value<int?> expectedCents = const Value.absent(),
     Value<int?> countedCents = const Value.absent(),
+    Value<String?> device = const Value.absent(),
   }) => SessionRow(
     id: id ?? this.id,
     openedAt: openedAt ?? this.openedAt,
@@ -7026,6 +7048,7 @@ class SessionRow extends DataClass implements Insertable<SessionRow> {
     closedAt: closedAt.present ? closedAt.value : this.closedAt,
     expectedCents: expectedCents.present ? expectedCents.value : this.expectedCents,
     countedCents: countedCents.present ? countedCents.value : this.countedCents,
+    device: device.present ? device.value : this.device,
   );
   SessionRow copyWithCompanion(CashSessionsTableCompanion data) {
     return SessionRow(
@@ -7035,6 +7058,7 @@ class SessionRow extends DataClass implements Insertable<SessionRow> {
       closedAt: data.closedAt.present ? data.closedAt.value : this.closedAt,
       expectedCents: data.expectedCents.present ? data.expectedCents.value : this.expectedCents,
       countedCents: data.countedCents.present ? data.countedCents.value : this.countedCents,
+      device: data.device.present ? data.device.value : this.device,
     );
   }
 
@@ -7046,13 +7070,14 @@ class SessionRow extends DataClass implements Insertable<SessionRow> {
           ..write('openingCents: $openingCents, ')
           ..write('closedAt: $closedAt, ')
           ..write('expectedCents: $expectedCents, ')
-          ..write('countedCents: $countedCents')
+          ..write('countedCents: $countedCents, ')
+          ..write('device: $device')
           ..write(')'))
         .toString();
   }
 
   @override
-  int get hashCode => Object.hash(id, openedAt, openingCents, closedAt, expectedCents, countedCents);
+  int get hashCode => Object.hash(id, openedAt, openingCents, closedAt, expectedCents, countedCents, device);
   @override
   bool operator ==(Object other) =>
       identical(this, other) ||
@@ -7062,7 +7087,8 @@ class SessionRow extends DataClass implements Insertable<SessionRow> {
           other.openingCents == this.openingCents &&
           other.closedAt == this.closedAt &&
           other.expectedCents == this.expectedCents &&
-          other.countedCents == this.countedCents);
+          other.countedCents == this.countedCents &&
+          other.device == this.device);
 }
 
 class CashSessionsTableCompanion extends UpdateCompanion<SessionRow> {
@@ -7072,6 +7098,7 @@ class CashSessionsTableCompanion extends UpdateCompanion<SessionRow> {
   final Value<DateTime?> closedAt;
   final Value<int?> expectedCents;
   final Value<int?> countedCents;
+  final Value<String?> device;
   final Value<int> rowid;
   const CashSessionsTableCompanion({
     this.id = const Value.absent(),
@@ -7080,6 +7107,7 @@ class CashSessionsTableCompanion extends UpdateCompanion<SessionRow> {
     this.closedAt = const Value.absent(),
     this.expectedCents = const Value.absent(),
     this.countedCents = const Value.absent(),
+    this.device = const Value.absent(),
     this.rowid = const Value.absent(),
   });
   CashSessionsTableCompanion.insert({
@@ -7089,6 +7117,7 @@ class CashSessionsTableCompanion extends UpdateCompanion<SessionRow> {
     this.closedAt = const Value.absent(),
     this.expectedCents = const Value.absent(),
     this.countedCents = const Value.absent(),
+    this.device = const Value.absent(),
     this.rowid = const Value.absent(),
   }) : id = Value(id),
        openedAt = Value(openedAt),
@@ -7100,6 +7129,7 @@ class CashSessionsTableCompanion extends UpdateCompanion<SessionRow> {
     Expression<DateTime>? closedAt,
     Expression<int>? expectedCents,
     Expression<int>? countedCents,
+    Expression<String>? device,
     Expression<int>? rowid,
   }) {
     return RawValuesInsertable({
@@ -7109,6 +7139,7 @@ class CashSessionsTableCompanion extends UpdateCompanion<SessionRow> {
       if (closedAt != null) 'closed_at': closedAt,
       if (expectedCents != null) 'expected_cents': expectedCents,
       if (countedCents != null) 'counted_cents': countedCents,
+      if (device != null) 'device': device,
       if (rowid != null) 'rowid': rowid,
     });
   }
@@ -7120,6 +7151,7 @@ class CashSessionsTableCompanion extends UpdateCompanion<SessionRow> {
     Value<DateTime?>? closedAt,
     Value<int?>? expectedCents,
     Value<int?>? countedCents,
+    Value<String?>? device,
     Value<int>? rowid,
   }) {
     return CashSessionsTableCompanion(
@@ -7129,6 +7161,7 @@ class CashSessionsTableCompanion extends UpdateCompanion<SessionRow> {
       closedAt: closedAt ?? this.closedAt,
       expectedCents: expectedCents ?? this.expectedCents,
       countedCents: countedCents ?? this.countedCents,
+      device: device ?? this.device,
       rowid: rowid ?? this.rowid,
     );
   }
@@ -7154,6 +7187,9 @@ class CashSessionsTableCompanion extends UpdateCompanion<SessionRow> {
     if (countedCents.present) {
       map['counted_cents'] = Variable<int>(countedCents.value);
     }
+    if (device.present) {
+      map['device'] = Variable<String>(device.value);
+    }
     if (rowid.present) {
       map['rowid'] = Variable<int>(rowid.value);
     }
@@ -7169,6 +7205,7 @@ class CashSessionsTableCompanion extends UpdateCompanion<SessionRow> {
           ..write('closedAt: $closedAt, ')
           ..write('expectedCents: $expectedCents, ')
           ..write('countedCents: $countedCents, ')
+          ..write('device: $device, ')
           ..write('rowid: $rowid')
           ..write(')'))
         .toString();
@@ -11111,6 +11148,7 @@ typedef $$CashSessionsTableTableCreateCompanionBuilder = CashSessionsTableCompan
   Value<DateTime?> closedAt,
   Value<int?> expectedCents,
   Value<int?> countedCents,
+  Value<String?> device,
   Value<int> rowid,
 });
 typedef $$CashSessionsTableTableUpdateCompanionBuilder = CashSessionsTableCompanion Function({
@@ -11120,6 +11158,7 @@ typedef $$CashSessionsTableTableUpdateCompanionBuilder = CashSessionsTableCompan
   Value<DateTime?> closedAt,
   Value<int?> expectedCents,
   Value<int?> countedCents,
+  Value<String?> device,
   Value<int> rowid,
 });
 
@@ -11147,6 +11186,9 @@ class $$CashSessionsTableTableFilterComposer extends Composer<_$GavilanDb, $Cash
 
   ColumnFilters<int> get countedCents =>
       $composableBuilder(column: $table.countedCents, builder: (column) => ColumnFilters(column));
+
+  ColumnFilters<String> get device =>
+      $composableBuilder(column: $table.device, builder: (column) => ColumnFilters(column));
 }
 
 class $$CashSessionsTableTableOrderingComposer extends Composer<_$GavilanDb, $CashSessionsTableTable> {
@@ -11173,6 +11215,9 @@ class $$CashSessionsTableTableOrderingComposer extends Composer<_$GavilanDb, $Ca
 
   ColumnOrderings<int> get countedCents =>
       $composableBuilder(column: $table.countedCents, builder: (column) => ColumnOrderings(column));
+
+  ColumnOrderings<String> get device =>
+      $composableBuilder(column: $table.device, builder: (column) => ColumnOrderings(column));
 }
 
 class $$CashSessionsTableTableAnnotationComposer extends Composer<_$GavilanDb, $CashSessionsTableTable> {
@@ -11195,6 +11240,8 @@ class $$CashSessionsTableTableAnnotationComposer extends Composer<_$GavilanDb, $
       $composableBuilder(column: $table.expectedCents, builder: (column) => column);
 
   GeneratedColumn<int> get countedCents => $composableBuilder(column: $table.countedCents, builder: (column) => column);
+
+  GeneratedColumn<String> get device => $composableBuilder(column: $table.device, builder: (column) => column);
 }
 
 class $$CashSessionsTableTableTableManager
@@ -11228,6 +11275,7 @@ class $$CashSessionsTableTableTableManager
                 Value<DateTime?> closedAt = const Value.absent(),
                 Value<int?> expectedCents = const Value.absent(),
                 Value<int?> countedCents = const Value.absent(),
+                Value<String?> device = const Value.absent(),
                 Value<int> rowid = const Value.absent(),
               }) => CashSessionsTableCompanion(
                 id: id,
@@ -11236,6 +11284,7 @@ class $$CashSessionsTableTableTableManager
                 closedAt: closedAt,
                 expectedCents: expectedCents,
                 countedCents: countedCents,
+                device: device,
                 rowid: rowid,
               ),
           createCompanionCallback:
@@ -11246,6 +11295,7 @@ class $$CashSessionsTableTableTableManager
                 Value<DateTime?> closedAt = const Value.absent(),
                 Value<int?> expectedCents = const Value.absent(),
                 Value<int?> countedCents = const Value.absent(),
+                Value<String?> device = const Value.absent(),
                 Value<int> rowid = const Value.absent(),
               }) => CashSessionsTableCompanion.insert(
                 id: id,
@@ -11254,6 +11304,7 @@ class $$CashSessionsTableTableTableManager
                 closedAt: closedAt,
                 expectedCents: expectedCents,
                 countedCents: countedCents,
+                device: device,
                 rowid: rowid,
               ),
           withReferenceMapper: (p0) => p0

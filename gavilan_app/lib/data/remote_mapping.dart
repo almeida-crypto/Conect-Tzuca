@@ -95,6 +95,7 @@ RemoteRow sessionToRemote(CashSession s) => {
   'closed_at': s.closedAt == null ? null : _iso(s.closedAt!),
   'expected_amount': s.expectedCents == null ? null : _pesos(s.expectedCents!),
   'counted_amount': s.countedCents == null ? null : _pesos(s.countedCents!),
+  'device_id': s.device,
 };
 
 RemoteRow creditToRemote(CreditEntry e) => {
@@ -248,6 +249,7 @@ SessionRow sessionFromRemote(RemoteRow r) => SessionRow(
   closedAt: _dateOrNull(r['closed_at']),
   expectedCents: _centsOrNull(r['expected_amount']),
   countedCents: _centsOrNull(r['counted_amount']),
+  device: r['device_id'] as String?,
 );
 
 SaleRow saleFromRemote(RemoteRow r) => SaleRow(

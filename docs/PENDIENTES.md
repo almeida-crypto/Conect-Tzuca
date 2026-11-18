@@ -33,7 +33,9 @@ Prioridad: **Alta** = sin esto no se puede usar con un negocio real · **Media**
 - [ ] **Media** · Cambiar de cajero con PIN en un celular compartido, sin cerrar sesión.
 - [x] **Media** · Al quitar a alguien del equipo, su celular borra los datos del negocio (al abrir o en los siguientes 5 minutos con internet). *18/11/2026*
 - [ ] **Media** · Probar "Quitar del equipo" con dos celulares y cuentas reales.
-- [ ] **Baja** · Corte del dueño que junte las cajas de todos los celulares del día.
+- [x] **Baja** · Corte del dueño que junte las cajas de todos los celulares del día ("Todas las cajas"). *18/11/2026*
+- [x] **Alta** · Cada celular con su propia caja (antes uno podía tomar la caja abierta de otro). *18/11/2026*
+- [ ] **Baja** · Ponerle nombre a cada caja ("Mostrador", "Barra") en lugar de la clave del celular.
 - [ ] **Baja** · Listas de inicio para otros giros (fonda, papelería, ferretería, farmacia).
 - [x] **Media** · En el navegador los datos se guardan (`sqlite3.wasm` y `drift_worker.js` en `web/`) y se respaldan en Supabase igual que en el celular. *11/11/2026*
 - [x] **Alta** · Indicador real en el encabezado: Sin internet, Sin respaldo, Por subir, Respaldado o Revisar respaldo. *26/10/2026*

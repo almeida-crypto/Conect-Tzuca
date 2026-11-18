@@ -12,6 +12,7 @@ import '../../theme/colors.dart';
 import '../../theme/theme.dart';
 import '../widgets/buttons.dart';
 import '../widgets/common.dart';
+import 'all_cuts_screen.dart';
 import 'cash_dialogs.dart';
 import 'profit_card.dart';
 import 'sales_screen.dart';
@@ -194,6 +195,17 @@ class _CajaScreenState extends ConsumerState<CajaScreen> {
               Navigator.of(context).push(MaterialPageRoute<void>(builder: (_) => SalesScreen(sessionId: session.id))),
         ),
       ),
+      if (store.severalRegisters && ref.watch(permissionsProvider).seeProfit)
+        Padding(
+          padding: const EdgeInsets.fromLTRB(16, 8, 16, 0),
+          child: GButton(
+            label: 'Todas las cajas',
+            icon: Icons.devices_rounded,
+            kind: GButtonKind.outline,
+            expand: true,
+            onPressed: () => Navigator.of(context).push(MaterialPageRoute<void>(builder: (_) => const AllCutsScreen())),
+          ),
+        ),
       if (gastos.isNotEmpty)
         GCard(
           margin: const EdgeInsets.fromLTRB(16, 12, 16, 0),
@@ -323,6 +335,17 @@ class _CajaScreenState extends ConsumerState<CajaScreen> {
     final last = store.closedSessions.isEmpty ? null : store.closedSessions.first;
     return [
       const ScreenTitle('Caja cerrada', subtitle: 'Abre la caja para empezar a cobrar'),
+      if (store.severalRegisters && ref.watch(permissionsProvider).seeProfit)
+        Padding(
+          padding: const EdgeInsets.fromLTRB(16, 8, 16, 0),
+          child: GButton(
+            label: 'Todas las cajas',
+            icon: Icons.devices_rounded,
+            kind: GButtonKind.outline,
+            expand: true,
+            onPressed: () => Navigator.of(context).push(MaterialPageRoute<void>(builder: (_) => const AllCutsScreen())),
+          ),
+        ),
       if (last != null)
         Padding(
           padding: const EdgeInsets.fromLTRB(16, 10, 16, 0),

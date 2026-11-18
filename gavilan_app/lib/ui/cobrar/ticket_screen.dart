@@ -73,11 +73,13 @@ class _TicketScreenState extends ConsumerState<TicketScreen> {
     final balance = customer == null ? null : store.balanceOf(customer.id);
     final paid = sale.kind == SaleKind.pagada;
     final open = store.openSession;
+    // Se cancela una venta de un turno abierto (también de otro celular); devolver una parte solo en el
+    // turno de este celular, porque la venta nueva entra a esta caja.
     final canCancel =
         !sale.cancelled &&
-        open != null &&
-        sale.sessionId == open.id &&
+        store.sessionIsOpen(sale.sessionId) &&
         (ref.watch(permissionsProvider).cancelSales || store.usesPins);
+    final canReturn = canCancel && open != null && sale.sessionId == open.id;
     final order = sale.orderId == null ? null : store.orderById(sale.orderId!);
     final place = order == null ? null : store.orderTitle(order);
     final text = ticketText(
@@ -279,7 +281,7 @@ class _TicketScreenState extends ConsumerState<TicketScreen> {
                               type: MaterialType.transparency,
                               child: Column(
                                 children: [
-                                  if (sale.lines.length > 1 || sale.lines.any((l) => l.qty > 1)) ...[
+                                  if (canReturn && (sale.lines.length > 1 || sale.lines.any((l) => l.qty > 1))) ...[
                                     _FixRow(
                                       icon: Icons.assignment_return_outlined,
                                       label: 'Devolver algunos productos',

@@ -848,3 +848,22 @@ Se abren desde **Más → Módulos** con el plan Emprendedor o superior. Los tre
 - `flutter analyze` sin avisos y 118 pruebas pasan, 2 nuevas (`pay_methods_test.dart`): cómo empieza cada negocio, prender y apagar (el efectivo no se apaga), se guarda, sube y baja; con solo efectivo no salen los botones de forma de pago.
 - Revisión de pantallas (cobrar solo efectivo, botones de "Venta cobrada" y Formas de pago), imágenes borradas al terminar.
 - Versión 1.7.0+10.
+
+## 18 de noviembre de 2026 · Sesión 12
+
+### Arreglo: cada celular con su propia caja
+- **El error:** los turnos de caja no guardaban de qué celular eran y "la caja abierta" era la primera que encontraba. Con dos celulares con caja, al bajar los datos uno podía anotar sus ventas, gastos y cortes en el turno del otro.
+- **Ahora:** cada turno guarda la clave del celular (`CashSession.device`, la misma de los folios). La caja abierta y los "Cortes anteriores" de Caja son solo los de ese celular. Los turnos de antes (sin clave) se toman como propios si no tienen ventas de otro celular.
+- Cancelar una venta se puede en cualquier turno abierto (el dueño cancela una venta del cajero); devolver una parte solo en el turno de este celular, porque la venta nueva entra a esta caja.
+- **Servidor (migración 0020):** `cash_sessions.device_id`. Base local versión 13.
+
+### Corte de todas las cajas
+- **Caja › Todas las cajas** (dueño, administrador y encargado; sale cuando hay turnos de más de un celular).
+- Por día (‹ Hoy ›): vendido en todas las cajas, cuánto debe haber en efectivo en total, tarjeta y transferencia, fiado, gastos y si los cortes cuadraron, sobró o faltó; "Ventas por persona" de todas.
+- **Cada caja:** "Caja K7 · este celular", abierta o "Cerró a las 21:10", quién atendió, vendido, debe haber en efectivo, cuadró/sobró/faltó, sus ventas y su corte.
+- Aviso: lo de cada celular llega cuando tiene internet.
+- **Código:** `StoreState.cutsOn`, `DeviceCut`, `CashSummary +`, `salesByClerkIn`, `severalRegisters`; `ui/caja/all_cuts_screen.dart`.
+
+### Verificación
+- `flutter analyze` sin avisos y 119 pruebas pasan. Prueba nueva en `sync_test.dart`: el cajero no toma la caja del dueño, abre la suya, vende, y el dueño ve las dos cajas con sus montos y el total. Se corrigieron 3 pruebas que daban por bueno el error (el segundo celular tomaba la caja del primero).
+- Revisión de la pantalla con tres cajas (abierta, cerrada con faltante, de otro celular), imágenes borradas al terminar.

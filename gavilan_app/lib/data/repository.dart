@@ -442,6 +442,7 @@ class DriftRepository implements StoreRepository, SyncStore {
     closedAt: s.closedAt,
     expectedCents: s.expectedCents,
     countedCents: s.countedCents,
+    device: s.device,
   );
 
   static Lot _lot(LotRow r) =>
@@ -619,6 +620,7 @@ class DriftRepository implements StoreRepository, SyncStore {
     closedAt: s.closedAt,
     expectedCents: s.expectedCents,
     countedCents: s.countedCents,
+    device: s.device,
   );
 
   static MovementRow _movementRow(CashMovement m) => MovementRow(

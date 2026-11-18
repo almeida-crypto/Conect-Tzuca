@@ -317,11 +317,15 @@ class CashSession {
     this.closedAt,
     this.expectedCents,
     this.countedCents,
+    this.device,
   });
 
   final String id;
   final DateTime openedAt;
   final int openingCents;
+
+  /// Celular donde se abrió la caja (cada celular lleva su propio turno). null en los turnos de antes.
+  final String? device;
   final DateTime? closedAt;
   final int? expectedCents;
   final int? countedCents;
@@ -336,6 +340,7 @@ class CashSession {
     closedAt: at,
     expectedCents: expected,
     countedCents: counted,
+    device: device,
   );
 }
 
@@ -376,6 +381,68 @@ class CashSummary {
   int get expectedCashCents =>
       openingCents + cashSalesCents + cashAbonosCents + lotSalesCents + cashLayawayCents + entradasCents - gastosCents;
   int get totalSoldCents => cashSalesCents + otherSalesCents + creditSalesCents + lotSalesCents;
+
+  /// Lo que entró por tarjeta y transferencia (ventas, abonos y apartados).
+  int get otherInCents => otherSalesCents + otherAbonosCents + otherLayawayCents;
+
+  /// Suma de dos cortes (para juntar las cajas de varios celulares).
+  CashSummary operator +(CashSummary o) => CashSummary(
+    openingCents: openingCents + o.openingCents,
+    cashSalesCents: cashSalesCents + o.cashSalesCents,
+    otherSalesCents: otherSalesCents + o.otherSalesCents,
+    creditSalesCents: creditSalesCents + o.creditSalesCents,
+    cashAbonosCents: cashAbonosCents + o.cashAbonosCents,
+    otherAbonosCents: otherAbonosCents + o.otherAbonosCents,
+    entradasCents: entradasCents + o.entradasCents,
+    gastosCents: gastosCents + o.gastosCents,
+    salesCount: salesCount + o.salesCount,
+    lotSalesCents: lotSalesCents + o.lotSalesCents,
+    cashLayawayCents: cashLayawayCents + o.cashLayawayCents,
+    otherLayawayCents: otherLayawayCents + o.otherLayawayCents,
+  );
+
+  static const zero = CashSummary(
+    openingCents: 0,
+    cashSalesCents: 0,
+    otherSalesCents: 0,
+    creditSalesCents: 0,
+    cashAbonosCents: 0,
+    otherAbonosCents: 0,
+    entradasCents: 0,
+    gastosCents: 0,
+    salesCount: 0,
+  );
+}
+
+/// La caja de un celular en un día: sus turnos y lo que suman.
+class DeviceCut {
+  const DeviceCut({
+    required this.device,
+    required this.mine,
+    required this.sessions,
+    required this.summary,
+    this.people = const [],
+  });
+
+  /// Clave del celular ("K7"); null en turnos de antes que no la guardaron.
+  final String? device;
+
+  /// Es este celular.
+  final bool mine;
+
+  /// Turnos de ese día, el más reciente primero.
+  final List<CashSession> sessions;
+  final CashSummary summary;
+
+  /// Quién atendió (con PIN), sin repetir.
+  final List<String> people;
+
+  bool get open => sessions.any((s) => s.isOpen);
+
+  /// Sobró o faltó en los turnos ya cerrados (0 si cuadró o no ha cerrado).
+  int get differenceCents => sessions.fold(0, (a, s) => a + (s.differenceCents ?? 0));
+
+  bool get anyClosed => sessions.any((s) => !s.isOpen);
 }
 
 /// Cliente con su saldo, para la libreta de fiados.

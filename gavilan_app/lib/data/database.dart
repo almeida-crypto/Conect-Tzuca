@@ -131,6 +131,7 @@ class CashSessionsTable extends Table {
   DateTimeColumn get closedAt => dateTime().nullable()();
   IntColumn get expectedCents => integer().nullable()();
   IntColumn get countedCents => integer().nullable()();
+  TextColumn get device => text().nullable()();
 
   @override
   Set<Column> get primaryKey => {id};
@@ -397,7 +398,7 @@ class GavilanDb extends _$GavilanDb {
   );
 
   @override
-  int get schemaVersion => 12;
+  int get schemaVersion => 13;
 
   @override
   MigrationStrategy get migration => MigrationStrategy(
@@ -448,6 +449,7 @@ class GavilanDb extends _$GavilanDb {
         await m.createTable(salePaymentsTable);
         if (from >= 5) await m.addColumn(orderItemsTable, orderItemsTable.paidQty);
       }
+      if (from < 13) await m.addColumn(cashSessionsTable, cashSessionsTable.device);
     },
   );
 }

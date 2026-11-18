@@ -33,6 +33,7 @@ String newDeviceCode() {
 /// (Drift) a través de [StoreRepository]; al abrir la app se vuelve a cargar.
 class StoreState {
   const StoreState({
+    this.device,
     this.defaultCreditLimitCents,
     this.clerks = const [],
     this.lockMinutes,
@@ -80,6 +81,9 @@ class StoreState {
   final List<Tanda> batches;
   final List<BatchOrder> batchOrders;
   final List<DiningTable> tables;
+
+  /// Clave de este celular (la misma de los folios, "K7"). La pone el repositorio al abrir.
+  final String? device;
 
   /// Tope general de fiado del negocio (null = sin tope). Cada cliente puede tener el suyo.
   final int? defaultCreditLimitCents;
@@ -138,15 +142,78 @@ class StoreState {
 
   bool get hasBusiness => businessName.isNotEmpty;
 
+  /// La caja abierta de ESTE celular (cada celular lleva su propio turno; las de otros también bajan).
   CashSession? get openSession {
     for (final s in sessions) {
-      if (s.isOpen) return s;
+      if (s.isOpen && isMine(s)) return s;
     }
     return null;
   }
 
+  /// Las cajas de todos los celulares en [day]: los turnos que se abrieron ese día y, si es hoy, los que
+  /// siguen abiertos. Este celular primero; luego los demás por lo que vendieron.
+  List<DeviceCut> cutsOn(DateTime day, {DateTime? now}) {
+    final start = DateTime(day.year, day.month, day.day);
+    final end = start.add(const Duration(days: 1));
+    final today = now ?? DateTime.now();
+    final isToday = !today.isBefore(start) && today.isBefore(end);
+    final byDevice = <String?, List<CashSession>>{};
+    for (final s in sessions) {
+      final opened = !s.openedAt.isBefore(start) && s.openedAt.isBefore(end);
+      if (opened || (isToday && s.isOpen && s.openedAt.isBefore(end))) {
+        byDevice.putIfAbsent(isMine(s) ? device : s.device, () => []).add(s);
+      }
+    }
+    final cuts = [
+      for (final e in byDevice.entries)
+        DeviceCut(
+          device: e.key,
+          mine: e.key == device,
+          sessions: e.value..sort((a, b) => b.openedAt.compareTo(a.openedAt)),
+          summary: e.value.fold(CashSummary.zero, (a, s) => a + summaryFor(s)),
+          people: {
+            for (final s in e.value)
+              for (final x in sales)
+                if (x.sessionId == s.id && !x.cancelled && x.clerk != null) x.clerk!,
+          }.toList(),
+        ),
+    ];
+    cuts.sort((a, b) {
+      if (a.mine != b.mine) return a.mine ? -1 : 1;
+      return b.summary.totalSoldCents.compareTo(a.summary.totalSoldCents);
+    });
+    return cuts;
+  }
+
+  /// "Ventas por persona" de varios turnos juntos.
+  List<({String name, int count, int cents})> salesByClerkIn(Iterable<CashSession> list) {
+    final totals = <String, (int, int)>{};
+    for (final s in list) {
+      for (final r in salesByClerk(s)) {
+        final (count, cents) = totals[r.name] ?? (0, 0);
+        totals[r.name] = (count + r.count, cents + r.cents);
+      }
+    }
+    return [for (final e in totals.entries) (name: e.key, count: e.value.$1, cents: e.value.$2)]
+      ..sort((a, b) => b.cents.compareTo(a.cents));
+  }
+
+  /// Hay turnos de más de un celular (para ofrecer "Todas las cajas").
+  bool get severalRegisters => {for (final s in sessions) isMine(s) ? device : s.device}.length > 1;
+
+  /// El turno existe y sigue abierto (de cualquier celular).
+  bool sessionIsOpen(String? sessionId) => sessionId != null && sessions.any((s) => s.id == sessionId && s.isOpen);
+
+  /// Cortes cerrados de este celular, el más reciente primero.
   List<CashSession> get closedSessions =>
-      sessions.where((s) => !s.isOpen).toList()..sort((a, b) => b.closedAt!.compareTo(a.closedAt!));
+      sessions.where((s) => !s.isOpen && isMine(s)).toList()..sort((a, b) => b.closedAt!.compareTo(a.closedAt!));
+
+  /// El turno es de este celular. Los de antes no dicen de qué celular son: se toman como propios si no
+  /// tienen ventas de otro celular.
+  bool isMine(CashSession s) {
+    if (s.device != null) return device == null || s.device == device;
+    return !sales.any((x) => x.sessionId == s.id && x.device != null && device != null && x.device != device);
+  }
 
   Product? productById(String id) {
     for (final p in products) {
@@ -386,6 +453,7 @@ class StoreState {
   }
 
   StoreState copyWith({
+    String? device,
     int? defaultCreditLimitCents,
     bool clearCreditLimit = false,
     List<Clerk>? clerks,
@@ -415,6 +483,7 @@ class StoreState {
     List<OrderItem>? orderItems,
     int? nextFolio,
   }) => StoreState(
+    device: device ?? this.device,
     defaultCreditLimitCents: clearCreditLimit ? null : (defaultCreditLimitCents ?? this.defaultCreditLimitCents),
     clerks: clerks ?? this.clerks,
     lockMinutes: clearLock ? null : (lockMinutes ?? this.lockMinutes),
@@ -458,7 +527,14 @@ class StoreNotifier extends Notifier<StoreState> {
   int _version = 0;
 
   @override
-  StoreState build() => ref.read(initialDataProvider)?.store ?? StoreState.blank;
+  StoreState build() => _withDevice(ref.read(initialDataProvider)?.store ?? StoreState.blank);
+
+  /// Todo estado nuevo (alta, ejemplo, lo que bajó de la nube) sabe cuál es este celular.
+  StoreState _withDevice(StoreState s) =>
+      s.device == null ? s.copyWith(device: ref.read(repositoryProvider).deviceCode) : s;
+
+  @override
+  set state(StoreState value) => super.state = _withDevice(value);
 
   /// Guarda en orden, una escritura tras otra. Si falla se reporta sin tumbar la app.
   /// Con [urgent] se respalda casi al momento: la cocina está esperando la comanda.
@@ -710,8 +786,8 @@ class StoreNotifier extends Notifier<StoreState> {
   /// si fue fiada, se le quita esa deuda al cliente. Devuelve la venta cancelada (null si no se pudo).
   Sale? cancelSale(String saleId, {required String reason}) {
     final sale = state.sales.where((s) => s.id == saleId).firstOrNull;
-    final open = state.openSession;
-    if (sale == null || sale.cancelled || open == null || sale.sessionId != open.id) return null;
+    // Solo ventas de un turno abierto (de este celular o de otro: el dueño puede cancelar una del cajero).
+    if (sale == null || sale.cancelled || !state.sessionIsOpen(sale.sessionId)) return null;
     final now = _now();
     final cancelled = sale.cancel(now, reason.trim().isEmpty ? 'Cancelada' : reason.trim());
 
@@ -733,7 +809,7 @@ class StoreNotifier extends Notifier<StoreState> {
             amountCents: sale.totalCents,
             createdAt: now,
             saleId: sale.id,
-            sessionId: open.id,
+            sessionId: sale.sessionId,
           )
         : null;
     state = state.copyWith(
@@ -831,7 +907,12 @@ class StoreNotifier extends Notifier<StoreState> {
 
   void openCash(int openingCents) {
     if (state.openSession != null) return;
-    final session = CashSession(id: newId(), openedAt: _clock(), openingCents: openingCents);
+    final session = CashSession(
+      id: newId(),
+      openedAt: _clock(),
+      openingCents: openingCents,
+      device: ref.read(repositoryProvider).deviceCode,
+    );
     state = state.copyWith(sessions: [...state.sessions, session]);
     _save((r) => r.upsertSession(session));
   }

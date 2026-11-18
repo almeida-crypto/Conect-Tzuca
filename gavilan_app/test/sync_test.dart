@@ -68,6 +68,10 @@ class Phone {
 
   int expectedCash() => state.summaryFor(state.openSession!).expectedCashCents;
 
+  /// Lo que debe haber en la caja de un turno (de este u otro celular).
+  int cashOf(String sessionId) =>
+      state.summaryFor(state.sessions.firstWhere((s) => s.id == sessionId)).expectedCashCents;
+
   Future<void> close() async {
     await store.flush();
     app.dispose();
@@ -144,7 +148,9 @@ void main() {
     expect(b.state.productById('coca')!.stock, 21);
     expect(b.state.sales, hasLength(2));
     expect(b.state.balanceOf(lupe), 800);
-    expect(b.expectedCash(), a.expectedCash());
+    expect(b.cashOf(a.state.openSession!.id), a.expectedCash());
+    // La caja abierta es de A: B no la toma como suya.
+    expect(b.state.openSession, isNull);
     expect(b.state.nextFolio, 1); // cada teléfono numera lo suyo
 
     // A vende sin internet; al volver la señal sube y B lo baja.
@@ -160,7 +166,7 @@ void main() {
     await b.settle();
     expect(b.state.sales, hasLength(3));
     expect(b.state.productById('coca')!.stock, 16);
-    expect(b.expectedCash(), a.expectedCash());
+    expect(b.cashOf(a.state.openSession!.id), a.expectedCash());
   });
 
   test('dos teléfonos venden sin internet y la existencia cuadra', () async {
@@ -362,7 +368,7 @@ void main() {
     expect(b.state.pendingOfLayaway(apartado.id), 40000);
     expect(b.state.layawayById(apartado.id)!.dueDate, DateTime(2026, 12, 1));
     expect(b.state.ordersOfBatch(tanda.id).single.customerName, 'Pedro');
-    expect(b.expectedCash(), a.expectedCash());
+    expect(b.cashOf(a.state.openSession!.id), a.expectedCash());
 
     // Un abono que liquida en A llega a B como liquidado.
     a.store.addLayawayPayment(apartado.id, 40000, PayMethod.efectivo);
@@ -450,6 +456,7 @@ void main() {
     final cashier = await phone(device: 'R3');
     await cashier.sync.signIn('juan@correo.mx', 'secreta1');
     await cashier.sync.joinWithCode(await owner.sync.createInvite(MemberRole.cashier, 'Juan'));
+    cashier.store.openCash(0); // cada celular abre su propia caja
     final sale = cashier.sell('coca', 1);
     await cashier.settle();
     final row = Map<String, Object?>.from(server.table('sales')[sale.id]!);
@@ -535,6 +542,40 @@ void main() {
     await cashier.sync.checkMembership();
     await cashier.store.flush();
     expect(cashier.state.hasBusiness, isTrue);
+  });
+
+  test('cada celular lleva su caja y el dueño ve todas juntas', () async {
+    final owner = await phone(device: 'K7');
+    await _setUpShop(owner); // abre su caja y vende
+    await owner.login('mary@correo.mx');
+    await owner.settle();
+
+    final cashier = await phone(device: 'R3');
+    await cashier.sync.signIn('juan@correo.mx', 'secreta1');
+    await cashier.sync.joinWithCode(await owner.sync.createInvite(MemberRole.cashier, 'Juan'));
+    // La caja abierta del dueño no es la suya: abre la propia.
+    expect(cashier.state.openSession, isNull);
+    cashier.store.openCash(20000);
+    final mine = cashier.state.openSession!;
+    expect(mine.device, 'R3');
+    cashier.sell('coca', 3);
+    await cashier.settle();
+    expect(cashier.expectedCash(), 20000 + 1800 * 3);
+
+    await owner.settle();
+    // La caja del dueño no cambió por las ventas del cajero.
+    final ownerCash = owner.expectedCash();
+    expect(owner.state.openSession!.device, 'K7');
+    final cuts = owner.state.cutsOn(DateTime.now());
+    expect(cuts.map((c) => (c.device, c.mine, c.open)), [('K7', true, true), ('R3', false, true)]);
+    expect(cuts.last.summary.expectedCashCents, 20000 + 1800 * 3);
+    expect(cuts.first.summary.expectedCashCents, ownerCash);
+    final total = cuts.fold(CashSummary.zero, (a, c) => a + c.summary);
+    expect(total.expectedCashCents, ownerCash + 20000 + 1800 * 3);
+    expect(owner.state.severalRegisters, isTrue);
+
+    // Ayer no hubo nada.
+    expect(owner.state.cutsOn(DateTime.now().subtract(const Duration(days: 1))), isEmpty);
   });
 
   test('el mesero manda la comanda y la cocina la recibe sola', () async {
