@@ -10,6 +10,7 @@ import '../data/sync_remote.dart';
 import '../domain/clerk.dart';
 import '../domain/team.dart';
 import 'clerk_session.dart';
+import 'profiles.dart';
 import 'store.dart';
 
 /// Conexión con Supabase. main() la configura; en pruebas y en web sin internet queda en null.
@@ -242,23 +243,62 @@ class SyncController extends Notifier<SyncStatus> {
   Future<void> _refreshRole() async {
     final remote = _remote;
     final store = _store;
-    if (remote == null || store == null || remote.userId == null || store.linkedBusinessId == null) return;
+    final me = remote?.userId;
+    if (remote == null || store == null || me == null || store.linkedBusinessId == null) return;
+    _roleCheckedAt = DateTime.now();
     try {
       final all = await remote.myBusinesses();
       if (!ref.mounted) return;
       final mine = all.where((b) => b.id == store.linkedBusinessId).firstOrNull;
-      if (mine == null) {
+      if (mine != null) {
+        if (mine.role != store.role) await _setRole(mine.role);
+        await store.setLinkedUser(me);
+        return;
+      }
+      // Solo se borra si es seguro: no es el celular del dueño y la cuenta abierta es la misma que se
+      // confirmó en este negocio (otra cuenta en el mismo celular no borra nada: se le pregunta al enlazar).
+      final removed = store.role != null && store.role != MemberRole.owner && store.linkedUser == me;
+      if (removed) {
+        await _forgetBusiness();
+      } else {
         state = state.copyWith(problem: 'Tu cuenta ya no pertenece a este negocio. Pregúntale al dueño.');
-      } else if (mine.role != store.role) {
-        await _setRole(mine.role);
       }
     } on SyncException {
-      // Sin internet: se revisa la próxima vez que abra.
+      // Sin internet: se revisa la próxima vez.
     }
   }
 
+  /// Revisa ahora si la cuenta sigue en el negocio (al abrir la app y cada pocos minutos ya se hace solo).
+  Future<void> checkMembership() => _refreshRole();
+
+  /// Sacaron a esta cuenta del negocio: se borran sus datos de este teléfono. Lo que no se subió ya no
+  /// lo aceptaría el servidor.
+  Future<void> _forgetBusiness() async {
+    final name = ref.read(storeProvider).businessName;
+    final notice =
+        'Ya no eres parte de "$name". Por seguridad se borraron sus datos de este celular. '
+        'Si fue un error, pídele al dueño un código nuevo.';
+    final switcher = ref.read(businessSwitcherProvider);
+    if (switcher != null) {
+      await switcher.forgetActive(notice: notice);
+      return;
+    }
+    // Sin lista de negocios (pruebas): se vacía este.
+    await _store?.setLinkedUser(null);
+    await _store?.setRole(null);
+    ref.read(storeProvider.notifier).resetAll();
+    await ref.read(storeProvider.notifier).flush();
+    if (ref.mounted) state = state.copyWith(problem: notice, linked: false, pending: 0, failed: 0);
+  }
+
+  /// Cada cuánto se revisa en los respaldos si la cuenta sigue en el negocio.
+  static const _roleCheckEvery = Duration(minutes: 5);
+  DateTime? _roleCheckedAt;
+
   Future<void> _setRole(MemberRole role) async {
     await _store!.setRole(role);
+    final me = _remote?.userId;
+    if (me != null) await _store!.setLinkedUser(me);
     state = state.copyWith(role: role);
   }
 
@@ -300,6 +340,10 @@ class SyncController extends Notifier<SyncStatus> {
       return;
     }
     _listenLive(remote, businessId);
+    if (!_running && (_roleCheckedAt == null || DateTime.now().difference(_roleCheckedAt!) > _roleCheckEvery)) {
+      await _refreshRole();
+      if (!ref.mounted || store.linkedBusinessId == null) return;
+    }
     if (_running) {
       _again = true;
       return;

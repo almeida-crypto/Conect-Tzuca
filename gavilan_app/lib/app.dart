@@ -80,7 +80,8 @@ class _Root extends ConsumerWidget {
         () => switcher.updateActive(businessId: store.businessId, name: store.businessName, role: role?.name),
       );
     }
-    return AnimatedSwitcher(
+    final notice = ref.watch(hostNoticeProvider);
+    final screen = AnimatedSwitcher(
       duration: const Duration(milliseconds: 350),
       child: hasBusiness
           ? const ClerkGate(key: ValueKey('home'), child: HomeShell())
@@ -88,7 +89,43 @@ class _Root extends ConsumerWidget {
           ? _Downloading(key: const ValueKey('bajando'), id: pending.id, name: pending.name)
           : const WelcomeScreen(key: ValueKey('welcome')),
     );
+    return notice == null ? screen : _NoticeOnce(notice: notice, onShown: switcher?.clearNotice, child: screen);
   }
+}
+
+/// Enseña una sola vez un aviso que dejó la lista de negocios (por ejemplo, que se borró uno).
+class _NoticeOnce extends StatefulWidget {
+  const _NoticeOnce({required this.notice, required this.child, this.onShown});
+
+  final String notice;
+  final Widget child;
+  final VoidCallback? onShown;
+
+  @override
+  State<_NoticeOnce> createState() => _NoticeOnceState();
+}
+
+class _NoticeOnceState extends State<_NoticeOnce> {
+  @override
+  void initState() {
+    super.initState();
+    widget.onShown?.call();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted) return;
+      showDialog<void>(
+        context: context,
+        builder: (ctx) => AlertDialog(
+          icon: const Icon(Icons.person_off_outlined, color: GColors.tintaSuave),
+          title: const Text('Saliste del equipo'),
+          content: Text(widget.notice),
+          actions: [TextButton(onPressed: () => Navigator.of(ctx).pop(), child: const Text('Entendido'))],
+        ),
+      );
+    });
+  }
+
+  @override
+  Widget build(BuildContext context) => widget.child;
 }
 
 /// Un negocio de la cuenta que se abrió por primera vez en este teléfono: se baja de la nube.

@@ -481,6 +481,62 @@ void main() {
     expect(waiter.state.credit, isEmpty);
   });
 
+  test('si el dueño saca a un empleado, su celular borra los datos del negocio', () async {
+    final owner = await phone(device: 'K7');
+    await _setUpShop(owner);
+    await owner.login('mary@correo.mx');
+    await owner.settle();
+
+    final cashier = await phone(device: 'R3');
+    await cashier.sync.signIn('juan@correo.mx', 'secreta1');
+    await cashier.sync.joinWithCode(await owner.sync.createInvite(MemberRole.cashier, 'Juan'));
+    cashier.sell('coca', 1);
+    await cashier.settle();
+    expect(cashier.state.hasBusiness, isTrue);
+
+    // Mientras siga en el equipo no pasa nada.
+    await cashier.sync.checkMembership();
+    expect(cashier.state.hasBusiness, isTrue);
+
+    await owner.sync.removeMember('juan@correo.mx');
+    await cashier.sync.checkMembership();
+    await cashier.store.flush();
+    expect(cashier.state.hasBusiness, isFalse);
+    expect(cashier.state.products, isEmpty);
+    expect(cashier.repo.linkedBusinessId, isNull);
+    expect(cashier.status.problem, contains('Ya no eres parte de "Tienda La Esperanza"'));
+    // Al reabrir sigue vacío.
+    expect(await cashier.repo.load(), isNull);
+    // Al dueño no le pasa nada.
+    await owner.settle();
+    expect(owner.state.hasBusiness, isTrue);
+    expect(owner.state.sales, hasLength(3));
+  });
+
+  test('el celular del dueño y el de otra cuenta nunca se borran solos', () async {
+    final owner = await phone(device: 'K7');
+    await _setUpShop(owner);
+    await owner.login('mary@correo.mx');
+    await owner.settle();
+    // Aunque el servidor no lo encuentre (algo raro), al dueño no se le borra nada.
+    server.membership['mary@correo.mx']!.clear();
+    await owner.sync.checkMembership();
+    await owner.store.flush();
+    expect(owner.state.hasBusiness, isTrue);
+    expect(owner.status.problem, contains('ya no pertenece'));
+    server.membership['mary@correo.mx']![owner.state.businessId] = MemberRole.owner;
+
+    // Un cajero presta su celular y alguien entra con otra cuenta: tampoco se borra.
+    final cashier = await phone(device: 'R3');
+    await cashier.sync.signIn('juan@correo.mx', 'secreta1');
+    await cashier.sync.joinWithCode(await owner.sync.createInvite(MemberRole.cashier, 'Juan'));
+    await cashier.sync.signOut();
+    await cashier.sync.signIn('pedro@correo.mx', 'secreta1');
+    await cashier.sync.checkMembership();
+    await cashier.store.flush();
+    expect(cashier.state.hasBusiness, isTrue);
+  });
+
   test('el mesero manda la comanda y la cocina la recibe sola', () async {
     final waiter = await phone(device: 'K7');
     await _setUpShop(waiter);

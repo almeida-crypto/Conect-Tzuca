@@ -13,7 +13,8 @@ Este archivo dice qué se revisó, qué se encontró y qué hay que mejorar. La 
 | I3 · Sin permisos para `anon` | Hecho (migración 0016, 17/11/2026) |
 | I4 · Contraseñas | App hecha (8 para cuentas y contraseñas nuevas); falta el ajuste del panel de Supabase (usuario) |
 | I5 · `.gitignore` | Hecho |
-| I6 a I10 | Pendientes |
+| I8 · Borrar datos al salir del equipo | Hecho (18/11/2026) |
+| I6, I7, I9, I10 | Pendientes |
 
 ## 1. Qué se revisó
 

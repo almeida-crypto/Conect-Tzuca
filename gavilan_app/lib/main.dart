@@ -62,6 +62,7 @@ class _ProfileHostState extends State<ProfileHost> implements BusinessSwitcher {
   ({String id, String name})? _pending;
   int _generation = 0;
   bool _splash = true;
+  String? _notice;
 
   ProfileRegistry get _registry => widget.registry;
 
@@ -148,6 +149,20 @@ class _ProfileHostState extends State<ProfileHost> implements BusinessSwitcher {
   }
 
   @override
+  Future<void> forgetActive({required String notice}) async {
+    final leaving = activeKey;
+    final other = _registry.all.where((p) => p.key != leaving && p.businessId != null).firstOrNull;
+    final next = other?.key ?? _registry.newKey();
+    if (other == null) await _registry.upsert(DeviceProfile(key: next, name: 'Negocio nuevo'));
+    _notice = notice;
+    await _open(next);
+    await remove(leaving);
+  }
+
+  @override
+  void clearNotice() => _notice = null;
+
+  @override
   Future<void> updateActive({String? businessId, String? name, String? role}) async {
     final current = _registry.all.where((p) => p.key == activeKey).firstOrNull;
     if (current == null) return;
@@ -167,6 +182,7 @@ class _ProfileHostState extends State<ProfileHost> implements BusinessSwitcher {
         syncRemoteProvider.overrideWithValue(widget.remote),
         businessSwitcherProvider.overrideWithValue(this),
         pendingDownloadProvider.overrideWithValue(_pending),
+        hostNoticeProvider.overrideWithValue(_notice),
       ],
       child: GavilanApp(showSplash: _splash),
     );

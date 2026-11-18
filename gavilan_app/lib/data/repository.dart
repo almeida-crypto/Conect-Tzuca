@@ -85,6 +85,11 @@ abstract class SyncStore {
   MemberRole? get role;
   Future<void> setRole(MemberRole? role);
 
+  /// Cuenta que se confirmó como parte del negocio en este teléfono. Solo si es la misma que está
+  /// abierta y el servidor dice que ya no pertenece, se borran los datos (ver SyncController).
+  String? get linkedUser;
+  Future<void> setLinkedUser(String? userId);
+
   /// Enlaza con la nube. Con [uploadAll] anota todo lo que hay para subirlo.
   Future<void> link(String businessId, {StoreState? uploadAll});
 
@@ -192,6 +197,7 @@ const _kPlan = 'plan';
 const _kLinked = 'linked_business';
 const _kDevice = 'device_code';
 const _kRole = 'member_role';
+const _kLinkedUser = 'linked_user';
 String _kCursor(String table) => 'cursor:$table';
 
 /// Veces que un cambio rechazado se vuelve a intentar solo antes de quedar apartado para el usuario.
@@ -234,9 +240,24 @@ class DriftRepository implements StoreRepository, SyncStore {
   String? _linked;
   String? _device;
   MemberRole? _role;
+  String? _linkedUser;
 
   @override
   MemberRole? get role => _role;
+
+  @override
+  String? get linkedUser => _linkedUser;
+
+  @override
+  Future<void> setLinkedUser(String? userId) async {
+    if (userId == _linkedUser) return;
+    _linkedUser = userId;
+    if (userId == null) {
+      await (db.delete(db.metaTable)..where((t) => t.key.equals(_kLinkedUser))).go();
+    } else {
+      await _setMeta(_kLinkedUser, userId);
+    }
+  }
 
   @override
   Future<void> setRole(MemberRole? role) async {
@@ -266,6 +287,7 @@ class DriftRepository implements StoreRepository, SyncStore {
     final meta = await _meta();
     _linked = meta[_kLinked];
     _role = MemberRole.fromRemote(meta[_kRole]);
+    _linkedUser = meta[_kLinkedUser];
     _device = meta[_kDevice] ?? _device;
     if (_device == null) await _setMeta(_kDevice, deviceCode);
     final name = meta[_kBusiness];
@@ -682,6 +704,7 @@ class DriftRepository implements StoreRepository, SyncStore {
     }
     _linked = null;
     _role = null;
+    _linkedUser = null;
     // La clave del teléfono se queda: es del aparato, no del negocio.
     await _setMeta(_kDevice, deviceCode);
   }

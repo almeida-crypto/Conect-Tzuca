@@ -30,7 +30,8 @@ Prioridad: **Alta** = sin esto no se puede usar con un negocio real · **Media**
 - [x] **Media** · Varios negocios en una cuenta y en un teléfono, cada uno en su propio archivo, con "Mis negocios" para cambiar, crear otro o unirse con un código. *15/11/2026*
 - [ ] **Media** · Probar "Mis negocios" con cuentas reales: unirse con código teniendo ya un negocio y abrir uno de la cuenta que no está en el teléfono.
 - [ ] **Media** · Cambiar de cajero con PIN en un celular compartido, sin cerrar sesión.
-- [ ] **Media** · Al quitar a alguien del equipo, borrar los datos del negocio en su celular.
+- [x] **Media** · Al quitar a alguien del equipo, su celular borra los datos del negocio (al abrir o en los siguientes 5 minutos con internet). *18/11/2026*
+- [ ] **Media** · Probar "Quitar del equipo" con dos celulares y cuentas reales.
 - [ ] **Baja** · Corte del dueño que junte las cajas de todos los celulares del día.
 - [ ] **Baja** · Listas de inicio para otros giros (fonda, papelería, ferretería, farmacia).
 - [x] **Media** · En el navegador los datos se guardan (`sqlite3.wasm` y `drift_worker.js` en `web/`) y se respaldan en Supabase igual que en el celular. *11/11/2026*

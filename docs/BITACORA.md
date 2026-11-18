@@ -778,3 +778,20 @@ Se abren desde **Más → Módulos** con el plan Emprendedor o superior. Los tre
   - "Descartar" un precio rechazado regresa el precio de la nube.
   - Los nombres y motivos en palabras.
 - Revisión de la pantalla con una imagen de prueba (borrada al terminar).
+
+### Quitar del equipo borra los datos del negocio en ese celular (18/11/2026)
+- **Cuándo:** la app revisa si la cuenta sigue en el negocio al abrirse y cada 5 minutos durante los respaldos (`checkMembership` / `_refreshRole`).
+- **Solo borra si es seguro**, las tres cosas a la vez:
+  - el servidor contestó (con internet) y el negocio ya no está en la lista de la cuenta;
+  - el puesto guardado en el celular no es dueño (al dueño nunca se le borra nada);
+  - la cuenta abierta es la misma que se confirmó en ese negocio (`linked_user`, dato nuevo en el archivo del negocio). Si alguien entra con otra cuenta en ese celular, no se borra: se le pregunta como siempre al enlazar.
+- **Qué hace:** borra el archivo de ese negocio, lo quita de "Mis negocios", abre otro negocio del celular (o uno vacío) y enseña una vez "Saliste del equipo: Ya no eres parte de … Si fue un error, pídele al dueño un código nuevo". Los negocios propios de esa persona no se tocan.
+- Lo que el empleado no alcanzó a subir se pierde: el servidor ya no se lo aceptaría.
+- Para turnos o descansos no se quita a nadie (decidido con el usuario: solo "Quitar", sin "Pausar").
+- **Código:** `SyncStore.linkedUser`, `BusinessSwitcher.forgetActive` y `hostNoticeProvider` (`state/profiles.dart`, `main.dart`), aviso `_NoticeOnce` en `app.dart`.
+
+### Verificación
+- `flutter analyze` sin avisos y 104 pruebas pasan, 2 nuevas en `sync_test.dart`:
+  - El dueño saca al cajero: el celular del cajero queda vacío (también al reabrir) y el del dueño sigue igual.
+  - El celular del dueño no se borra aunque el servidor no lo encuentre, y en un celular con otra cuenta abierta tampoco.
+- **No probado:** con la lista de negocios real (`ProfileHost`) en un celular y cuentas reales.

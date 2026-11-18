@@ -22,6 +22,13 @@ abstract class BusinessSwitcher {
 
   /// Mantiene al día el nombre, el id y el puesto del negocio abierto en la lista.
   Future<void> updateActive({String? businessId, String? name, String? role});
+
+  /// La cuenta ya no es parte del negocio abierto: lo borra de este teléfono, abre otro (o uno vacío)
+  /// y deja [notice] para enseñarlo al abrir.
+  Future<void> forgetActive({required String notice});
+
+  /// Ya se enseñó el aviso.
+  void clearNotice();
 }
 
 final businessSwitcherProvider = Provider<BusinessSwitcher?>((ref) => null);
@@ -29,3 +36,6 @@ final businessSwitcherProvider = Provider<BusinessSwitcher?>((ref) => null);
 /// Negocio de la cuenta que hay que bajar al abrir un archivo nuevo (al unirse con un código o al
 /// abrir uno que todavía no está en este teléfono).
 final pendingDownloadProvider = Provider<({String id, String name})?>((ref) => null);
+
+/// Aviso para enseñar al abrir un negocio (por ejemplo, que se borró otro porque sacaron a la cuenta).
+final hostNoticeProvider = Provider<String?>((ref) => null);
