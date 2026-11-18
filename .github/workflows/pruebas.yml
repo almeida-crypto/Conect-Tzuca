@@ -54,6 +54,8 @@ jobs:
           cache-dependency-path: panel-web/package-lock.json
       - name: Paquetes
         run: npm ci
+      - name: Tipos de las rutas (Next.js los genera; no van en el repositorio)
+        run: npx next typegen
       - name: Tipos
         run: npx tsc --noEmit
       - name: Revisión del código

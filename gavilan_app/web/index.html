@@ -17,6 +17,10 @@
   <base href="$FLUTTER_BASE_HREF">
 
   <meta charset="UTF-8">
+  <!-- Reglas de seguridad: solo carga código de aquí mismo y del motor de Flutter (gstatic), y solo habla con
+       Supabase de Gavilán. Bloquea scripts metidos en la página y que otra página la meta en un marco. -->
+  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'wasm-unsafe-eval' https://www.gstatic.com; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob:; font-src 'self' data: https://fonts.gstatic.com; connect-src 'self' https://jveklinfbptnxmtavnez.supabase.co wss://jveklinfbptnxmtavnez.supabase.co https://www.gstatic.com https://fonts.gstatic.com; worker-src 'self' blob:; frame-src 'self' blob: data:; object-src 'none'; base-uri 'self'; form-action 'self'">
+  <meta name="referrer" content="strict-origin-when-cross-origin">
   <meta content="IE=Edge" http-equiv="X-UA-Compatible">
   <meta name="description" content="Gavilán: caja, fiados e inventario para tu negocio.">
 
@@ -41,14 +45,7 @@
     For more details:
     * https://docs.flutter.dev/platform-integration/web/initialization
   -->
-  <script>
-    // Atajos del mostrador: que el navegador no abra su ayuda (F1), su buscador (F3), la barra (F4), "Guardar página"
-    // (Ctrl+S) ni imprima la pantalla (Ctrl+P). La app se encarga de esas teclas.
-    window.addEventListener('keydown', function (e) {
-      var k = (e.key || '').toLowerCase();
-      if (k === 'f1' || k === 'f3' || k === 'f4' || ((e.ctrlKey || e.metaKey) && (k === 's' || k === 'p'))) e.preventDefault();
-    });
-  </script>
+  <script src="atajos.js"></script>
   <script src="flutter_bootstrap.js" async></script>
 </body>
 </html>

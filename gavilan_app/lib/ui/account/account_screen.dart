@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
@@ -424,6 +425,16 @@ class _AccountScreenState extends ConsumerState<AccountScreen> {
         ),
       const SizedBox(height: 10),
       GButton(label: 'Cerrar sesión', kind: GButtonKind.outline, expand: true, onPressed: _signOut),
+      // En el navegador la sesión se queda guardada: en una computadora de varios, mejor cerrarla al terminar.
+      if (kIsWeb)
+        Padding(
+          padding: const EdgeInsets.only(top: 10),
+          child: Text(
+            'Si esta computadora la usan otras personas, cierra sesión al terminar.',
+            textAlign: TextAlign.center,
+            style: GText.muted(size: 12.5),
+          ),
+        ),
     ];
   }
 }

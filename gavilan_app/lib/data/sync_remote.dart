@@ -100,6 +100,8 @@ class SupabaseRemote implements SyncRemote {
   Future<T> _guard<T>(Future<T> Function() call) async {
     try {
       return await call();
+    } on SyncException {
+      rethrow;
     } on AuthException catch (e) {
       throw SyncException(SyncFailure.auth, _authMessage(e));
     } on PostgrestException catch (e) {
@@ -123,6 +125,7 @@ class SupabaseRemote implements SyncRemote {
   /// Errores de las funciones del equipo (0005_team.sql), en palabras del usuario.
   static String _teamMessage(String m) => switch (m) {
     'invalid_invite' => 'Ese código no existe, ya se usó o ya venció. Pide otro',
+    'too_many_attempts' => 'Demasiados códigos equivocados. Espera 15 minutos y vuelve a intentar',
     'already_member' => 'Tu cuenta ya pertenece a un negocio. Para unirte a otro, usa otra cuenta',
     'not_allowed' => 'Solo el dueño o un administrador pueden hacer esto',
     _ => m,
@@ -200,8 +203,12 @@ class SupabaseRemote implements SyncRemote {
   });
 
   @override
-  Future<String> acceptInvite(String code) =>
-      _guard(() async => '${await client.rpc<dynamic>('accept_invite', params: {'p_code': code})}');
+  Future<String> acceptInvite(String code) => _guard(() async {
+    // Con un código equivocado el servidor regresa null (y anota el intento: ver 0024_invite_attempts.sql).
+    final id = await client.rpc<dynamic>('accept_invite', params: {'p_code': code});
+    if (id == null) throw SyncException(SyncFailure.rejected, _teamMessage('invalid_invite'));
+    return '$id';
+  });
 
   @override
   Future<String> createInvite(String businessId, MemberRole role, String name) => _guard(

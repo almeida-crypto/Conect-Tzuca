@@ -111,3 +111,6 @@ Decisiones ya tomadas, con su razón. Antes de cambiar alguna, revisa por qué s
 | 105 | Las fotos las ven todos los del negocio y solo dueño y administradores las cambian | Son parte del catálogo; a meseros y cocina les sirven para reconocer platillos | 18/11/2026 |
 | 106 | La comanda se imprime sola solo si se prende en ese aparato, y solo envíos recientes | Cada cocina decide; al abrir la app no se debe imprimir de nuevo lo que ya salió | 18/11/2026 |
 | 107 | Toda escritura en la base local guarda el renglón completo (`insert` con `insertOrReplace`) | `insertOnConflictUpdate` ignoraba los null y quitar un dato no se guardaba | | 18/11/2026 |
+| 108 | Con un código de invitación equivocado `accept_invite` regresa null en lugar de error, y anota el intento; 10 en 15 minutos bloquean | Un error desharía la anotación del intento. El tope evita probar códigos al azar | 18/11/2026 |
+| 109 | La huella del PIN es PBKDF2-HMAC-SHA256 con 20,000 vueltas y los PIN viejos se rehacen al entrar | Con 4 cifras hay 10,000 PIN; cada prueba tiene que costar. Rehacerlos al entrar evita pedir a todos que cambien su PIN | 18/11/2026 |
+| 110 | La app web lleva reglas de seguridad (CSP) sin scripts sueltos; el panel, cabeceras contra marcos y adivinar tipos | Una computadora de mostrador es de varios: que nada ajeno se cuele en la página | | 18/11/2026 |

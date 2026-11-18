@@ -57,6 +57,42 @@ void main() {
       expect(dueno.withPin('9999').checkPin('1234'), isFalse);
     });
 
+    test('la huella es PBKDF2-HMAC-SHA256 (valores de la norma RFC 7914)', () {
+      String hex(List<int> b) => [for (final x in b) x.toRadixString(16).padLeft(2, '0')].join();
+      expect(
+        hex(pbkdf2Sha256('passwd'.codeUnits, 'salt'.codeUnits, 1)),
+        '55ac046e56e3089fec1691c22544b605f94185216dde0465e68b9d57c20dacbc',
+      );
+      expect(
+        hex(pbkdf2Sha256('password'.codeUnits, 'salt'.codeUnits, 4096)),
+        'c5e478d59288c841aa530db6845c4c8d962893a001ce4e11a4963873aa98134a',
+      );
+      expect(dueno.iterations, pinIterations);
+      expect(dueno.toJson()['it'], pinIterations);
+    });
+
+    test('un PIN guardado a la forma de antes sigue sirviendo y se rehace al entrar', () {
+      final legacy = Clerk(
+        id: 'viejo',
+        name: 'Rosa',
+        role: ClerkRole.cajero,
+        salt: 'sal',
+        pinHash: hashPin('sal', '4321', iterations: 0),
+        iterations: 0,
+      );
+      final back = clerksFromJson(clerksToJson([legacy])).single;
+      expect(back.legacyHash, isTrue);
+      expect(back.checkPin('4321'), isTrue);
+      expect(back.checkPin('1234'), isFalse);
+
+      final app = demo(clerks: [back]);
+      expect(app.read(clerkSessionProvider.notifier).unlock(back, '4321'), UnlockResult.ok);
+      final upgraded = app.read(storeProvider).clerks.single;
+      expect(upgraded.legacyHash, isFalse);
+      expect(upgraded.iterations, pinIterations);
+      expect(upgraded.checkPin('4321'), isTrue);
+    });
+
     test('solo 4 números', () {
       expect(isValidPin('0420'), isTrue);
       expect(isValidPin('123'), isFalse);

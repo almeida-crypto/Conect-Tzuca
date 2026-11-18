@@ -53,15 +53,19 @@ class ClerkSessionNotifier extends Notifier<ClerkSession> {
     return block ? UnlockResult.blocked : UnlockResult.wrongPin;
   }
 
-  /// Entra [clerk] con su [pin].
+  /// Entra [clerk] con su [pin]. Si su huella es de la forma de antes, se rehace con PBKDF2.
   UnlockResult unlock(Clerk clerk, String pin) {
     final result = check(clerk, pin);
-    if (result == UnlockResult.ok) state = ClerkSession(activeId: clerk.id);
+    if (result == UnlockResult.ok) {
+      state = ClerkSession(activeId: clerk.id);
+      if (clerk.legacyHash) ref.read(storeProvider.notifier).saveClerk(clerk.withPin(pin));
+    }
     return result;
   }
 
-  /// Entra sin PIN: al activar los PIN, quien los activa (el dueño) queda atendiendo.
-  void enterAs(String clerkId) => state = ClerkSession(activeId: clerkId);
+  /// Entra SIN pedir PIN. Solo para dos casos: quien activa los PIN (el dueño, que acaba de ponerse el suyo) y
+  /// quien lo recupera con la contraseña de su cuenta. Nunca desde la pantalla del PIN.
+  void enterWithoutPin(String clerkId) => state = ClerkSession(activeId: clerkId);
 
   /// Bloquea: el siguiente pone su PIN.
   void lock() => state = ClerkSession(lastId: state.activeId ?? state.lastId, blockedUntil: state.blockedUntil);

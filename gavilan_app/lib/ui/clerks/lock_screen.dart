@@ -96,7 +96,7 @@ class _LockScreenState extends ConsumerState<LockScreen> {
       builder: (_) => _RecoverDialog(email: sync.email!),
     );
     if (ok != true || !mounted) return;
-    ref.read(clerkSessionProvider.notifier).enterAs(owner.id);
+    ref.read(clerkSessionProvider.notifier).enterWithoutPin(owner.id);
     final nav = Navigator.of(context);
     final messenger = ScaffoldMessenger.of(context);
     nav.pop();

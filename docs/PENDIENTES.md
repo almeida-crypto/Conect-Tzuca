@@ -123,6 +123,9 @@ Prioridad: **Alta** = sin esto no se puede usar con un negocio real · **Media**
 - [x] **Alta** · El servidor respeta que solo dueño y administrador cancelan o cambian ventas, fiados, movimientos y cortes cerrados, y meseros y cocina ya no leen el dinero ni a los clientes (migración 0015). *17/11/2026*
 - [x] **Media** · Sin cuenta no se toca ninguna tabla, ni las futuras (migración 0016). *17/11/2026*
 - [x] **Media** · Si el servidor rechaza un cambio, se aparta y lo demás sigue subiendo; en Respaldo se puede reintentar o descartar. *18/11/2026*
+- [x] **Media** · Pruebas automáticas en GitHub (app y panel). *18/11/2026*
+- [ ] **Baja** · Partir las pantallas grandes (`restaurant_screen`, `catalog_table_screen`, `cobrar_screen`).
+- [ ] **Media** · Prueba de migración de la base local: abrir una base vieja y subirla a la versión actual sin perder datos.
 - [ ] **Baja** · Revisar los 3 avisos "WARN" de Supabase cuando cambie el esquema. Hoy son intencionales; ver [BASE_DE_DATOS.md](BASE_DE_DATOS.md).
 
 ## Diseño

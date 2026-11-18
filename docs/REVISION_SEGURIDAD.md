@@ -14,7 +14,10 @@ Este archivo dice qué se revisó, qué se encontró y qué hay que mejorar. La 
 | I4 · Contraseñas | App hecha (8 para cuentas y contraseñas nuevas); falta el ajuste del panel de Supabase (usuario) |
 | I5 · `.gitignore` | Hecho |
 | I8 · Borrar datos al salir del equipo | Hecho (18/11/2026) |
-| I6, I7, I9, I10 | Pendientes |
+| I6 · Tope a códigos de invitación | Hecho (migración 0024, 18/11/2026) |
+| I7 · Web | Hecho: CSP en la app web, cabeceras en el panel, aviso de cerrar sesión (18/11/2026) |
+| I9 · PIN más resistente | Hecho: PBKDF2 20,000 vueltas; `enterWithoutPin` (18/11/2026) |
+| I10 · Estructura | Hecho en parte: pruebas en GitHub y `store.dart`/`repository.dart` partidos; faltan las pantallas grandes y la prueba de migración de la base local |
 
 ## 1. Qué se revisó
 

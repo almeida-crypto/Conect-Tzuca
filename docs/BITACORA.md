@@ -912,3 +912,26 @@ Se abren desde **Más → Módulos** con el plan Emprendedor o superior. Los tre
 ### Verificación
 - `flutter analyze` sin avisos y 126 pruebas pasan, 3 nuevas: la foto sube y el otro celular la baja (también al cambiarla y quitarla); quitar código, mínimo y foto se guarda al reabrir; la comanda (mesa, platillos, extras, indicaciones, sin precios, texto escapado).
 - Revisión de pantallas (Cobrar con fotos y formulario con foto), imágenes borradas al terminar.
+
+### Pruebas automáticas en GitHub
+- `.github/workflows/pruebas.yml`: en cada cambio que se sube a `main` (y en cada PR) GitHub corre, sin secretos:
+  - **App:** Flutter 3.47.6, formato (`dart format -l 120`), `flutter analyze` y las pruebas.
+  - **Panel web:** `npm ci`, `next typegen` (tipos de las rutas que Next.js genera), `tsc` y `eslint`.
+- La primera corrida marcó un error del panel (faltaban los tipos que Next.js genera solo en la computadora); se agregó `next typegen`.
+
+### Archivos ordenados
+- `state/store.dart` (1,492 líneas) se partió: `store_state.dart` (el estado), `store_restaurant.dart` (mesas, cocina, extras) y `store_modules.dart` (pacas, apartados, tandas) como `part`. `StoreNotifier` junta `_StoreCore` con los mixins `_RestaurantOps` y `_ModuleOps`.
+- `data/repository.dart` (1,286) se partió: `repository_contracts.dart` (interfaces y repositorio en memoria) y `repository_rows.dart` (conversiones a renglones de Drift).
+- Sin cambios de comportamiento: las mismas pruebas pasan.
+
+### Seguridad que faltaba (de la revisión)
+- **Códigos de invitación (migración 0024):** tabla `invite_attempts`; 10 códigos equivocados en 15 minutos bloquean a esa cuenta. Con un código equivocado `accept_invite` regresa null (si lanzara error, la base desharía la anotación) y la app muestra "Ese código no existe…"; al bloquear, "Demasiados códigos equivocados. Espera 15 minutos". Probado en la base.
+  - Nota: la app 1.8.0 no entiende el null; con un código equivocado haría algo raro. La 1.9 ya lo maneja.
+- **Versión web:** reglas de seguridad (CSP) en `web/index.html`: solo código propio y del motor de Flutter (gstatic), solo habla con Supabase de Gavilán, sin scripts sueltos (el de los atajos pasó a `web/atajos.js`), sin plugins. Se probó en el navegador: abre, cobra, el ticket se imprime, Supabase responde y una página ajena queda bloqueada.
+  - En "Cuenta y respaldo" de la versión web: "Si esta computadora la usan otras personas, cierra sesión al terminar".
+- **Panel web:** cabeceras `X-Frame-Options: DENY`, `frame-ancestors 'none'`, `nosniff`, `Referrer-Policy` y `Permissions-Policy` (sin cámara, micrófono ni ubicación). Comprobadas en el servidor de prueba.
+- **PIN del mostrador:** la huella ahora es PBKDF2-HMAC-SHA256 con 20,000 vueltas (antes un solo SHA-256) y se compara sin dar pistas por el tiempo. Los PIN de antes siguen sirviendo y se rehacen solos al entrar. `enterAs` pasó a `enterWithoutPin`, con su advertencia.
+
+### Verificación
+- `flutter analyze` sin avisos y 128 pruebas pasan, 2 nuevas en `clerks_test.dart`: PBKDF2 contra los valores de la norma (RFC 7914) y un PIN de antes que sigue sirviendo y se rehace al entrar.
+- En GitHub la app pasó a la primera; el panel, después de agregar `next typegen`.

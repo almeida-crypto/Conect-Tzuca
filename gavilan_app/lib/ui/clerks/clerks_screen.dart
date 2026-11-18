@@ -29,7 +29,7 @@ class ClerksScreen extends ConsumerWidget {
     store.saveClerk(clerk);
     store.setLockMinutes(5);
     // Quien lo activa (el dueño) se queda atendiendo.
-    ref.read(clerkSessionProvider.notifier).enterAs(clerk.id);
+    ref.read(clerkSessionProvider.notifier).enterWithoutPin(clerk.id);
     if (!context.mounted) return;
     ScaffoldMessenger.of(
       context,
