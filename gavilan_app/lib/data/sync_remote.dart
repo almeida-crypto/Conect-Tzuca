@@ -116,7 +116,9 @@ class SupabaseRemote implements SyncRemote {
     if (m.contains('invalid login')) return 'Correo o contraseña incorrectos';
     if (m.contains('not confirmed')) return 'Falta confirmar tu correo: abre el mensaje que te mandamos';
     if (m.contains('already registered')) return 'Ese correo ya tiene cuenta. Entra con tu contraseña';
-    if (m.contains('password') && m.contains('6')) return 'La contraseña debe tener al menos 6 caracteres';
+    if (m.contains('password') && (m.contains('at least') || m.contains('characters'))) {
+      return 'La contraseña es muy corta: usa al menos 8 caracteres';
+    }
     if (m.contains('rate limit')) return 'Demasiados intentos. Espera unos minutos';
     if (m.contains('expired') || m.contains('invalid flow state')) return 'El enlace ya venció o ya se usó. Pide otro';
     if (m.contains('different from the old')) return 'La contraseña nueva debe ser distinta a la anterior';

@@ -30,8 +30,8 @@ class _NewPasswordScreenState extends ConsumerState<NewPasswordScreen> {
   }
 
   Future<void> _save() async {
-    if (_password.text.length < 6) {
-      setState(() => _error = 'La contraseña debe tener al menos 6 caracteres');
+    if (_password.text.length < 8) {
+      setState(() => _error = 'La contraseña debe tener al menos 8 caracteres');
       return;
     }
     if (_password.text != _repeat.text) {
@@ -80,7 +80,7 @@ class _NewPasswordScreenState extends ConsumerState<NewPasswordScreen> {
               obscureText: true,
               textInputAction: TextInputAction.next,
               onChanged: (_) => setState(() => _error = null),
-              decoration: const InputDecoration(labelText: 'Contraseña nueva', helperText: 'Al menos 6 caracteres'),
+              decoration: const InputDecoration(labelText: 'Contraseña nueva', helperText: 'Al menos 8 caracteres'),
             ),
             const SizedBox(height: 10),
             TextField(

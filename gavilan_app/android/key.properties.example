@@ -1,0 +1,6 @@
+# Copia este archivo como key.properties (en esta misma carpeta) y llena tus datos.
+# key.properties y el .jks nunca se suben al repositorio.
+storeFile=C:/Users/TU_USUARIO/gavilan-upload.jks
+storePassword=
+keyAlias=gavilan
+keyPassword=

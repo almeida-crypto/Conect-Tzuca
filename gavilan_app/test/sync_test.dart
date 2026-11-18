@@ -390,6 +390,47 @@ void main() {
     expect((await owner.sync.members()).single.role, MemberRole.owner);
   });
 
+  test('el servidor no deja que el cajero cancele ni que el mesero vea las ventas', () async {
+    final owner = await phone(device: 'K7');
+    await _setUpShop(owner);
+    await owner.login('mary@correo.mx');
+    await owner.settle();
+    final business = owner.state.businessId;
+
+    final cashier = await phone(device: 'R3');
+    await cashier.sync.signIn('juan@correo.mx', 'secreta1');
+    await cashier.sync.joinWithCode(await owner.sync.createInvite(MemberRole.cashier, 'Juan'));
+    final sale = cashier.sell('coca', 1);
+    await cashier.settle();
+    final row = Map<String, Object?>.from(server.table('sales')[sale.id]!);
+
+    // Volver a subir la misma venta (un reintento) sí pasa; cancelarla no.
+    await cashier.remote.upsert('sales', business, [row]);
+    expect(
+      () => cashier.remote.upsert('sales', business, [
+        {...row, 'status': 'cancelled', 'notes': 'me equivoqué'},
+      ]),
+      throwsA(isA<SyncException>()),
+    );
+    // El dueño sí cancela.
+    await owner.settle();
+    expect(owner.store.cancelSale(sale.id, reason: 'Se cobró mal'), isNotNull);
+    await owner.settle();
+    expect(owner.status.pending, 0);
+    expect(server.table('sales')[sale.id]!['status'], 'cancelled');
+
+    // El mesero baja productos y mesas, pero no ventas, cortes, fiados ni clientes.
+    final waiter = await phone(device: 'M2');
+    await waiter.sync.signIn('ana@correo.mx', 'secreta1');
+    await waiter.sync.joinWithCode(await owner.sync.createInvite(MemberRole.waiter, 'Ana'));
+    expect(waiter.state.businessName, 'Tienda La Esperanza');
+    expect(waiter.state.productById('coca'), isNotNull);
+    expect(waiter.state.sales, isEmpty);
+    expect(waiter.state.sessions, isEmpty);
+    expect(waiter.state.customers, isEmpty);
+    expect(waiter.state.credit, isEmpty);
+  });
+
   test('el mesero manda la comanda y la cocina la recibe sola', () async {
     final waiter = await phone(device: 'K7');
     await _setUpShop(waiter);

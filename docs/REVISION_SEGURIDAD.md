@@ -4,6 +4,17 @@ Fecha: 16/11/2026 · Versión revisada: 1.6.0+8 (commit `c0516bc`)
 
 Este archivo dice qué se revisó, qué se encontró y qué hay que mejorar. La última parte son instrucciones para que otro modelo (o una persona) haga los arreglos uno por uno.
 
+## Avance
+
+| Punto | Estado |
+|---|---|
+| I1 · Firma propia | Preparada en `build.gradle.kts`; falta que el usuario cree la llave |
+| I2 · Servidor respeta quién cancela y quién lee | Hecho (migración 0015, 17/11/2026) |
+| I3 · Sin permisos para `anon` | Hecho (migración 0016, 17/11/2026) |
+| I4 · Contraseñas | App hecha (8 para cuentas y contraseñas nuevas); falta el ajuste del panel de Supabase (usuario) |
+| I5 · `.gitignore` | Hecho |
+| I6 a I10 | Pendientes |
+
 ## 1. Qué se revisó
 
 | Zona | Cómo |

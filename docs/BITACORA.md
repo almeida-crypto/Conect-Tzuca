@@ -735,3 +735,22 @@ Se abren desde **Más → Módulos** con el plan Emprendedor o superior. Los tre
   - Pantalla: pide quién atiende, PIN equivocado, entra, F4 bloquea; un cajero cancela solo con el PIN del dueño.
 - Revisión de pantallas en celular y computadora: bloqueo, "Atiende", corte, Entregar caja, Personas.
 - **No probado:** en un celular real y con dos personas de verdad.
+
+## 17 de noviembre de 2026 · Sesión 11
+
+### Arreglos de la revisión de seguridad ([REVISION_SEGURIDAD.md](REVISION_SEGURIDAD.md))
+- **I5 · APK fuera de git:** `*.apk` y `*.aab` en `.gitignore`. El cambio de `test/fake_server.dart` del commit `c0516bc` era solo una línea en blanco del formateador.
+- **I1 · Firma propia (preparada):** `android/app/build.gradle.kts` lee `android/key.properties` y firma con esa llave; si el archivo no existe, sigue con la de prueba. Hay un ejemplo en `android/key.properties.example`. **Falta que el usuario cree su llave** (ver PENDIENTES).
+- **I2 · Servidor (migración 0015):**
+  - Ventas, renglones, pagos, fiados, movimientos de caja y de inventario: ya guardados, solo los cambian dueño y administrador (trigger `only_bosses_change`). Volver a subir el mismo renglón sin cambios sí pasa, porque la app reintenta con upsert.
+  - Un corte cerrado solo lo cambian dueño y administrador (trigger `closed_cut_locked`); el cajero sí cierra el turno abierto.
+  - Meseros y cocina ya no leen ventas, pagos, cortes, movimientos, fiados, clientes ni movimientos de inventario. La app no se rompe: esas tablas simplemente les llegan vacías.
+- **I3 · Sin cuenta, nada (migración 0016):** se quitaron todos los permisos de tabla a `anon`, también para tablas futuras.
+- **I4 · Contraseñas:** las cuentas nuevas y las contraseñas nuevas piden 8 caracteres. Al entrar se siguen aceptando las de 6 que ya existían. El mensaje del servidor sobre contraseña corta ahora dice "usa al menos 8".
+
+### Verificación
+- En la base, dentro de una transacción que se deshizo al final, con un cajero y un mesero simulados: el cajero vuelve a subir una venta igual (pasa) y no la puede cancelar (rechazada, 42501); el mesero ve 0 ventas, 0 clientes y 0 cortes; el dueño sí cambia la venta; sin cuenta no se lee nada (42501).
+- `get_advisors`: quedan los mismos avisos de antes (funciones `SECURITY DEFINER` que revisan dentro quién llama, y la protección de contraseñas filtradas, que prende el usuario).
+- El servidor de prueba de la app aplica las mismas reglas. Prueba nueva en `sync_test.dart`: el cajero no cancela por la nube, el dueño sí, y el mesero baja productos pero no ventas, cortes, fiados ni clientes.
+- `flutter analyze` sin avisos y 100 pruebas pasan.
+- No se hizo APK: el siguiente conviene firmarlo ya con la llave propia.

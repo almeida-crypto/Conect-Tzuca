@@ -181,6 +181,17 @@ class FakeRemote implements SyncRemote {
     if (table == 'products' && !{MemberRole.owner, MemberRole.admin}.contains(role)) {
       throw const SyncException(SyncFailure.rejected, 'RLS: products');
     }
+    // Como 0015: lo ya guardado de ventas, fiados y movimientos solo lo cambian dueño y administrador
+    // (volver a subirlo igual sí se puede), y un corte cerrado tampoco lo cambia el cajero.
+    if (role != MemberRole.owner && role != MemberRole.admin) {
+      for (final r in rows) {
+        final existing = server.table(table)[r['id']];
+        if (existing == null) continue;
+        final locked = _ledgerTables.contains(table) || (table == 'cash_sessions' && existing['closed_at'] != null);
+        final changed = r.entries.any((e) => e.key != 'business_id' && existing[e.key] != e.value);
+        if (locked && changed) throw SyncException(SyncFailure.rejected, 'Solo el dueño puede cambiar $table');
+      }
+    }
     for (final r in rows) {
       // Como en Supabase: la fila del negocio solo se actualiza (la crea create_business).
       server._write(table, table == 'businesses' ? {...r, 'id': businessId} : {...r, 'business_id': businessId});
@@ -197,6 +208,11 @@ class FakeRemote implements SyncRemote {
     required int limit,
   }) async {
     _check();
+    // Como 0015: meseros y cocina no leen el dinero del negocio ni a los clientes.
+    final role = server.membership[_user]?[businessId];
+    if (_moneyTables.contains(table) && !{MemberRole.owner, MemberRole.admin, MemberRole.cashier}.contains(role)) {
+      return [];
+    }
     final all =
         server
             .rows(table)
@@ -207,3 +223,21 @@ class FakeRemote implements SyncRemote {
     return all.skip(offset).take(limit).map((r) => Map<String, Object?>.from(r)).toList();
   }
 }
+
+const _ledgerTables = {
+  'sales',
+  'sale_items',
+  'sale_payments',
+  'credit_entries',
+  'cash_movements',
+  'inventory_movements',
+};
+const _moneyTables = {
+  'sales',
+  'sale_payments',
+  'cash_sessions',
+  'cash_movements',
+  'credit_entries',
+  'customers',
+  'inventory_movements',
+};

@@ -64,8 +64,10 @@ class _AccountScreenState extends ConsumerState<AccountScreen> {
       setState(() => _error = 'Escribe tu correo');
       return;
     }
-    if (_password.text.length < 6) {
-      setState(() => _error = 'La contraseña debe tener al menos 6 caracteres');
+    // Cuentas nuevas: 8 o más. Al entrar se aceptan las de 6 que ya existían.
+    final minLength = _creating ? 8 : 6;
+    if (_password.text.length < minLength) {
+      setState(() => _error = 'La contraseña debe tener al menos $minLength caracteres');
       return;
     }
     setState(() {
@@ -324,7 +326,7 @@ class _AccountScreenState extends ConsumerState<AccountScreen> {
       textInputAction: TextInputAction.done,
       onSubmitted: (_) => _working ? null : _submit(),
       onChanged: (_) => setState(() => _error = null),
-      decoration: InputDecoration(labelText: 'Contraseña', helperText: _creating ? 'Al menos 6 caracteres' : null),
+      decoration: InputDecoration(labelText: 'Contraseña', helperText: _creating ? 'Al menos 8 caracteres' : null),
     ),
     const SizedBox(height: 16),
     GButton(
