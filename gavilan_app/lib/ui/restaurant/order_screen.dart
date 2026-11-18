@@ -474,7 +474,7 @@ class _ProductPickerState extends ConsumerState<_ProductPicker> {
               for (final p in products)
                 ListTile(
                   contentPadding: EdgeInsets.zero,
-                  leading: ProductBadge(p.iconId, size: 42),
+                  leading: ProductThumb(p, size: 42),
                   title: Text(p.name, style: GText.sans(size: 15)),
                   subtitle: Text(money(p.priceCents), style: GText.muted()),
                   trailing: (_picked[p] ?? 0) == 0

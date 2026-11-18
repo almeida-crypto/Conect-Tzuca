@@ -33,8 +33,10 @@ String newDeviceCode() {
 /// (Drift) a través de [StoreRepository]; al abrir la app se vuelve a cargar.
 class StoreState {
   const StoreState({
+    this.photos = const {},
     this.device,
     this.registerName,
+    this.kitchenPrint = false,
     this.defaultCreditLimitCents,
     this.clerks = const [],
     this.lockMinutes,
@@ -83,11 +85,20 @@ class StoreState {
   final List<BatchOrder> batchOrders;
   final List<DiningTable> tables;
 
+  /// Fotos de producto que ya están en este celular (por su ruta en la nube).
+  final Map<String, Uint8List> photos;
+
+  /// Bytes de la foto de un producto, si ya está aquí.
+  Uint8List? photoOf(Product p) => p.photoPath == null ? null : photos[p.photoPath];
+
   /// Clave de este celular (la misma de los folios, "K7"). La pone el repositorio al abrir.
   final String? device;
 
   /// Nombre de la caja de este celular ("Mostrador"). null = se ve "Caja K7".
   final String? registerName;
+
+  /// En la cocina de este aparato se imprime sola cada comanda nueva (solo en la computadora).
+  final bool kitchenPrint;
 
   /// Cómo se llama una caja: su nombre o la clave del celular.
   static String registerLabel(String? name, String? device) =>
@@ -464,9 +475,11 @@ class StoreState {
   }
 
   StoreState copyWith({
+    Map<String, Uint8List>? photos,
     String? device,
     String? registerName,
     bool clearRegisterName = false,
+    bool? kitchenPrint,
     int? defaultCreditLimitCents,
     bool clearCreditLimit = false,
     List<Clerk>? clerks,
@@ -496,8 +509,10 @@ class StoreState {
     List<OrderItem>? orderItems,
     int? nextFolio,
   }) => StoreState(
+    photos: photos ?? this.photos,
     device: device ?? this.device,
     registerName: clearRegisterName ? null : (registerName ?? this.registerName),
+    kitchenPrint: kitchenPrint ?? this.kitchenPrint,
     defaultCreditLimitCents: clearCreditLimit ? null : (defaultCreditLimitCents ?? this.defaultCreditLimitCents),
     clerks: clerks ?? this.clerks,
     lockMinutes: clearLock ? null : (lockMinutes ?? this.lockMinutes),
@@ -943,6 +958,29 @@ class StoreNotifier extends Notifier<StoreState> {
     );
     state = state.copyWith(sessions: [...state.sessions, session]);
     _save((r) => r.upsertSession(session));
+  }
+
+  /// Pone (o quita, con null) la foto de un producto. Los bytes ya vienen chicos (600×600 JPEG).
+  /// La ruta cambia con cada foto: así los demás celulares saben que hay una nueva.
+  void setProductPhoto(String productId, Uint8List? bytes) {
+    final p = state.productById(productId);
+    if (p == null) return;
+    final path = bytes == null ? null : '${state.businessId}/$productId-${_clock().millisecondsSinceEpoch}.jpg';
+    final updated = path == null ? p.copyWith(clearPhoto: true) : p.copyWith(photoPath: path);
+    state = state.copyWith(
+      products: [for (final x in state.products) x.id == productId ? updated : x],
+      photos: path == null ? null : {...state.photos, path: bytes!},
+    );
+    _save((r) async {
+      if (path != null) await r.savePhoto(productId, path, bytes!);
+      await r.upsertProduct(updated, isNew: false);
+    });
+  }
+
+  /// Prende o apaga imprimir solas las comandas nuevas en la cocina de este aparato.
+  void setKitchenPrint(bool on) {
+    state = state.copyWith(kitchenPrint: on);
+    _save((r) => r.setKitchenPrint(on));
   }
 
   /// Nombre de la caja de este celular. Si la caja está abierta, el turno también lo toma.

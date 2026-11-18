@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:typed_data';
 
 import 'package:supabase_flutter/supabase_flutter.dart';
 
@@ -64,12 +65,28 @@ abstract class SyncRemote {
     required int offset,
     required int limit,
   });
+
+  /// Fotos de producto en el almacenamiento privado del negocio (bucket "product-photos").
+  Future<void> uploadPhoto(String path, Uint8List bytes);
+  Future<Uint8List> downloadPhoto(String path);
 }
 
 class SupabaseRemote implements SyncRemote {
   SupabaseRemote(this.client);
 
   final SupabaseClient client;
+
+  static const _photos = 'product-photos';
+
+  @override
+  Future<void> uploadPhoto(String path, Uint8List bytes) => _guard(
+    () => client.storage
+        .from(_photos)
+        .uploadBinary(path, bytes, fileOptions: const FileOptions(upsert: true, contentType: 'image/jpeg')),
+  );
+
+  @override
+  Future<Uint8List> downloadPhoto(String path) => _guard(() => client.storage.from(_photos).download(path));
 
   @override
   String? get userId => client.auth.currentUser?.id;

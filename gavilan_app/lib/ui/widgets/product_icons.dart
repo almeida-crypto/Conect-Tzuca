@@ -1,5 +1,10 @@
 import 'package:flutter/material.dart';
 
+import '../../state/store.dart';
+import '../../domain/models.dart';
+
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+
 import '../../theme/colors.dart';
 
 /// Iconos predeterminados. En el plan gratis los productos usan estos en vez de fotos,
@@ -54,6 +59,33 @@ class ProductBadge extends StatelessWidget {
       height: size,
       decoration: BoxDecoration(color: bg, borderRadius: BorderRadius.circular(size * 0.28)),
       child: Icon(productIcon(iconId), size: size * 0.52, color: fg),
+    );
+  }
+}
+
+/// La foto del producto si ya está en este celular; si no, su icono de color.
+class ProductThumb extends ConsumerWidget {
+  const ProductThumb(this.product, {super.key, this.size = 44});
+
+  final Product product;
+  final double size;
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final bytes = ref.watch(storeProvider.select((s) => s.photoOf(product)));
+    if (bytes == null) return ProductBadge(product.iconId, size: size);
+    final px = (size * MediaQuery.devicePixelRatioOf(context)).round();
+    return ClipRRect(
+      borderRadius: BorderRadius.circular(size * 0.28),
+      child: Image.memory(
+        bytes,
+        width: size,
+        height: size,
+        fit: BoxFit.cover,
+        cacheWidth: px,
+        gaplessPlayback: true,
+        semanticLabel: product.name,
+      ),
     );
   }
 }

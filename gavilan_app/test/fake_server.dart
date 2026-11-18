@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:typed_data';
 
 import 'package:gavilan/data/remote_mapping.dart';
 import 'package:gavilan/data/sync_remote.dart';
@@ -9,6 +10,9 @@ import 'package:gavilan/domain/team.dart';
 /// - un upsert solo cambia las columnas que se mandan;
 /// - un movimiento de inventario nuevo suma a products.stock_qty (como el trigger).
 class FakeServer {
+  /// Fotos del almacenamiento (ruta -> bytes).
+  final Map<String, Uint8List> storage = {};
+
   final Map<String, Map<String, Map<String, Object?>>> tables = {};
 
   /// usuario -> {negocio -> puesto}. Una cuenta puede estar en varios negocios.
@@ -50,6 +54,21 @@ class FakeRemote implements SyncRemote {
   FakeRemote(this.server);
 
   final FakeServer server;
+
+  @override
+  Future<void> uploadPhoto(String path, Uint8List bytes) async {
+    _check();
+    server.storage[path] = bytes;
+  }
+
+  @override
+  Future<Uint8List> downloadPhoto(String path) async {
+    _check();
+    final bytes = server.storage[path];
+    if (bytes == null) throw const SyncException(SyncFailure.rejected, 'Object not found');
+    return bytes;
+  }
+
   final _auth = StreamController<void>.broadcast();
   String? _user;
   bool offline = false;

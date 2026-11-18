@@ -1,3 +1,5 @@
+import 'dart:typed_data';
+
 import 'package:drift/native.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -25,6 +27,27 @@ void main() {
       overrides: [repositoryProvider.overrideWithValue(repo), initialDataProvider.overrideWithValue(loaded)],
     );
   }
+
+  test('quitar el código de barras, el mínimo o la foto también se guarda', () async {
+    var app = await open();
+    final n = app.read(storeProvider.notifier);
+    n.startBusiness('La Esperanza');
+    n.saveProduct(const Product(id: 'p', name: 'Coca', priceCents: 1800, barcode: '7501055300075', minStock: 5));
+    n.setProductPhoto('p', Uint8List.fromList([1, 2, 3]));
+    await n.flush();
+    final p = app.read(storeProvider).productById('p')!;
+    n.saveProduct(p.copyWith(clearBarcode: true, clearMinStock: true));
+    n.setProductPhoto('p', null);
+    await n.flush();
+    app.dispose();
+
+    app = await open();
+    final back = app.read(storeProvider).productById('p')!;
+    expect(back.barcode, isNull);
+    expect(back.minStock, isNull);
+    expect(back.photoPath, isNull);
+    app.dispose();
+  });
 
   test('primer arranque: no hay negocio guardado', () async {
     expect(await repo.load(), isNull);

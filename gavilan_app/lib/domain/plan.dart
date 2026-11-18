@@ -118,7 +118,7 @@ List<String> planHighlights(Plan plan) => switch (plan) {
   ],
   Plan.emprendedor => const [
     'Todo lo de Semilla, en 2 dispositivos',
-    'Hasta 300 productos',
+    'Hasta 300 productos, con su foto',
     'Fiados sin límite y apartados',
     'Pacas y lotes con barra de recuperación',
     'Pedidos por tanda',
@@ -137,6 +137,6 @@ List<String> planHighlights(Plan plan) => switch (plan) {
 /// Lo que llegará a cada plan más adelante.
 List<String> planComingSoon(Plan plan) => switch (plan) {
   Plan.semilla => const [],
-  Plan.emprendedor => const ['Fotos de producto y tu logo en el ticket'],
-  Plan.negocio => const ['Impresora de tickets Bluetooth', 'Límite de crédito por cliente'],
+  Plan.emprendedor => const ['Tu logo en el ticket'],
+  Plan.negocio => const ['Impresora de tickets Bluetooth'],
 };

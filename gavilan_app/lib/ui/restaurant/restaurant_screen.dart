@@ -2,6 +2,10 @@ import 'dart:math' as math;
 import 'dart:async';
 
 import 'package:flutter/material.dart';
+
+import '../../core/ticket_html.dart';
+import '../../core/print/print.dart';
+
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
@@ -66,6 +70,15 @@ class _RestaurantScreenState extends ConsumerState<RestaurantScreen> {
     super.dispose();
   }
 
+  /// Imprime un envío nuevo ("cuenta@hora"), solo si es reciente (al abrir no se reimprime lo de antes).
+  void _printBatch(String key) {
+    final at = key.lastIndexOf('@');
+    final orderId = key.substring(0, at);
+    final sentAt = DateTime.fromMillisecondsSinceEpoch(int.parse(key.substring(at + 1)));
+    if (DateTime.now().difference(sentAt).inMinutes >= 3) return;
+    printComanda(ref.read(storeProvider), orderId, sentAt: sentAt);
+  }
+
   @override
   Widget build(BuildContext context) {
     final can = ref.watch(permissionsProvider);
@@ -79,6 +92,16 @@ class _RestaurantScreenState extends ConsumerState<RestaurantScreen> {
         SystemSound.play(SystemSoundType.alert);
       }
     });
+    // En la computadora de la cocina, si se pidió, cada envío nuevo se imprime solo.
+    if (canPrintTicket) {
+      ref.listen(storeProvider.select((s) => kitchenBatches(s)), (before, now) {
+        if (!_kitchen || !ref.read(storeProvider).kitchenPrint) return;
+        final printed = before ?? const <String>{};
+        for (final key in now.difference(printed)) {
+          _printBatch(key);
+        }
+      });
+    }
 
     return Scaffold(
       appBar: AppBar(
@@ -90,6 +113,28 @@ class _RestaurantScreenState extends ConsumerState<RestaurantScreen> {
           style: GText.sans(size: 17, weight: FontWeight.w800),
         ),
         actions: [
+          if (_kitchen && canPrintTicket)
+            Builder(
+              builder: (context) {
+                final on = ref.watch(storeProvider.select((s) => s.kitchenPrint));
+                return TextButton.icon(
+                  onPressed: () => ref.read(storeProvider.notifier).setKitchenPrint(!on),
+                  icon: Icon(
+                    on ? Icons.print_rounded : Icons.print_disabled_outlined,
+                    size: 20,
+                    color: on ? GColors.cenote : GColors.tintaSuave,
+                  ),
+                  label: Text(
+                    on ? 'Imprime comandas' : 'Imprimir comandas',
+                    style: GText.sans(
+                      size: 13.5,
+                      weight: FontWeight.w800,
+                      color: on ? GColors.cenote : GColors.tintaSuave,
+                    ),
+                  ),
+                );
+              },
+            ),
           if (can.manageTables && !_kitchen)
             IconButton(
               tooltip: 'Acomodar mesas',
@@ -745,6 +790,13 @@ class _KitchenTicketState extends ConsumerState<_KitchenTicket> with SingleTicke
                   elapsedLabel(firstSent),
                   style: GText.figures(size: 14, weight: FontWeight.w700, color: waitColor),
                 ),
+                if (canPrintTicket)
+                  IconButton(
+                    tooltip: 'Imprimir comanda',
+                    visualDensity: VisualDensity.compact,
+                    onPressed: () => printComanda(ref.read(storeProvider), order.id),
+                    icon: const Icon(Icons.print_outlined, size: 20, color: GColors.tintaSuave),
+                  ),
               ],
             ),
           ),
@@ -835,4 +887,23 @@ class KitchenStatusPill extends StatelessWidget {
       ),
     );
   }
+}
+
+/// Cada envío a cocina ("cuenta@hora en que se mandó"). Lo nuevo de este conjunto es lo que hay que imprimir.
+Set<String> kitchenBatches(StoreState s) => {
+  for (final o in s.kitchenOrders)
+    for (final i in s.kitchenItemsOf(o.id))
+      if (i.sentAt != null) '${o.id}@${i.sentAt!.millisecondsSinceEpoch}',
+};
+
+/// Imprime la comanda de [orderId]: solo lo de un envío ([sentAt]) o todo lo que está en cocina.
+void printComanda(StoreState s, String orderId, {DateTime? sentAt}) {
+  final order = s.orderById(orderId);
+  if (order == null) return;
+  final items = [
+    for (final i in s.kitchenItemsOf(orderId))
+      if (sentAt == null || i.sentAt == sentAt) i,
+  ];
+  if (items.isEmpty) return;
+  printHtml(comandaHtml(business: s.businessName, place: s.orderTitle(order), items: items));
 }

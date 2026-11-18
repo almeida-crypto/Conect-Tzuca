@@ -1,7 +1,9 @@
 import '../../core/limits.dart';
 
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:image_picker/image_picker.dart';
 
 import '../../core/money.dart';
 import '../../domain/models.dart';
@@ -65,6 +67,10 @@ class _ProductFormState extends ConsumerState<_ProductForm> {
   );
   final _restock = TextEditingController();
   late String _icon = widget.product?.iconId ?? 'otro';
+
+  /// Foto nueva (ya chica) que se guarda al darle Guardar; o quitar la que tenía.
+  Uint8List? _photo;
+  bool _removePhoto = false;
   late bool _track = widget.product?.trackStock ?? true;
   final _errors = <String, String>{};
 
@@ -119,8 +125,75 @@ class _ProductFormState extends ConsumerState<_ProductForm> {
       minStock: min,
       clearMinStock: min == null,
     );
-    ref.read(storeProvider.notifier).saveProduct(saved);
+    final notifier = ref.read(storeProvider.notifier);
+    notifier.saveProduct(saved);
+    if (_photo != null) {
+      notifier.setProductPhoto(saved.id, _photo);
+    } else if (_removePhoto) {
+      notifier.setProductPhoto(saved.id, null);
+    }
     Navigator.of(context).pop(saved);
+  }
+
+  /// Toma o elige la foto. Se reduce a 600×600 al tomarla: pesa unos 50 KB.
+  Future<void> _pickPhoto(bool hasPhoto) async {
+    final choice = await showModalBottomSheet<String>(
+      context: context,
+      showDragHandle: true,
+      builder: (ctx) => SafeArea(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            ListTile(
+              leading: const Icon(Icons.photo_camera_outlined, color: GColors.cenote),
+              title: const Text('Tomar foto'),
+              onTap: () => Navigator.of(ctx).pop('camara'),
+            ),
+            ListTile(
+              leading: const Icon(Icons.photo_library_outlined, color: GColors.cenote),
+              title: const Text('Elegir de la galería'),
+              onTap: () => Navigator.of(ctx).pop('galeria'),
+            ),
+            if (hasPhoto)
+              ListTile(
+                leading: const Icon(Icons.hide_image_outlined, color: GColors.rojo),
+                title: const Text('Quitar la foto', style: TextStyle(color: GColors.rojo)),
+                onTap: () => Navigator.of(ctx).pop('quitar'),
+              ),
+            const SizedBox(height: 8),
+          ],
+        ),
+      ),
+    );
+    if (choice == null || !mounted) return;
+    if (choice == 'quitar') {
+      setState(() {
+        _photo = null;
+        _removePhoto = true;
+      });
+      return;
+    }
+    try {
+      final file = await ImagePicker().pickImage(
+        source: choice == 'camara' ? ImageSource.camera : ImageSource.gallery,
+        maxWidth: 600,
+        maxHeight: 600,
+        imageQuality: 75,
+        requestFullMetadata: false,
+      );
+      if (file == null || !mounted) return;
+      final bytes = await file.readAsBytes();
+      if (!mounted) return;
+      setState(() {
+        _photo = bytes;
+        _removePhoto = false;
+      });
+    } catch (_) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('No se pudo abrir la cámara o la galería. Revisa los permisos de la app.')),
+      );
+    }
   }
 
   void _addStock() {
@@ -150,6 +223,9 @@ class _ProductFormState extends ConsumerState<_ProductForm> {
   Widget build(BuildContext context) {
     final plan = ref.watch(planProvider);
     final current = _editing ? ref.watch(storeProvider).productById(widget.product!.id) : null;
+    final shownPhoto = _removePhoto
+        ? null
+        : _photo ?? (current == null ? null : ref.watch(storeProvider).photoOf(current));
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -226,15 +302,11 @@ class _ProductFormState extends ConsumerState<_ProductForm> {
         const SizedBox(height: 14),
         Row(
           children: [
-            Text('Icono', style: GText.sans(size: 13)),
+            Text(shownPhoto == null ? 'Icono' : 'Foto (si no carga, se ve el icono)', style: GText.sans(size: 13)),
             const Spacer(),
             TextButton.icon(
               onPressed: () => plan.limits.photos
-                  ? ScaffoldMessenger.of(context).showSnackBar(
-                      const SnackBar(
-                        content: Text('Las fotos de producto llegan con la cámara, en el siguiente paso.'),
-                      ),
-                    )
+                  ? _pickPhoto(shownPhoto != null)
                   : showUpgradeSheet(
                       context,
                       reason:
@@ -243,10 +315,34 @@ class _ProductFormState extends ConsumerState<_ProductForm> {
                       needed: Plan.emprendedor,
                     ),
               icon: Icon(plan.limits.photos ? Icons.photo_camera_outlined : Icons.lock_outline, size: 16),
-              label: Text('Usar foto', style: GText.sans(size: 12.5, color: GColors.marca)),
+              label: Text(
+                shownPhoto == null ? 'Usar foto' : 'Cambiar foto',
+                style: GText.sans(size: 12.5, color: GColors.marca),
+              ),
             ),
           ],
         ),
+        if (shownPhoto != null)
+          Padding(
+            padding: const EdgeInsets.only(bottom: 10),
+            child: Row(
+              children: [
+                ClipRRect(
+                  borderRadius: BorderRadius.circular(16),
+                  child: Image.memory(shownPhoto, width: 72, height: 72, fit: BoxFit.cover, gaplessPlayback: true),
+                ),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: Text(
+                    _photo != null
+                        ? 'Foto nueva: se guarda al darle Guardar.'
+                        : 'Sale en Cobrar, en el inventario y en las mesas.',
+                    style: GText.muted(size: 12.5),
+                  ),
+                ),
+              ],
+            ),
+          ),
         Wrap(
           spacing: 6,
           runSpacing: 6,

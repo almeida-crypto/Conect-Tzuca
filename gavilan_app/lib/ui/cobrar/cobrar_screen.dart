@@ -373,7 +373,7 @@ class _ProductTile extends StatelessWidget {
           ),
           child: Row(
             children: [
-              ProductBadge(product.iconId),
+              ProductThumb(product),
               const SizedBox(width: 10),
               Expanded(
                 child: Column(

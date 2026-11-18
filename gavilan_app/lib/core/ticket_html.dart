@@ -1,4 +1,5 @@
 import '../domain/models.dart';
+import '../domain/restaurant.dart';
 import 'money.dart';
 import 'ticket_text.dart';
 
@@ -78,3 +79,41 @@ ${watermark ? '<div class="pie">Hecho con Gavilán</div>' : ''}
 
 String _esc(String s) =>
     s.replaceAll('&', '&amp;').replaceAll('<', '&lt;').replaceAll('>', '&gt;').replaceAll('"', '&quot;');
+
+/// Comanda para la cocina: la mesa en grande, la hora y los platillos con sus extras e indicaciones.
+/// Sin precios (a la cocina no le sirven).
+String comandaHtml({required String business, required String place, required List<OrderItem> items, DateTime? at}) {
+  final rows = StringBuffer();
+  for (final i in items) {
+    rows.writeln('<div class="it"><span class="q">${_esc(qtyLabel(i.qty))}</span> ${_esc(i.name)}</div>');
+    for (final e in i.extras) {
+      rows.writeln('<div class="ex">+ ${_esc(e.name)}</div>');
+    }
+    if (i.notes != null && i.notes!.trim().isNotEmpty) {
+      rows.writeln('<div class="nt">** ${_esc(i.notes!)} **</div>');
+    }
+  }
+  final when = at ?? items.map((i) => i.sentAt ?? i.createdAt).reduce((a, b) => a.isAfter(b) ? a : b);
+  return '''<!doctype html>
+<html lang="es"><head><meta charset="utf-8"><title>Comanda ${_esc(place)}</title>
+<style>
+  @page { margin: 3mm; }
+  * { box-sizing: border-box; }
+  body { margin: 0; font: 14px/1.35 "Courier New", ui-monospace, monospace; color: #000; }
+  .t { width: 100%; max-width: 72mm; margin: 0 auto; }
+  .neg { text-align: center; font-size: 11px; }
+  h1 { font: 700 26px/1.1 Arial, sans-serif; text-align: center; margin: 4px 0 2px; text-transform: uppercase; }
+  .hora { text-align: center; font-size: 13px; margin-bottom: 8px; border-bottom: 2px dashed #000; padding-bottom: 6px; }
+  .it { font-size: 17px; font-weight: 700; margin-top: 8px; }
+  .q { display: inline-block; min-width: 28px; }
+  .ex { font-size: 14px; margin-left: 28px; }
+  .nt { font-size: 15px; font-weight: 700; margin-left: 28px; text-transform: uppercase; }
+  .pie { border-top: 2px dashed #000; margin-top: 10px; padding-top: 4px; text-align: center; font-size: 11px; }
+</style></head>
+<body><div class="t">
+<div class="neg">${_esc(business)}</div>
+<h1>${_esc(place)}</h1>
+<div class="hora">Comanda · ${_esc(timeLabel(when))}</div>
+$rows<div class="pie">${items.length == 1 ? '1 platillo' : '${items.length} platillos'}</div>
+</div></body></html>''';
+}

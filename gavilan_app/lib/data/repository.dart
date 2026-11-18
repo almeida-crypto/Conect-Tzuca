@@ -57,6 +57,9 @@ abstract class StoreRepository {
 
   /// Nombre de la caja de este celular (solo en este celular; cada turno lo lleva consigo a la nube).
   Future<void> setRegisterName(String? name);
+
+  /// En la cocina de este aparato, imprimir sola cada comanda nueva.
+  Future<void> setKitchenPrint(bool on);
   Future<void> insertCredit(CreditEntry entry);
   Future<void> upsertSession(CashSession session);
   Future<void> insertMovement(CashMovement movement);
@@ -64,6 +67,9 @@ abstract class StoreRepository {
 
   /// Personas del mostrador y minutos para bloquear. Solo en este aparato: nunca suben a la nube.
   Future<void> setClerks(List<Clerk> clerks, int? lockMinutes);
+
+  /// Guarda la foto de un producto (y borra las anteriores de ese producto).
+  Future<void> savePhoto(String productId, String path, Uint8List bytes, {bool uploaded = false});
 
   /// Tipo de negocio y módulos prendidos; sube a Supabase si el teléfono está enlazado.
   Future<void> setBusinessSetup(BusinessType type, Set<Module> modules);
@@ -128,6 +134,13 @@ abstract class SyncStore {
   Future<DateTime?> cursor(String table);
   Future<void> setCursor(String table, DateTime at);
 
+  /// Fotos tomadas aquí que falta subir a la nube.
+  Future<List<PhotoRow>> pendingPhotos();
+  Future<void> markPhotoUploaded(String path);
+
+  /// Qué fotos ya están en este celular.
+  Future<Set<String>> photoPaths();
+
   /// Aplica filas que bajaron de Supabase. No las vuelve a anotar para subir.
   Future<void> applyRemote(String table, List<RemoteRow> rows);
 }
@@ -165,6 +178,8 @@ class MemoryRepository implements StoreRepository {
   @override
   Future<void> setRegisterName(String? name) async {}
   @override
+  Future<void> setKitchenPrint(bool on) async {}
+  @override
   Future<void> insertCredit(CreditEntry entry) async {}
   @override
   Future<void> upsertSession(CashSession session) async {}
@@ -174,6 +189,8 @@ class MemoryRepository implements StoreRepository {
   Future<void> setPlan(Plan plan) async {}
   @override
   Future<void> setBusinessSetup(BusinessType type, Set<Module> modules) async {}
+  @override
+  Future<void> savePhoto(String productId, String path, Uint8List bytes, {bool uploaded = false}) async {}
   @override
   Future<void> setClerks(List<Clerk> clerks, int? lockMinutes) async {}
   @override
@@ -208,6 +225,7 @@ const _kModules = 'modules';
 const _kCreditLimit = 'credit_limit';
 const _kPayMethods = 'pay_methods';
 const _kRegisterName = 'register_name';
+const _kKitchenPrint = 'kitchen_print';
 const _kBusinessId = 'business_id';
 const _kDemo = 'is_demo';
 const _kFolio = 'next_folio';
@@ -347,8 +365,10 @@ class DriftRepository implements StoreRepository, SyncStore {
       defaultCreditLimitCents: int.tryParse(meta[_kCreditLimit] ?? ''),
       payMethods: payMethodsFromText(meta[_kPayMethods]),
       registerName: (meta[_kRegisterName] ?? '').isEmpty ? null : meta[_kRegisterName],
+      kitchenPrint: meta[_kKitchenPrint] == '1',
       nextFolio: int.tryParse(meta[_kFolio] ?? '') ?? 1,
       products: [for (final p in await db.select(db.productsTable).get()) _product(p)],
+      photos: {for (final f in await db.select(db.productPhotosTable).get()) f.path: f.bytes},
       customers: [
         for (final c in await db.select(db.customersTable).get())
           Customer(id: c.id, name: c.name, phone: c.phone, creditLimitCents: c.creditLimitCents),
@@ -441,6 +461,7 @@ class DriftRepository implements StoreRepository, SyncStore {
     stock: p.stock.isFinite ? p.stock.clamp(-Limits.maxQty, Limits.maxQty) : 0,
     minStock: p.minStock == null || !p.minStock!.isFinite ? null : p.minStock!.clamp(0, Limits.maxQty),
     active: p.active,
+    photoPath: p.photoPath,
   );
 
   static CashSession _session(SessionRow s) => CashSession(
@@ -608,6 +629,7 @@ class DriftRepository implements StoreRepository, SyncStore {
     stock: p.stock,
     minStock: p.minStock,
     active: p.active,
+    photoPath: p.photoPath,
   );
 
   static CreditRow _creditRow(CreditEntry e) => CreditRow(
@@ -646,7 +668,7 @@ class DriftRepository implements StoreRepository, SyncStore {
   Future<void> _insertSale(Sale s) async {
     await db
         .into(db.salesTable)
-        .insertOnConflictUpdate(
+        .put(
           SaleRow(
             id: s.id,
             folio: s.folio,
@@ -668,7 +690,7 @@ class DriftRepository implements StoreRepository, SyncStore {
     for (final (i, p) in s.payments.indexed) {
       await db
           .into(db.salePaymentsTable)
-          .insertOnConflictUpdate(
+          .put(
             SalePaymentRow(
               id: salePaymentId(s.id, i),
               saleId: s.id,
@@ -682,7 +704,7 @@ class DriftRepository implements StoreRepository, SyncStore {
       final l = s.lines[i];
       await db
           .into(db.saleLinesTable)
-          .insertOnConflictUpdate(
+          .put(
             SaleLineRow(
               saleId: s.id,
               position: i,
@@ -697,8 +719,7 @@ class DriftRepository implements StoreRepository, SyncStore {
     }
   }
 
-  Future<void> _setMeta(String key, String value) =>
-      db.into(db.metaTable).insertOnConflictUpdate(MetaRow(key: key, value: value));
+  Future<void> _setMeta(String key, String value) => db.into(db.metaTable).put(MetaRow(key: key, value: value));
 
   /// Anota cambios para subir, solo si el teléfono está enlazado a la nube.
   Future<void> _enqueue(List<RemoteChange> changes) async {
@@ -773,7 +794,7 @@ class DriftRepository implements StoreRepository, SyncStore {
 
   @override
   Future<void> upsertProduct(Product product, {required bool isNew}) => db.transaction(() async {
-    await db.into(db.productsTable).insertOnConflictUpdate(_productRow(product));
+    await db.into(db.productsTable).put(_productRow(product));
     await _enqueue([
       (table: 'products', rows: [productToRemote(product, withStock: isNew)]),
     ]);
@@ -781,7 +802,7 @@ class DriftRepository implements StoreRepository, SyncStore {
 
   @override
   Future<void> addStock(Product updated, double delta, {bool adjustment = false}) => db.transaction(() async {
-    await db.into(db.productsTable).insertOnConflictUpdate(_productRow(updated));
+    await db.into(db.productsTable).put(_productRow(updated));
     final now = DateTime.now();
     await _enqueue([
       (
@@ -804,9 +825,9 @@ class DriftRepository implements StoreRepository, SyncStore {
       db.transaction(() async {
         await _insertSale(sale);
         for (final p in restocked) {
-          await db.into(db.productsTable).insertOnConflictUpdate(_productRow(p));
+          await db.into(db.productsTable).put(_productRow(p));
         }
-        if (reversal != null) await db.into(db.creditEntriesTable).insertOnConflictUpdate(_creditRow(reversal));
+        if (reversal != null) await db.into(db.creditEntriesTable).put(_creditRow(reversal));
         final at = sale.cancelledAt ?? DateTime.now();
         final back = <String, double>{};
         for (final l in sale.lines) {
@@ -845,9 +866,9 @@ class DriftRepository implements StoreRepository, SyncStore {
   }) => db.transaction(() async {
     await _insertSale(sale);
     for (final p in changedProducts) {
-      await db.into(db.productsTable).insertOnConflictUpdate(_productRow(p));
+      await db.into(db.productsTable).put(_productRow(p));
     }
-    if (charge != null) await db.into(db.creditEntriesTable).insertOnConflictUpdate(_creditRow(charge));
+    if (charge != null) await db.into(db.creditEntriesTable).put(_creditRow(charge));
     await _setMeta(_kFolio, '$nextFolio');
     await _enqueue([
       ...saleToRemote(sale, stockTracked: {for (final p in changedProducts) p.id}),
@@ -859,7 +880,7 @@ class DriftRepository implements StoreRepository, SyncStore {
   Future<void> upsertCustomer(Customer customer) => db.transaction(() async {
     await db
         .into(db.customersTable)
-        .insertOnConflictUpdate(
+        .put(
           CustomerRow(
             id: customer.id,
             name: customer.name,
@@ -874,6 +895,38 @@ class DriftRepository implements StoreRepository, SyncStore {
 
   @override
   Future<void> setRegisterName(String? name) => _setMeta(_kRegisterName, name ?? '');
+
+  // ---------- Fotos de producto ----------
+
+  @override
+  Future<void> savePhoto(String productId, String path, Uint8List bytes, {bool uploaded = false}) =>
+      db.transaction(() async {
+        // Las fotos anteriores del mismo producto ya no se usan.
+        await (db.delete(
+          db.productPhotosTable,
+        )..where((t) => t.productId.equals(productId) & t.path.equals(path).not())).go();
+        await db
+            .into(db.productPhotosTable)
+            .put(PhotoRow(path: path, productId: productId, bytes: bytes, uploaded: uploaded));
+      });
+
+  @override
+  Future<List<PhotoRow>> pendingPhotos() =>
+      (db.select(db.productPhotosTable)..where((t) => t.uploaded.equals(false))).get();
+
+  @override
+  Future<void> markPhotoUploaded(String path) => (db.update(
+    db.productPhotosTable,
+  )..where((t) => t.path.equals(path))).write(const ProductPhotosTableCompanion(uploaded: Value(true)));
+
+  @override
+  Future<Set<String>> photoPaths() async => {
+    for (final r in await (db.selectOnly(db.productPhotosTable)..addColumns([db.productPhotosTable.path])).get())
+      r.read(db.productPhotosTable.path)!,
+  };
+
+  @override
+  Future<void> setKitchenPrint(bool on) => _setMeta(_kKitchenPrint, on ? '1' : '0');
 
   @override
   Future<void> setPayMethods(Set<PayMethod> methods) => db.transaction(() async {
@@ -893,7 +946,7 @@ class DriftRepository implements StoreRepository, SyncStore {
 
   @override
   Future<void> insertCredit(CreditEntry entry) => db.transaction(() async {
-    await db.into(db.creditEntriesTable).insertOnConflictUpdate(_creditRow(entry));
+    await db.into(db.creditEntriesTable).put(_creditRow(entry));
     await _enqueue([
       (table: 'credit_entries', rows: [creditToRemote(entry)]),
     ]);
@@ -901,7 +954,7 @@ class DriftRepository implements StoreRepository, SyncStore {
 
   @override
   Future<void> upsertSession(CashSession session) => db.transaction(() async {
-    await db.into(db.cashSessionsTable).insertOnConflictUpdate(_sessionRow(session));
+    await db.into(db.cashSessionsTable).put(_sessionRow(session));
     await _enqueue([
       (table: 'cash_sessions', rows: [sessionToRemote(session)]),
     ]);
@@ -909,7 +962,7 @@ class DriftRepository implements StoreRepository, SyncStore {
 
   @override
   Future<void> insertMovement(CashMovement movement) => db.transaction(() async {
-    await db.into(db.cashMovementsTable).insertOnConflictUpdate(_movementRow(movement));
+    await db.into(db.cashMovementsTable).put(_movementRow(movement));
     await _enqueue([
       (table: 'cash_movements', rows: [movementToRemote(movement)]),
     ]);
@@ -935,7 +988,7 @@ class DriftRepository implements StoreRepository, SyncStore {
 
   @override
   Future<void> upsertLot(Lot lot) => db.transaction(() async {
-    await db.into(db.lotsTable).insertOnConflictUpdate(_lotRow(lot));
+    await db.into(db.lotsTable).put(_lotRow(lot));
     await _enqueue([
       (table: 'lots', rows: [lotToRemote(lot)]),
     ]);
@@ -943,7 +996,7 @@ class DriftRepository implements StoreRepository, SyncStore {
 
   @override
   Future<void> insertLotSale(LotSale sale) => db.transaction(() async {
-    await db.into(db.lotSalesTable).insertOnConflictUpdate(_lotSaleRow(sale));
+    await db.into(db.lotSalesTable).put(_lotSaleRow(sale));
     await _enqueue([
       (table: 'lot_sales', rows: [lotSaleToRemote(sale)]),
     ]);
@@ -951,7 +1004,7 @@ class DriftRepository implements StoreRepository, SyncStore {
 
   @override
   Future<void> upsertLayaway(Layaway layaway) => db.transaction(() async {
-    await db.into(db.layawaysTable).insertOnConflictUpdate(_layawayRow(layaway));
+    await db.into(db.layawaysTable).put(_layawayRow(layaway));
     await _enqueue([
       (table: 'layaways', rows: [layawayToRemote(layaway)]),
     ]);
@@ -959,7 +1012,7 @@ class DriftRepository implements StoreRepository, SyncStore {
 
   @override
   Future<void> insertLayawayPayment(LayawayPayment payment) => db.transaction(() async {
-    await db.into(db.layawayPaymentsTable).insertOnConflictUpdate(_layawayPaymentRow(payment));
+    await db.into(db.layawayPaymentsTable).put(_layawayPaymentRow(payment));
     await _enqueue([
       (table: 'layaway_payments', rows: [layawayPaymentToRemote(payment)]),
     ]);
@@ -967,7 +1020,7 @@ class DriftRepository implements StoreRepository, SyncStore {
 
   @override
   Future<void> upsertBatch(Tanda batch) => db.transaction(() async {
-    await db.into(db.batchesTable).insertOnConflictUpdate(_batchRow(batch));
+    await db.into(db.batchesTable).put(_batchRow(batch));
     await _enqueue([
       (table: 'batches', rows: [batchToRemote(batch)]),
     ]);
@@ -975,7 +1028,7 @@ class DriftRepository implements StoreRepository, SyncStore {
 
   @override
   Future<void> upsertBatchOrder(BatchOrder order) => db.transaction(() async {
-    await db.into(db.batchOrdersTable).insertOnConflictUpdate(_batchOrderRow(order));
+    await db.into(db.batchOrdersTable).put(_batchOrderRow(order));
     await _enqueue([
       (table: 'batch_orders', rows: [batchOrderToRemote(order)]),
     ]);
@@ -983,7 +1036,7 @@ class DriftRepository implements StoreRepository, SyncStore {
 
   @override
   Future<void> upsertExtra(Extra extra) => db.transaction(() async {
-    await db.into(db.extrasTable).insertOnConflictUpdate(_extraRow(extra));
+    await db.into(db.extrasTable).put(_extraRow(extra));
     await _enqueue([
       (table: 'extras', rows: [extraToRemote(extra)]),
     ]);
@@ -994,7 +1047,7 @@ class DriftRepository implements StoreRepository, SyncStore {
 
   @override
   Future<void> upsertTable(DiningTable table) => db.transaction(() async {
-    await db.into(db.diningTablesTable).insertOnConflictUpdate(_tableRow(table));
+    await db.into(db.diningTablesTable).put(_tableRow(table));
     await _enqueue([
       (table: 'restaurant_tables', rows: [tableToRemote(table)]),
     ]);
@@ -1002,7 +1055,7 @@ class DriftRepository implements StoreRepository, SyncStore {
 
   @override
   Future<void> upsertOrder(RestaurantOrder order) => db.transaction(() async {
-    await db.into(db.ordersTable).insertOnConflictUpdate(_orderRow(order));
+    await db.into(db.ordersTable).put(_orderRow(order));
     await _enqueue([
       (table: 'orders', rows: [orderToRemote(order)]),
     ]);
@@ -1011,7 +1064,7 @@ class DriftRepository implements StoreRepository, SyncStore {
   @override
   Future<void> upsertOrderItems(List<OrderItem> items) => db.transaction(() async {
     for (final i in items) {
-      await db.into(db.orderItemsTable).insertOnConflictUpdate(_orderItemRow(i));
+      await db.into(db.orderItemsTable).put(_orderItemRow(i));
     }
     await _enqueue([(table: 'order_items', rows: items.map(orderItemToRemote).toList())]);
   });
@@ -1169,52 +1222,50 @@ class DriftRepository implements StoreRepository, SyncStore {
             await _setMeta(_kCreditLimit, _centsText(r['credit_limit']));
           }
         case 'customers':
-          await db.into(db.customersTable).insertOnConflictUpdate(customerFromRemote(r));
+          await db.into(db.customersTable).put(customerFromRemote(r));
         case 'products':
-          await db.into(db.productsTable).insertOnConflictUpdate(productFromRemote(r));
+          await db.into(db.productsTable).put(productFromRemote(r));
         case 'cash_sessions':
-          await db.into(db.cashSessionsTable).insertOnConflictUpdate(sessionFromRemote(r));
+          await db.into(db.cashSessionsTable).put(sessionFromRemote(r));
         case 'sales':
           final sale = saleFromRemote(r);
-          await db.into(db.salesTable).insertOnConflictUpdate(sale);
+          await db.into(db.salesTable).put(sale);
           // El siguiente folio de este teléfono nunca queda por debajo de lo que ya subió.
           if (sale.device == null || sale.device == deviceCode) {
             final folio = int.tryParse((await _meta())[_kFolio] ?? '') ?? 1;
             if (sale.folio >= folio) await _setMeta(_kFolio, '${sale.folio + 1}');
           }
         case 'sale_items':
-          await db.into(db.saleLinesTable).insertOnConflictUpdate(saleLineFromRemote(r));
+          await db.into(db.saleLinesTable).put(saleLineFromRemote(r));
         case 'sale_payments':
           // El orden de los pagos sale de su hora (cada uno se sube con un milisegundo de diferencia).
           final row = salePaymentFromRemote(r);
           final at = DateTime.tryParse(r['created_at'] as String? ?? '');
-          await db
-              .into(db.salePaymentsTable)
-              .insertOnConflictUpdate(row.copyWith(position: (at?.millisecondsSinceEpoch ?? 0) % 1000));
+          await db.into(db.salePaymentsTable).put(row.copyWith(position: (at?.millisecondsSinceEpoch ?? 0) % 1000));
         case 'credit_entries':
-          await db.into(db.creditEntriesTable).insertOnConflictUpdate(creditFromRemote(r));
+          await db.into(db.creditEntriesTable).put(creditFromRemote(r));
         case 'cash_movements':
-          await db.into(db.cashMovementsTable).insertOnConflictUpdate(movementFromRemote(r));
+          await db.into(db.cashMovementsTable).put(movementFromRemote(r));
         case 'lots':
-          await db.into(db.lotsTable).insertOnConflictUpdate(lotFromRemote(r));
+          await db.into(db.lotsTable).put(lotFromRemote(r));
         case 'lot_sales':
-          await db.into(db.lotSalesTable).insertOnConflictUpdate(lotSaleFromRemote(r));
+          await db.into(db.lotSalesTable).put(lotSaleFromRemote(r));
         case 'layaways':
-          await db.into(db.layawaysTable).insertOnConflictUpdate(layawayFromRemote(r));
+          await db.into(db.layawaysTable).put(layawayFromRemote(r));
         case 'layaway_payments':
-          await db.into(db.layawayPaymentsTable).insertOnConflictUpdate(layawayPaymentFromRemote(r));
+          await db.into(db.layawayPaymentsTable).put(layawayPaymentFromRemote(r));
         case 'batches':
-          await db.into(db.batchesTable).insertOnConflictUpdate(batchFromRemote(r));
+          await db.into(db.batchesTable).put(batchFromRemote(r));
         case 'batch_orders':
-          await db.into(db.batchOrdersTable).insertOnConflictUpdate(batchOrderFromRemote(r));
+          await db.into(db.batchOrdersTable).put(batchOrderFromRemote(r));
         case 'restaurant_tables':
-          await db.into(db.diningTablesTable).insertOnConflictUpdate(tableFromRemote(r));
+          await db.into(db.diningTablesTable).put(tableFromRemote(r));
         case 'extras':
-          await db.into(db.extrasTable).insertOnConflictUpdate(extraFromRemote(r));
+          await db.into(db.extrasTable).put(extraFromRemote(r));
         case 'orders':
-          await db.into(db.ordersTable).insertOnConflictUpdate(orderFromRemote(r));
+          await db.into(db.ordersTable).put(orderFromRemote(r));
         case 'order_items':
-          await db.into(db.orderItemsTable).insertOnConflictUpdate(orderItemFromRemote(r));
+          await db.into(db.orderItemsTable).put(orderItemFromRemote(r));
       }
     }
   });
@@ -1227,3 +1278,9 @@ String _centsText(Object? pesos) => switch (pesos) {
   final String s => double.tryParse(s) == null ? '' : '${(double.parse(s) * 100).round()}',
   _ => '',
 };
+
+/// Guarda el renglón completo, también los campos vacíos. Con insertOnConflictUpdate un null se ignora y se
+/// queda el valor viejo: quitar el código de barras, el mínimo o la foto no se guardaba.
+extension _Put<T extends Table, D> on InsertStatement<T, D> {
+  Future<int> put(Insertable<D> row) => insert(row, mode: InsertMode.insertOrReplace);
+}

@@ -4242,6 +4242,15 @@ class $ProductsTableTable extends ProductsTable with TableInfo<$ProductsTableTab
     defaultConstraints: GeneratedColumn.constraintIsAlways('CHECK ("active" IN (0, 1))'),
     defaultValue: const Constant(true),
   );
+  static const VerificationMeta _photoPathMeta = const VerificationMeta('photoPath');
+  @override
+  late final GeneratedColumn<String> photoPath = GeneratedColumn<String>(
+    'photo_path',
+    aliasedName,
+    true,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+  );
   @override
   List<GeneratedColumn> get $columns => [
     id,
@@ -4254,6 +4263,7 @@ class $ProductsTableTable extends ProductsTable with TableInfo<$ProductsTableTab
     stock,
     minStock,
     active,
+    photoPath,
   ];
   @override
   String get aliasedName => _alias ?? actualTableName;
@@ -4300,6 +4310,9 @@ class $ProductsTableTable extends ProductsTable with TableInfo<$ProductsTableTab
     if (data.containsKey('active')) {
       context.handle(_activeMeta, active.isAcceptableOrUnknown(data['active']!, _activeMeta));
     }
+    if (data.containsKey('photo_path')) {
+      context.handle(_photoPathMeta, photoPath.isAcceptableOrUnknown(data['photo_path']!, _photoPathMeta));
+    }
     return context;
   }
 
@@ -4319,6 +4332,7 @@ class $ProductsTableTable extends ProductsTable with TableInfo<$ProductsTableTab
       stock: attachedDatabase.typeMapping.read(DriftSqlType.double, data['${effectivePrefix}stock'])!,
       minStock: attachedDatabase.typeMapping.read(DriftSqlType.double, data['${effectivePrefix}min_stock']),
       active: attachedDatabase.typeMapping.read(DriftSqlType.bool, data['${effectivePrefix}active'])!,
+      photoPath: attachedDatabase.typeMapping.read(DriftSqlType.string, data['${effectivePrefix}photo_path']),
     );
   }
 
@@ -4339,6 +4353,7 @@ class ProductRow extends DataClass implements Insertable<ProductRow> {
   final double stock;
   final double? minStock;
   final bool active;
+  final String? photoPath;
   const ProductRow({
     required this.id,
     required this.name,
@@ -4350,6 +4365,7 @@ class ProductRow extends DataClass implements Insertable<ProductRow> {
     required this.stock,
     this.minStock,
     required this.active,
+    this.photoPath,
   });
   @override
   Map<String, Expression> toColumns(bool nullToAbsent) {
@@ -4368,6 +4384,9 @@ class ProductRow extends DataClass implements Insertable<ProductRow> {
       map['min_stock'] = Variable<double>(minStock);
     }
     map['active'] = Variable<bool>(active);
+    if (!nullToAbsent || photoPath != null) {
+      map['photo_path'] = Variable<String>(photoPath);
+    }
     return map;
   }
 
@@ -4383,6 +4402,7 @@ class ProductRow extends DataClass implements Insertable<ProductRow> {
       stock: Value(stock),
       minStock: minStock == null && nullToAbsent ? const Value.absent() : Value(minStock),
       active: Value(active),
+      photoPath: photoPath == null && nullToAbsent ? const Value.absent() : Value(photoPath),
     );
   }
 
@@ -4399,6 +4419,7 @@ class ProductRow extends DataClass implements Insertable<ProductRow> {
       stock: serializer.fromJson<double>(json['stock']),
       minStock: serializer.fromJson<double?>(json['minStock']),
       active: serializer.fromJson<bool>(json['active']),
+      photoPath: serializer.fromJson<String?>(json['photoPath']),
     );
   }
   @override
@@ -4415,6 +4436,7 @@ class ProductRow extends DataClass implements Insertable<ProductRow> {
       'stock': serializer.toJson<double>(stock),
       'minStock': serializer.toJson<double?>(minStock),
       'active': serializer.toJson<bool>(active),
+      'photoPath': serializer.toJson<String?>(photoPath),
     };
   }
 
@@ -4429,6 +4451,7 @@ class ProductRow extends DataClass implements Insertable<ProductRow> {
     double? stock,
     Value<double?> minStock = const Value.absent(),
     bool? active,
+    Value<String?> photoPath = const Value.absent(),
   }) => ProductRow(
     id: id ?? this.id,
     name: name ?? this.name,
@@ -4440,6 +4463,7 @@ class ProductRow extends DataClass implements Insertable<ProductRow> {
     stock: stock ?? this.stock,
     minStock: minStock.present ? minStock.value : this.minStock,
     active: active ?? this.active,
+    photoPath: photoPath.present ? photoPath.value : this.photoPath,
   );
   ProductRow copyWithCompanion(ProductsTableCompanion data) {
     return ProductRow(
@@ -4453,6 +4477,7 @@ class ProductRow extends DataClass implements Insertable<ProductRow> {
       stock: data.stock.present ? data.stock.value : this.stock,
       minStock: data.minStock.present ? data.minStock.value : this.minStock,
       active: data.active.present ? data.active.value : this.active,
+      photoPath: data.photoPath.present ? data.photoPath.value : this.photoPath,
     );
   }
 
@@ -4468,14 +4493,15 @@ class ProductRow extends DataClass implements Insertable<ProductRow> {
           ..write('trackStock: $trackStock, ')
           ..write('stock: $stock, ')
           ..write('minStock: $minStock, ')
-          ..write('active: $active')
+          ..write('active: $active, ')
+          ..write('photoPath: $photoPath')
           ..write(')'))
         .toString();
   }
 
   @override
   int get hashCode =>
-      Object.hash(id, name, priceCents, costCents, barcode, iconId, trackStock, stock, minStock, active);
+      Object.hash(id, name, priceCents, costCents, barcode, iconId, trackStock, stock, minStock, active, photoPath);
   @override
   bool operator ==(Object other) =>
       identical(this, other) ||
@@ -4489,7 +4515,8 @@ class ProductRow extends DataClass implements Insertable<ProductRow> {
           other.trackStock == this.trackStock &&
           other.stock == this.stock &&
           other.minStock == this.minStock &&
-          other.active == this.active);
+          other.active == this.active &&
+          other.photoPath == this.photoPath);
 }
 
 class ProductsTableCompanion extends UpdateCompanion<ProductRow> {
@@ -4503,6 +4530,7 @@ class ProductsTableCompanion extends UpdateCompanion<ProductRow> {
   final Value<double> stock;
   final Value<double?> minStock;
   final Value<bool> active;
+  final Value<String?> photoPath;
   final Value<int> rowid;
   const ProductsTableCompanion({
     this.id = const Value.absent(),
@@ -4515,6 +4543,7 @@ class ProductsTableCompanion extends UpdateCompanion<ProductRow> {
     this.stock = const Value.absent(),
     this.minStock = const Value.absent(),
     this.active = const Value.absent(),
+    this.photoPath = const Value.absent(),
     this.rowid = const Value.absent(),
   });
   ProductsTableCompanion.insert({
@@ -4528,6 +4557,7 @@ class ProductsTableCompanion extends UpdateCompanion<ProductRow> {
     this.stock = const Value.absent(),
     this.minStock = const Value.absent(),
     this.active = const Value.absent(),
+    this.photoPath = const Value.absent(),
     this.rowid = const Value.absent(),
   }) : id = Value(id),
        name = Value(name),
@@ -4543,6 +4573,7 @@ class ProductsTableCompanion extends UpdateCompanion<ProductRow> {
     Expression<double>? stock,
     Expression<double>? minStock,
     Expression<bool>? active,
+    Expression<String>? photoPath,
     Expression<int>? rowid,
   }) {
     return RawValuesInsertable({
@@ -4556,6 +4587,7 @@ class ProductsTableCompanion extends UpdateCompanion<ProductRow> {
       if (stock != null) 'stock': stock,
       if (minStock != null) 'min_stock': minStock,
       if (active != null) 'active': active,
+      if (photoPath != null) 'photo_path': photoPath,
       if (rowid != null) 'rowid': rowid,
     });
   }
@@ -4571,6 +4603,7 @@ class ProductsTableCompanion extends UpdateCompanion<ProductRow> {
     Value<double>? stock,
     Value<double?>? minStock,
     Value<bool>? active,
+    Value<String?>? photoPath,
     Value<int>? rowid,
   }) {
     return ProductsTableCompanion(
@@ -4584,6 +4617,7 @@ class ProductsTableCompanion extends UpdateCompanion<ProductRow> {
       stock: stock ?? this.stock,
       minStock: minStock ?? this.minStock,
       active: active ?? this.active,
+      photoPath: photoPath ?? this.photoPath,
       rowid: rowid ?? this.rowid,
     );
   }
@@ -4621,6 +4655,9 @@ class ProductsTableCompanion extends UpdateCompanion<ProductRow> {
     if (active.present) {
       map['active'] = Variable<bool>(active.value);
     }
+    if (photoPath.present) {
+      map['photo_path'] = Variable<String>(photoPath.value);
+    }
     if (rowid.present) {
       map['rowid'] = Variable<int>(rowid.value);
     }
@@ -4640,6 +4677,7 @@ class ProductsTableCompanion extends UpdateCompanion<ProductRow> {
           ..write('stock: $stock, ')
           ..write('minStock: $minStock, ')
           ..write('active: $active, ')
+          ..write('photoPath: $photoPath, ')
           ..write('rowid: $rowid')
           ..write(')'))
         .toString();
@@ -6390,6 +6428,271 @@ class SalePaymentsTableCompanion extends UpdateCompanion<SalePaymentRow> {
   }
 }
 
+class $ProductPhotosTableTable extends ProductPhotosTable with TableInfo<$ProductPhotosTableTable, PhotoRow> {
+  @override
+  final GeneratedDatabase attachedDatabase;
+  final String? _alias;
+  $ProductPhotosTableTable(this.attachedDatabase, [this._alias]);
+  static const VerificationMeta _pathMeta = const VerificationMeta('path');
+  @override
+  late final GeneratedColumn<String> path = GeneratedColumn<String>(
+    'path',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _productIdMeta = const VerificationMeta('productId');
+  @override
+  late final GeneratedColumn<String> productId = GeneratedColumn<String>(
+    'product_id',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _bytesMeta = const VerificationMeta('bytes');
+  @override
+  late final GeneratedColumn<Uint8List> bytes = GeneratedColumn<Uint8List>(
+    'bytes',
+    aliasedName,
+    false,
+    type: DriftSqlType.blob,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _uploadedMeta = const VerificationMeta('uploaded');
+  @override
+  late final GeneratedColumn<bool> uploaded = GeneratedColumn<bool>(
+    'uploaded',
+    aliasedName,
+    false,
+    type: DriftSqlType.bool,
+    requiredDuringInsert: false,
+    defaultConstraints: GeneratedColumn.constraintIsAlways('CHECK ("uploaded" IN (0, 1))'),
+    defaultValue: const Constant(false),
+  );
+  @override
+  List<GeneratedColumn> get $columns => [path, productId, bytes, uploaded];
+  @override
+  String get aliasedName => _alias ?? actualTableName;
+  @override
+  String get actualTableName => $name;
+  static const String $name = 'product_photos';
+  @override
+  VerificationContext validateIntegrity(Insertable<PhotoRow> instance, {bool isInserting = false}) {
+    final context = VerificationContext();
+    final data = instance.toColumns(true);
+    if (data.containsKey('path')) {
+      context.handle(_pathMeta, path.isAcceptableOrUnknown(data['path']!, _pathMeta));
+    } else if (isInserting) {
+      context.missing(_pathMeta);
+    }
+    if (data.containsKey('product_id')) {
+      context.handle(_productIdMeta, productId.isAcceptableOrUnknown(data['product_id']!, _productIdMeta));
+    } else if (isInserting) {
+      context.missing(_productIdMeta);
+    }
+    if (data.containsKey('bytes')) {
+      context.handle(_bytesMeta, bytes.isAcceptableOrUnknown(data['bytes']!, _bytesMeta));
+    } else if (isInserting) {
+      context.missing(_bytesMeta);
+    }
+    if (data.containsKey('uploaded')) {
+      context.handle(_uploadedMeta, uploaded.isAcceptableOrUnknown(data['uploaded']!, _uploadedMeta));
+    }
+    return context;
+  }
+
+  @override
+  Set<GeneratedColumn> get $primaryKey => {path};
+  @override
+  PhotoRow map(Map<String, dynamic> data, {String? tablePrefix}) {
+    final effectivePrefix = tablePrefix != null ? '$tablePrefix.' : '';
+    return PhotoRow(
+      path: attachedDatabase.typeMapping.read(DriftSqlType.string, data['${effectivePrefix}path'])!,
+      productId: attachedDatabase.typeMapping.read(DriftSqlType.string, data['${effectivePrefix}product_id'])!,
+      bytes: attachedDatabase.typeMapping.read(DriftSqlType.blob, data['${effectivePrefix}bytes'])!,
+      uploaded: attachedDatabase.typeMapping.read(DriftSqlType.bool, data['${effectivePrefix}uploaded'])!,
+    );
+  }
+
+  @override
+  $ProductPhotosTableTable createAlias(String alias) {
+    return $ProductPhotosTableTable(attachedDatabase, alias);
+  }
+}
+
+class PhotoRow extends DataClass implements Insertable<PhotoRow> {
+  final String path;
+  final String productId;
+  final Uint8List bytes;
+  final bool uploaded;
+  const PhotoRow({required this.path, required this.productId, required this.bytes, required this.uploaded});
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    map['path'] = Variable<String>(path);
+    map['product_id'] = Variable<String>(productId);
+    map['bytes'] = Variable<Uint8List>(bytes);
+    map['uploaded'] = Variable<bool>(uploaded);
+    return map;
+  }
+
+  ProductPhotosTableCompanion toCompanion(bool nullToAbsent) {
+    return ProductPhotosTableCompanion(
+      path: Value(path),
+      productId: Value(productId),
+      bytes: Value(bytes),
+      uploaded: Value(uploaded),
+    );
+  }
+
+  factory PhotoRow.fromJson(Map<String, dynamic> json, {ValueSerializer? serializer}) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return PhotoRow(
+      path: serializer.fromJson<String>(json['path']),
+      productId: serializer.fromJson<String>(json['productId']),
+      bytes: serializer.fromJson<Uint8List>(json['bytes']),
+      uploaded: serializer.fromJson<bool>(json['uploaded']),
+    );
+  }
+  @override
+  Map<String, dynamic> toJson({ValueSerializer? serializer}) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return <String, dynamic>{
+      'path': serializer.toJson<String>(path),
+      'productId': serializer.toJson<String>(productId),
+      'bytes': serializer.toJson<Uint8List>(bytes),
+      'uploaded': serializer.toJson<bool>(uploaded),
+    };
+  }
+
+  PhotoRow copyWith({String? path, String? productId, Uint8List? bytes, bool? uploaded}) => PhotoRow(
+    path: path ?? this.path,
+    productId: productId ?? this.productId,
+    bytes: bytes ?? this.bytes,
+    uploaded: uploaded ?? this.uploaded,
+  );
+  PhotoRow copyWithCompanion(ProductPhotosTableCompanion data) {
+    return PhotoRow(
+      path: data.path.present ? data.path.value : this.path,
+      productId: data.productId.present ? data.productId.value : this.productId,
+      bytes: data.bytes.present ? data.bytes.value : this.bytes,
+      uploaded: data.uploaded.present ? data.uploaded.value : this.uploaded,
+    );
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('PhotoRow(')
+          ..write('path: $path, ')
+          ..write('productId: $productId, ')
+          ..write('bytes: $bytes, ')
+          ..write('uploaded: $uploaded')
+          ..write(')'))
+        .toString();
+  }
+
+  @override
+  int get hashCode => Object.hash(path, productId, $driftBlobEquality.hash(bytes), uploaded);
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      (other is PhotoRow &&
+          other.path == this.path &&
+          other.productId == this.productId &&
+          $driftBlobEquality.equals(other.bytes, this.bytes) &&
+          other.uploaded == this.uploaded);
+}
+
+class ProductPhotosTableCompanion extends UpdateCompanion<PhotoRow> {
+  final Value<String> path;
+  final Value<String> productId;
+  final Value<Uint8List> bytes;
+  final Value<bool> uploaded;
+  final Value<int> rowid;
+  const ProductPhotosTableCompanion({
+    this.path = const Value.absent(),
+    this.productId = const Value.absent(),
+    this.bytes = const Value.absent(),
+    this.uploaded = const Value.absent(),
+    this.rowid = const Value.absent(),
+  });
+  ProductPhotosTableCompanion.insert({
+    required String path,
+    required String productId,
+    required Uint8List bytes,
+    this.uploaded = const Value.absent(),
+    this.rowid = const Value.absent(),
+  }) : path = Value(path),
+       productId = Value(productId),
+       bytes = Value(bytes);
+  static Insertable<PhotoRow> custom({
+    Expression<String>? path,
+    Expression<String>? productId,
+    Expression<Uint8List>? bytes,
+    Expression<bool>? uploaded,
+    Expression<int>? rowid,
+  }) {
+    return RawValuesInsertable({
+      if (path != null) 'path': path,
+      if (productId != null) 'product_id': productId,
+      if (bytes != null) 'bytes': bytes,
+      if (uploaded != null) 'uploaded': uploaded,
+      if (rowid != null) 'rowid': rowid,
+    });
+  }
+
+  ProductPhotosTableCompanion copyWith({
+    Value<String>? path,
+    Value<String>? productId,
+    Value<Uint8List>? bytes,
+    Value<bool>? uploaded,
+    Value<int>? rowid,
+  }) {
+    return ProductPhotosTableCompanion(
+      path: path ?? this.path,
+      productId: productId ?? this.productId,
+      bytes: bytes ?? this.bytes,
+      uploaded: uploaded ?? this.uploaded,
+      rowid: rowid ?? this.rowid,
+    );
+  }
+
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    if (path.present) {
+      map['path'] = Variable<String>(path.value);
+    }
+    if (productId.present) {
+      map['product_id'] = Variable<String>(productId.value);
+    }
+    if (bytes.present) {
+      map['bytes'] = Variable<Uint8List>(bytes.value);
+    }
+    if (uploaded.present) {
+      map['uploaded'] = Variable<bool>(uploaded.value);
+    }
+    if (rowid.present) {
+      map['rowid'] = Variable<int>(rowid.value);
+    }
+    return map;
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('ProductPhotosTableCompanion(')
+          ..write('path: $path, ')
+          ..write('productId: $productId, ')
+          ..write('bytes: $bytes, ')
+          ..write('uploaded: $uploaded, ')
+          ..write('rowid: $rowid')
+          ..write(')'))
+        .toString();
+  }
+}
+
 class $CreditEntriesTableTable extends CreditEntriesTable with TableInfo<$CreditEntriesTableTable, CreditRow> {
   @override
   final GeneratedDatabase attachedDatabase;
@@ -7877,6 +8180,7 @@ abstract class _$GavilanDb extends GeneratedDatabase {
   late final $SalesTableTable salesTable = $SalesTableTable(this);
   late final $SaleLinesTableTable saleLinesTable = $SaleLinesTableTable(this);
   late final $SalePaymentsTableTable salePaymentsTable = $SalePaymentsTableTable(this);
+  late final $ProductPhotosTableTable productPhotosTable = $ProductPhotosTableTable(this);
   late final $CreditEntriesTableTable creditEntriesTable = $CreditEntriesTableTable(this);
   late final $CashSessionsTableTable cashSessionsTable = $CashSessionsTableTable(this);
   late final $CashMovementsTableTable cashMovementsTable = $CashMovementsTableTable(this);
@@ -7901,6 +8205,7 @@ abstract class _$GavilanDb extends GeneratedDatabase {
     salesTable,
     saleLinesTable,
     salePaymentsTable,
+    productPhotosTable,
     creditEntriesTable,
     cashSessionsTable,
     cashMovementsTable,
@@ -9971,6 +10276,7 @@ typedef $$ProductsTableTableCreateCompanionBuilder = ProductsTableCompanion Func
   Value<double> stock,
   Value<double?> minStock,
   Value<bool> active,
+  Value<String?> photoPath,
   Value<int> rowid,
 });
 typedef $$ProductsTableTableUpdateCompanionBuilder = ProductsTableCompanion Function({
@@ -9984,6 +10290,7 @@ typedef $$ProductsTableTableUpdateCompanionBuilder = ProductsTableCompanion Func
   Value<double> stock,
   Value<double?> minStock,
   Value<bool> active,
+  Value<String?> photoPath,
   Value<int> rowid,
 });
 
@@ -10022,6 +10329,9 @@ class $$ProductsTableTableFilterComposer extends Composer<_$GavilanDb, $Products
 
   ColumnFilters<bool> get active =>
       $composableBuilder(column: $table.active, builder: (column) => ColumnFilters(column));
+
+  ColumnFilters<String> get photoPath =>
+      $composableBuilder(column: $table.photoPath, builder: (column) => ColumnFilters(column));
 }
 
 class $$ProductsTableTableOrderingComposer extends Composer<_$GavilanDb, $ProductsTableTable> {
@@ -10060,6 +10370,9 @@ class $$ProductsTableTableOrderingComposer extends Composer<_$GavilanDb, $Produc
 
   ColumnOrderings<bool> get active =>
       $composableBuilder(column: $table.active, builder: (column) => ColumnOrderings(column));
+
+  ColumnOrderings<String> get photoPath =>
+      $composableBuilder(column: $table.photoPath, builder: (column) => ColumnOrderings(column));
 }
 
 class $$ProductsTableTableAnnotationComposer extends Composer<_$GavilanDb, $ProductsTableTable> {
@@ -10089,6 +10402,8 @@ class $$ProductsTableTableAnnotationComposer extends Composer<_$GavilanDb, $Prod
   GeneratedColumn<double> get minStock => $composableBuilder(column: $table.minStock, builder: (column) => column);
 
   GeneratedColumn<bool> get active => $composableBuilder(column: $table.active, builder: (column) => column);
+
+  GeneratedColumn<String> get photoPath => $composableBuilder(column: $table.photoPath, builder: (column) => column);
 }
 
 class $$ProductsTableTableTableManager
@@ -10126,6 +10441,7 @@ class $$ProductsTableTableTableManager
                 Value<double> stock = const Value.absent(),
                 Value<double?> minStock = const Value.absent(),
                 Value<bool> active = const Value.absent(),
+                Value<String?> photoPath = const Value.absent(),
                 Value<int> rowid = const Value.absent(),
               }) => ProductsTableCompanion(
                 id: id,
@@ -10138,6 +10454,7 @@ class $$ProductsTableTableTableManager
                 stock: stock,
                 minStock: minStock,
                 active: active,
+                photoPath: photoPath,
                 rowid: rowid,
               ),
           createCompanionCallback:
@@ -10152,6 +10469,7 @@ class $$ProductsTableTableTableManager
                 Value<double> stock = const Value.absent(),
                 Value<double?> minStock = const Value.absent(),
                 Value<bool> active = const Value.absent(),
+                Value<String?> photoPath = const Value.absent(),
                 Value<int> rowid = const Value.absent(),
               }) => ProductsTableCompanion.insert(
                 id: id,
@@ -10164,6 +10482,7 @@ class $$ProductsTableTableTableManager
                 stock: stock,
                 minStock: minStock,
                 active: active,
+                photoPath: photoPath,
                 rowid: rowid,
               ),
           withReferenceMapper: (p0) => p0
@@ -11025,6 +11344,157 @@ typedef $$SalePaymentsTableTableProcessedTableManager =
       SalePaymentRow,
       PrefetchHooks Function()
     >;
+typedef $$ProductPhotosTableTableCreateCompanionBuilder = ProductPhotosTableCompanion Function({
+  required String path,
+  required String productId,
+  required Uint8List bytes,
+  Value<bool> uploaded,
+  Value<int> rowid,
+});
+typedef $$ProductPhotosTableTableUpdateCompanionBuilder = ProductPhotosTableCompanion Function({
+  Value<String> path,
+  Value<String> productId,
+  Value<Uint8List> bytes,
+  Value<bool> uploaded,
+  Value<int> rowid,
+});
+
+class $$ProductPhotosTableTableFilterComposer extends Composer<_$GavilanDb, $ProductPhotosTableTable> {
+  $$ProductPhotosTableTableFilterComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnFilters<String> get path => $composableBuilder(column: $table.path, builder: (column) => ColumnFilters(column));
+
+  ColumnFilters<String> get productId =>
+      $composableBuilder(column: $table.productId, builder: (column) => ColumnFilters(column));
+
+  ColumnFilters<Uint8List> get bytes =>
+      $composableBuilder(column: $table.bytes, builder: (column) => ColumnFilters(column));
+
+  ColumnFilters<bool> get uploaded =>
+      $composableBuilder(column: $table.uploaded, builder: (column) => ColumnFilters(column));
+}
+
+class $$ProductPhotosTableTableOrderingComposer extends Composer<_$GavilanDb, $ProductPhotosTableTable> {
+  $$ProductPhotosTableTableOrderingComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnOrderings<String> get path =>
+      $composableBuilder(column: $table.path, builder: (column) => ColumnOrderings(column));
+
+  ColumnOrderings<String> get productId =>
+      $composableBuilder(column: $table.productId, builder: (column) => ColumnOrderings(column));
+
+  ColumnOrderings<Uint8List> get bytes =>
+      $composableBuilder(column: $table.bytes, builder: (column) => ColumnOrderings(column));
+
+  ColumnOrderings<bool> get uploaded =>
+      $composableBuilder(column: $table.uploaded, builder: (column) => ColumnOrderings(column));
+}
+
+class $$ProductPhotosTableTableAnnotationComposer extends Composer<_$GavilanDb, $ProductPhotosTableTable> {
+  $$ProductPhotosTableTableAnnotationComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  GeneratedColumn<String> get path => $composableBuilder(column: $table.path, builder: (column) => column);
+
+  GeneratedColumn<String> get productId => $composableBuilder(column: $table.productId, builder: (column) => column);
+
+  GeneratedColumn<Uint8List> get bytes => $composableBuilder(column: $table.bytes, builder: (column) => column);
+
+  GeneratedColumn<bool> get uploaded => $composableBuilder(column: $table.uploaded, builder: (column) => column);
+}
+
+class $$ProductPhotosTableTableTableManager
+    extends
+        RootTableManager<
+          _$GavilanDb,
+          $ProductPhotosTableTable,
+          PhotoRow,
+          $$ProductPhotosTableTableFilterComposer,
+          $$ProductPhotosTableTableOrderingComposer,
+          $$ProductPhotosTableTableAnnotationComposer,
+          $$ProductPhotosTableTableCreateCompanionBuilder,
+          $$ProductPhotosTableTableUpdateCompanionBuilder,
+          (PhotoRow, BaseReferences<_$GavilanDb, $ProductPhotosTableTable, PhotoRow>),
+          PhotoRow,
+          PrefetchHooks Function()
+        > {
+  $$ProductPhotosTableTableTableManager(_$GavilanDb db, $ProductPhotosTableTable table)
+    : super(
+        TableManagerState(
+          db: db,
+          table: table,
+          createFilteringComposer: () => $$ProductPhotosTableTableFilterComposer($db: db, $table: table),
+          createOrderingComposer: () => $$ProductPhotosTableTableOrderingComposer($db: db, $table: table),
+          createComputedFieldComposer: () => $$ProductPhotosTableTableAnnotationComposer($db: db, $table: table),
+          updateCompanionCallback:
+              ({
+                Value<String> path = const Value.absent(),
+                Value<String> productId = const Value.absent(),
+                Value<Uint8List> bytes = const Value.absent(),
+                Value<bool> uploaded = const Value.absent(),
+                Value<int> rowid = const Value.absent(),
+              }) => ProductPhotosTableCompanion(
+                path: path,
+                productId: productId,
+                bytes: bytes,
+                uploaded: uploaded,
+                rowid: rowid,
+              ),
+          createCompanionCallback:
+              ({
+                required String path,
+                required String productId,
+                required Uint8List bytes,
+                Value<bool> uploaded = const Value.absent(),
+                Value<int> rowid = const Value.absent(),
+              }) => ProductPhotosTableCompanion.insert(
+                path: path,
+                productId: productId,
+                bytes: bytes,
+                uploaded: uploaded,
+                rowid: rowid,
+              ),
+          withReferenceMapper: (p0) => p0
+              .map(
+                (e) => (
+                  e.readTable<$ProductPhotosTableTable, PhotoRow>(table),
+                  BaseReferences<_$GavilanDb, $ProductPhotosTableTable, PhotoRow>(db, table, e),
+                ),
+              )
+              .toList(),
+          prefetchHooksCallback: null,
+        ),
+      );
+}
+
+typedef $$ProductPhotosTableTableProcessedTableManager =
+    ProcessedTableManager<
+      _$GavilanDb,
+      $ProductPhotosTableTable,
+      PhotoRow,
+      $$ProductPhotosTableTableFilterComposer,
+      $$ProductPhotosTableTableOrderingComposer,
+      $$ProductPhotosTableTableAnnotationComposer,
+      $$ProductPhotosTableTableCreateCompanionBuilder,
+      $$ProductPhotosTableTableUpdateCompanionBuilder,
+      (PhotoRow, BaseReferences<_$GavilanDb, $ProductPhotosTableTable, PhotoRow>),
+      PhotoRow,
+      PrefetchHooks Function()
+    >;
 typedef $$CreditEntriesTableTableCreateCompanionBuilder = CreditEntriesTableCompanion Function({
   required String id,
   required String customerId,
@@ -11784,6 +12254,8 @@ class $GavilanDbManager {
   $$SaleLinesTableTableTableManager get saleLinesTable => $$SaleLinesTableTableTableManager(_db, _db.saleLinesTable);
   $$SalePaymentsTableTableTableManager get salePaymentsTable =>
       $$SalePaymentsTableTableTableManager(_db, _db.salePaymentsTable);
+  $$ProductPhotosTableTableTableManager get productPhotosTable =>
+      $$ProductPhotosTableTableTableManager(_db, _db.productPhotosTable);
   $$CreditEntriesTableTableTableManager get creditEntriesTable =>
       $$CreditEntriesTableTableTableManager(_db, _db.creditEntriesTable);
   $$CashSessionsTableTableTableManager get cashSessionsTable =>

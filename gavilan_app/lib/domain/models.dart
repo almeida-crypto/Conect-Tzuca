@@ -26,10 +26,15 @@ class Product {
     this.stock = 0,
     this.minStock,
     this.active = true,
+    this.photoPath,
   });
 
   final String id;
   final String name;
+
+  /// Foto del producto en la nube ("negocio/producto-hora.jpg"). Cambia cada vez que se toma otra, así los
+  /// demás celulares saben que hay que bajarla. null = sin foto (se ve su icono).
+  final String? photoPath;
   final int priceCents;
   final int costCents;
   final String? barcode;
@@ -42,6 +47,8 @@ class Product {
   bool get isLow => trackStock && minStock != null && stock <= minStock!;
 
   Product copyWith({
+    String? photoPath,
+    bool clearPhoto = false,
     String? name,
     int? priceCents,
     int? costCents,
@@ -64,6 +71,7 @@ class Product {
     stock: stock ?? this.stock,
     minStock: clearMinStock ? null : (minStock ?? this.minStock),
     active: active ?? this.active,
+    photoPath: clearPhoto ? null : (photoPath ?? this.photoPath),
   );
 }
 

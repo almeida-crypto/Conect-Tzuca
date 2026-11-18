@@ -61,6 +61,7 @@ RemoteRow productToRemote(Product p, {required bool withStock}) => {
   'track_stock': p.trackStock,
   'min_stock': p.minStock,
   'is_active': p.active,
+  'image_path': p.photoPath,
   if (withStock) 'stock_qty': p.stock,
 };
 
@@ -235,6 +236,7 @@ ProductRow productFromRemote(RemoteRow r) => ProductRow(
   minStock: r['min_stock'] == null ? null : _double(r['min_stock']),
   // Borrado lógico en el servidor = oculto en el teléfono.
   active: ((r['is_active'] as bool?) ?? true) && r['deleted_at'] == null,
+  photoPath: r['image_path'] as String?,
 );
 
 CustomerRow customerFromRemote(RemoteRow r) => CustomerRow(

@@ -142,7 +142,7 @@ class _StockRow extends StatelessWidget {
         padding: const EdgeInsets.fromLTRB(14, 12, 16, 12),
         child: Row(
           children: [
-            ProductBadge(p.iconId, size: 42),
+            ProductThumb(p, size: 42),
             const SizedBox(width: 14),
             Expanded(
               child: Column(

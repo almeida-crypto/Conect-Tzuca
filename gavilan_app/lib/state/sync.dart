@@ -353,6 +353,7 @@ class SyncController extends Notifier<SyncStatus> {
     try {
       await _push(remote, store, businessId);
       if (await store.pendingCount() == 0) await _pull(remote, store, businessId, only: only);
+      if (only == null) await _syncPhotos(remote, store);
       final failed = await store.failedCount();
       state = failed == 0
           ? state.copyWith(lastSync: DateTime.now(), clearProblem: true, online: true, failed: 0)
@@ -415,6 +416,34 @@ class SyncController extends Notifier<SyncStatus> {
         await store.markSent(entry.id);
       }
     }
+  }
+
+  /// Fotos de producto: sube las tomadas aquí y baja las que faltan (de 20 en 20 por respaldo).
+  /// Una foto que todavía no está en la nube (otro celular no la ha subido) se intenta en el siguiente.
+  Future<void> _syncPhotos(SyncRemote remote, SyncStore store) async {
+    for (final p in await store.pendingPhotos()) {
+      try {
+        await remote.uploadPhoto(p.path, p.bytes);
+        await store.markPhotoUploaded(p.path);
+      } on SyncException catch (e) {
+        if (e.kind != SyncFailure.rejected) rethrow;
+      }
+    }
+    final have = await store.photoPaths();
+    final missing = {
+      for (final p in ref.read(storeProvider).products)
+        if (p.photoPath != null && !have.contains(p.photoPath)) (p.id, p.photoPath!),
+    }.take(20);
+    var got = false;
+    for (final (productId, path) in missing) {
+      try {
+        await ref.read(repositoryProvider).savePhoto(productId, path, await remote.downloadPhoto(path), uploaded: true);
+        got = true;
+      } on SyncException catch (e) {
+        if (e.kind != SyncFailure.rejected) rethrow;
+      }
+    }
+    if (got) await ref.read(storeProvider.notifier).reloadFromStorage();
   }
 
   /// Los cambios apartados, para enseñarlos en "Respaldo".

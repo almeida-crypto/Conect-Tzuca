@@ -1,3 +1,5 @@
+import 'dart:typed_data';
+
 import 'package:drift/native.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -576,6 +578,43 @@ void main() {
 
     // Ayer no hubo nada.
     expect(owner.state.cutsOn(DateTime.now().subtract(const Duration(days: 1))), isEmpty);
+  });
+
+  test('la foto de un producto se sube y el otro celular la baja', () async {
+    final a = await phone(device: 'K7');
+    await _setUpShop(a);
+    await a.login('mary@correo.mx');
+    await a.settle();
+
+    final jpeg = Uint8List.fromList(List.generate(300, (i) => i % 256));
+    a.store.setProductPhoto('coca', jpeg);
+    final path = a.state.productById('coca')!.photoPath!;
+    expect(path, startsWith('${a.state.businessId}/coca-'));
+    expect(a.state.photoOf(a.state.productById('coca')!), jpeg);
+    await a.settle();
+    expect(server.storage[path], jpeg);
+    expect(server.table('products')['coca']!['image_path'], path);
+    expect(await a.repo.pendingPhotos(), isEmpty);
+
+    final b = await phone(device: 'R3');
+    await b.login('mary@correo.mx');
+    await b.settle();
+    expect(b.state.productById('coca')!.photoPath, path);
+    expect(b.state.photoOf(b.state.productById('coca')!), jpeg);
+
+    // Otra foto: la anterior se borra del celular y el otro baja la nueva.
+    final second = Uint8List.fromList(List.filled(200, 7));
+    a.store.setProductPhoto('coca', second);
+    await a.settle();
+    await b.settle();
+    expect(b.state.photoOf(b.state.productById('coca')!), second);
+    expect(await b.repo.photoPaths(), {b.state.productById('coca')!.photoPath});
+
+    // Quitarla.
+    a.store.setProductPhoto('coca', null);
+    await a.settle();
+    await b.settle();
+    expect(b.state.productById('coca')!.photoPath, isNull);
   });
 
   test('el mesero manda la comanda y la cocina la recibe sola', () async {

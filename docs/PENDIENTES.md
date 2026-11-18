@@ -54,8 +54,9 @@ Prioridad: **Alta** = sin esto no se puede usar con un negocio real · **Media**
 - [x] **Media** · Ticket como imagen PNG para WhatsApp (`RepaintBoundary` + `share_plus`), con la opción de mandarlo como texto. *31/10/2026*
 - [ ] **Media** · Logo del negocio en el ticket para los planes de pago.
 - [ ] **Media** · Tarjeta para Estados de WhatsApp: foto del producto, precio y sello "Disponible".
-- [ ] **Media** · Fotos de producto en planes de pago: reducir a 600×600 WebP en el teléfono y subir a Supabase Storage.
-- [ ] **Media** · Políticas de Supabase Storage para fotos de productos y apartados.
+- [x] **Media** · Fotos de producto en planes de pago: 600×600 JPEG en el teléfono, guardadas sin internet y respaldadas en Supabase Storage. *18/11/2026*
+- [x] **Media** · Políticas de Supabase Storage para fotos de productos (migración 0023). *18/11/2026*
+- [ ] **Baja** · Fotos de apartados (mismo bucket o uno aparte).
 - [x] **Media** · Fuentes Archivo y Space Mono dentro de la app (`assets/google_fonts/`, licencia OFL): se ven bien sin internet desde el primer arranque. *01/11/2026*
 - [ ] **Baja** · Celular como escáner inalámbrico de la laptop (Supabase Realtime).
 - [ ] **Baja** · Generador de etiquetas con código de barras en PDF.
@@ -78,7 +79,8 @@ Prioridad: **Alta** = sin esto no se puede usar con un negocio real · **Media**
 - [x] **Media** · Zonas de mesas (Planta baja, Segunda planta, Terraza): cada zona con su numeración, mesas agrupadas y nombre completo en cocina. *11/11/2026*
 - [x] **Baja** · Restaurante: pasar una cuenta a otra mesa libre y poner la mesa en el ticket. *12/11/2026*
 - [x] **Baja** · Restaurante: dividir la cuenta (por platillos, partes iguales o varios métodos). *18/11/2026*
-- [ ] **Baja** · Restaurante: imprimir la comanda en cocina.
+- [x] **Baja** · Restaurante: imprimir la comanda en cocina (en la computadora). *18/11/2026*
+- [ ] **Media** · Probar la comanda con una impresora térmica real y explicar al usuario cómo abrir Chrome con `--kiosk-printing` para que no pregunte cada vez.
 - [x] **Media** · Extras con precio (extra queso +\$10): el dueño los da de alta, el mesero los elige en cada platillo, salen en cocina y se cobran. *13/11/2026*
 - [ ] **Baja** · Platillos que no se venden en mostrador (que solo salgan en el restaurante).
 - [x] **Media** · Equipo y roles: el dueño invita cajeros y administradores con un código; el cajero no cambia el catálogo. *09/11/2026*

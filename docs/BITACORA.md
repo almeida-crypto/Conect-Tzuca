@@ -890,3 +890,25 @@ Se abren desde **Más → Módulos** con el plan Emprendedor o superior. Los tre
 - Se revisaron las 19 tablas que baja la app: solo a esta le faltaba.
 - **App:** el error al bajar ya no dice "Un cambio no se pudo subir", sino "No se pudo respaldar" (sale en el siguiente APK).
 - **Por qué no lo vio ninguna prueba:** el servidor de prueba de la app no revisa columnas. Regla nueva en BASE_DE_DATOS.md: toda tabla que se agregue a `pullTables` necesita `synced_at` con su trigger.
+
+### Comanda impresa en cocina
+- En la computadora, en la vista Cocina: botón **"Imprimir comandas"** (se prende o se apaga, se guarda en ese aparato). Prendido, cada envío nuevo del mesero se imprime solo: la mesa en grande, la hora, los platillos con sus extras y las indicaciones en mayúsculas, sin precios.
+- Cada comanda en pantalla tiene un botón para volver a imprimirla.
+- Al abrir no se reimprime lo de antes (solo envíos de los últimos 3 minutos).
+- Para que imprima sin preguntar, Chrome se abre con `--kiosk-printing` (ver PENDIENTES). En el celular falta la impresora Bluetooth.
+- **Código:** `comandaHtml` (`core/ticket_html.dart`), `kitchenBatches` y `printComanda` (`restaurant_screen.dart`), `StoreState.kitchenPrint` (dato del aparato, no sube).
+
+### Fotos de producto (planes Emprendedor y Negocio)
+- En el formulario del producto: **Usar foto / Cambiar foto** → Tomar foto, Elegir de la galería o Quitar. Se reduce al tomarla a 600×600 JPEG (unos 50 KB).
+- Se ve en Cobrar, en el Inventario y al agregar platillos a una mesa; si no hay foto (o no ha bajado), se ve el icono.
+- **Sin internet:** la foto se guarda en el celular (tabla `product_photos`, base local versión 15) y se sube después. Los demás celulares la bajan solos (de 20 en 20 por respaldo). Cada foto nueva lleva otra ruta, así los demás saben que cambió; las anteriores se borran del celular.
+- **Servidor (migración 0023):** bucket privado `product-photos` (máx. 512 KB, solo JPEG), carpeta por negocio. Las ven todos los del negocio; las suben, cambian o borran solo dueño y administradores. Probado: el dueño sube, el cajero no, una ruta rara no, el mesero la ve y alguien de fuera no. La ruta va en `products.image_path` (ya existía sin usar).
+- "Mi plan": las fotos dejan de decir "Pronto".
+
+### Arreglo: quitar un dato no se guardaba
+- Al guardar un renglón en el celular, `insertOnConflictUpdate` de Drift ignora los campos vacíos y deja el valor viejo. Quitar el código de barras, el mínimo o la foto parecía funcionar, pero al reabrir (o al bajarlo en otro celular) regresaba el valor anterior.
+- Ahora todas las escrituras guardan el renglón completo (`put`, en `repository.dart`). Lo descubrió la prueba de quitar la foto; se agregó una prueba que quita código, mínimo y foto y reabre.
+
+### Verificación
+- `flutter analyze` sin avisos y 126 pruebas pasan, 3 nuevas: la foto sube y el otro celular la baja (también al cambiarla y quitarla); quitar código, mínimo y foto se guarda al reabrir; la comanda (mesa, platillos, extras, indicaciones, sin precios, texto escapado).
+- Revisión de pantallas (Cobrar con fotos y formulario con foto), imágenes borradas al terminar.

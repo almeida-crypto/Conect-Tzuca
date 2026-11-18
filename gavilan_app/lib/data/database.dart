@@ -24,6 +24,7 @@ class ProductsTable extends Table {
   RealColumn get stock => real().withDefault(const Constant(0))();
   RealColumn get minStock => real().nullable()();
   BoolColumn get active => boolean().withDefault(const Constant(true))();
+  TextColumn get photoPath => text().nullable()();
 
   @override
   Set<Column> get primaryKey => {id};
@@ -66,6 +67,21 @@ class SalesTable extends Table {
 
   @override
   Set<Column> get primaryKey => {id};
+}
+
+/// Fotos de producto: los bytes (ya chicos, 600×600) para verlas sin internet y si ya se subieron.
+@DataClassName('PhotoRow')
+class ProductPhotosTable extends Table {
+  @override
+  String get tableName => 'product_photos';
+
+  TextColumn get path => text()();
+  TextColumn get productId => text()();
+  BlobColumn get bytes => blob()();
+  BoolColumn get uploaded => boolean().withDefault(const Constant(false))();
+
+  @override
+  Set<Column> get primaryKey => {path};
 }
 
 /// Pagos de una venta pagada en partes o con varios métodos.
@@ -380,6 +396,7 @@ class ExtrasTable extends Table {
     SalesTable,
     SaleLinesTable,
     SalePaymentsTable,
+    ProductPhotosTable,
     CreditEntriesTable,
     CashSessionsTable,
     CashMovementsTable,
@@ -400,7 +417,7 @@ class GavilanDb extends _$GavilanDb {
   );
 
   @override
-  int get schemaVersion => 14;
+  int get schemaVersion => 15;
 
   @override
   MigrationStrategy get migration => MigrationStrategy(
@@ -455,6 +472,10 @@ class GavilanDb extends _$GavilanDb {
       if (from < 14) {
         await m.addColumn(cashSessionsTable, cashSessionsTable.name);
         await m.addColumn(salesTable, salesTable.cancelledInSession);
+      }
+      if (from < 15) {
+        await m.addColumn(productsTable, productsTable.photoPath);
+        await m.createTable(productPhotosTable);
       }
     },
   );
