@@ -1,0 +1,60 @@
+# Corre solo en cada cambio que se sube: si algo se rompe, GitHub lo marca en rojo antes de hacer el APK.
+# No usa llaves ni secretos: solo revisa el código.
+name: Pruebas
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: pruebas-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  app:
+    name: App (Flutter)
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    defaults:
+      run:
+        working-directory: gavilan_app
+    steps:
+      - uses: actions/checkout@v4
+      - uses: subosito/flutter-action@v2
+        with:
+          flutter-version: 3.47.6
+          channel: stable
+          cache: true
+      - name: Paquetes
+        run: flutter pub get
+      - name: Formato
+        run: dart format -l 120 --output=none --set-exit-if-changed lib test
+      - name: Revisión del código
+        run: flutter analyze
+      - name: Pruebas
+        run: flutter test
+
+  panel:
+    name: Panel web (Next.js)
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    defaults:
+      run:
+        working-directory: panel-web
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: npm
+          cache-dependency-path: panel-web/package-lock.json
+      - name: Paquetes
+        run: npm ci
+      - name: Tipos
+        run: npx tsc --noEmit
+      - name: Revisión del código
+        run: npm run lint
