@@ -89,4 +89,4 @@ Decisiones ya tomadas, con su razón. Antes de cambiar alguna, revisa por qué s
 | 83 | Al entrar se siguen aceptando contraseñas de 6; solo las nuevas piden 8 | Subir el mínimo al entrar dejaría fuera a quien ya tiene cuenta | 17/11/2026 |
 | 84 | Si no existe `android/key.properties`, el APK se firma con la llave de prueba | Que el proyecto siga compilando en cualquier computadora; la llave real nunca entra al repositorio | 17/11/2026 |
 | 85 | Un cambio que el servidor rechaza se aparta y la fila sigue; se reintenta solo hasta 3 veces y luego espera a que el usuario lo reintente o lo descarte | Uno solo trababa todo el respaldo. Lo que depende de él también lo rechaza la base (llaves foráneas), así que no se sube nada a medias | 18/11/2026 |
-| 86 | "Descartar" borra el cambio de la fila y vuelve a bajar completas las tablas que tocaba | Así el teléfono queda igual que la nube sin tener que adivinar qué renglones cambiaron | | 18/11/2026 |
+| 86 | "Descartar" borra el cambio de la fila y vuelve a bajar completas las tablas que tocaba | Así el teléfono queda igual que la nube sin tener que adivinar qué renglones cambiaron | 18/11/2026 |
