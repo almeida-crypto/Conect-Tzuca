@@ -23,6 +23,7 @@ Prioridad: **Alta** = sin esto no se puede usar con un negocio real · **Media**
 - [ ] **Baja** · Traducir al español las plantillas de correo de Supabase (Authentication → Emails).
 - [ ] **Media** · Decidir si el respaldo en la nube es solo de los planes de pago: el PDF lo pone en Emprendedor. Hoy está abierto para todos.
 - [x] **Baja** · Pagos mixtos (`sale_payments`) en la app, la sincronización y el panel. *18/11/2026*
+- [x] **Media** · Formas de pago que acepta cada negocio (transferencia y tarjeta se prenden o apagan). *18/11/2026*
 - [x] **Alta** · Primer arranque: bienvenida con el nombre del negocio, o probar con la tiendita de ejemplo. En Más se puede borrar todo y empezar de nuevo. *26/10/2026*
 - [x] **Media** · Primer uso: con el negocio vacío, Cobrar e Inventario muestran "Agrega tus primeros productos": elegir de una lista de ~65 productos comunes de tiendita (se marca y se pone precio), agregar uno por uno o pegar desde Excel (computadora). *12/11/2026*
 - [x] **Media** · Un código de barras desconocido (lector USB o tecleado) ofrece "Darlo de alta" y lo agrega a la cuenta al guardarlo. *12/11/2026*

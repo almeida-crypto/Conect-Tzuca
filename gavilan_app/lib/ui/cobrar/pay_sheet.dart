@@ -190,7 +190,13 @@ class _PaySheetState extends ConsumerState<_PaySheet> {
 
   /// Pagar en partes (iguales o con varios métodos).
   Future<void> _split(int totalCents, SplitMode mode) async {
-    final result = await showSplitPaySheet(context, totalCents: totalCents, mode: mode);
+    final methods = ref.read(storeProvider).acceptedMethods;
+    final result = await showSplitPaySheet(
+      context,
+      totalCents: totalCents,
+      mode: methods.length < 2 ? SplitMode.iguales : mode,
+      methods: methods,
+    );
     if (result == null || !mounted) return;
     _finish(kind: SaleKind.pagada, payments: result.payments, cashReceived: result.cashReceived);
   }
@@ -199,6 +205,7 @@ class _PaySheetState extends ConsumerState<_PaySheet> {
   Future<void> _divide(int totalCents) async {
     // En el mostrador o si ya se eligieron platillos: solo partes iguales o varios métodos.
     if (widget.orderId == null || widget.items != null) return _split(totalCents, SplitMode.libres);
+    final mixed = ref.read(storeProvider).acceptedMethods.length > 1;
     final choice = await showModalBottomSheet<String>(
       context: context,
       showDragHandle: true,
@@ -215,7 +222,7 @@ class _PaySheetState extends ConsumerState<_PaySheet> {
               ),
               ('iguales', Icons.groups_rounded, 'Partes iguales', 'El total entre varias personas'),
               ('libres', Icons.payments_outlined, 'Varios métodos', 'Una parte en efectivo y otra con tarjeta'),
-            ])
+            ].where((o) => mixed || o.$1 != 'libres'))
               ListTile(
                 leading: Icon(icon, color: GColors.cenote),
                 title: Text(title, style: GText.sans(size: 15, weight: FontWeight.w700)),
@@ -257,6 +264,7 @@ class _PaySheetState extends ConsumerState<_PaySheet> {
     final change = (_method == PayMethod.efectivo && received != null) ? received - total : 0;
 
     final keyboard = MediaQuery.sizeOf(context).width >= 900;
+    final methods = ref.watch(storeProvider).acceptedMethods;
     return Focus(
       autofocus: true,
       onKeyEvent: _onKey,
@@ -301,7 +309,9 @@ class _PaySheetState extends ConsumerState<_PaySheet> {
           const SizedBox(height: 14),
           Row(
             children: [
-              Expanded(child: Text('Forma de pago', style: GText.sans(size: 12))),
+              Expanded(
+                child: Text(methods.length < 2 ? 'Solo efectivo' : 'Forma de pago', style: GText.sans(size: 12)),
+              ),
               TextButton.icon(
                 onPressed: total > 0 ? () => _divide(total) : null,
                 icon: const Icon(Icons.call_split_rounded, size: 18, color: GColors.cenote),
@@ -313,22 +323,12 @@ class _PaySheetState extends ConsumerState<_PaySheet> {
             ],
           ),
           const SizedBox(height: 2),
-          Row(
-            children: [
-              for (final m in PayMethod.values) ...[
-                Expanded(
-                  child: GChip(
-                    label: m.short,
-                    selected: _method == m,
-                    onTap: () => setState(() {
-                      _method = m;
-                      _error = null;
-                    }),
-                  ),
-                ),
-                if (m != PayMethod.values.last) const SizedBox(width: 6),
-              ],
-            ],
+          PayMethodChips(
+            selected: _method,
+            onPick: (m) => setState(() {
+              _method = m;
+              _error = null;
+            }),
           ),
           if (_method == PayMethod.efectivo) ...[
             const SizedBox(height: 14),

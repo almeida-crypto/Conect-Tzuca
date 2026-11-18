@@ -344,16 +344,7 @@ class _AbonoSheetState extends ConsumerState<_AbonoSheet> {
           ],
         ),
         const SizedBox(height: 12),
-        Row(
-          children: [
-            for (final m in PayMethod.values) ...[
-              Expanded(
-                child: GChip(label: m.short, selected: _method == m, onTap: () => setState(() => _method = m)),
-              ),
-              if (m != PayMethod.values.last) const SizedBox(width: 6),
-            ],
-          ],
-        ),
+        PayMethodChips(selected: _method, onPick: (m) => setState(() => _method = m)),
         const SizedBox(height: 14),
         GButton(
           label: 'Guardar abono',

@@ -163,10 +163,10 @@ void main() {
     await tester.pumpAndSettle();
     expect(find.byType(TicketScreen), findsOneWidget);
 
-    // TextButton: se llama directo (en pruebas, el efecto de toque de Flutter 3.47 falla al cargar).
-    final cancel = find.ancestor(of: find.text('Cancelar esta venta'), matching: find.byType(TextButton));
+    // Renglón con InkWell: se llama directo (en pruebas, el efecto de toque de Flutter 3.47 falla al cargar).
+    final cancel = find.ancestor(of: find.text('Cancelar esta venta'), matching: find.byType(InkWell)).first;
     await tester.ensureVisible(cancel);
-    tester.widget<TextButton>(cancel).onPressed!();
+    tester.widget<InkWell>(cancel).onTap!();
     await tester.pumpAndSettle();
     expect(find.text('¿Cancelar la venta ${sale.folioLabel}?'), findsOneWidget);
     final yes = find.ancestor(of: find.text('Sí, cancelar'), matching: find.byType(TextButton));

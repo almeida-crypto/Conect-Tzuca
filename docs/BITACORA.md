@@ -830,3 +830,21 @@ Se abren desde **Más → Módulos** con el plan Emprendedor o superior. Los tre
 - `flutter analyze` sin avisos y 116 pruebas pasan, 7 nuevas (`split_bill_test.dart`): partes iguales exactas; pago mixto en el corte y el cambio; un solo pago es pago normal; pagos que no cuadran; devolución de una venta en partes; guardar, subir y bajar los pagos; mesa por platillos (no se cobra dos veces, se libera al final, lo pagado no se quita, cancelar con parte pagada) y `paid_qty` hacia la nube.
 - Panel: `tsc` y `eslint` sin errores.
 - Revisión de pantallas (cobrar mesa, partes iguales, varios métodos, por platillos, mesa con parte pagada y ticket), imágenes borradas al terminar.
+
+### Formas de pago que acepta el negocio (18/11/2026)
+- **Más › Formas de pago:** efectivo siempre; transferencia y tarjeta se prenden o apagan (solo dueño y administradores, con PIN también el encargado).
+- **Al cobrar y al recibir abonos** (fiados y apartados) solo salen las formas aceptadas. Si solo acepta efectivo, no hay botones de forma de pago ("Solo efectivo") y "Pagar en partes" va directo a partes iguales, sin "Varios métodos".
+- **Dividir la cuenta** (por platillos y partes iguales) sigue siempre disponible.
+- **Cómo empieza:** los negocios de antes con las tres (no se les cambia nada); los nuevos con efectivo y transferencia, y la tarjeta apagada hasta que el dueño la prenda.
+- **Servidor (migración 0019):** `businesses.pay_methods` (text[]; null = las tres; siempre con efectivo). Sube y baja como el tipo de negocio.
+
+### "Venta cobrada": botones nuevos
+- **Nueva venta** primero, grande y en cenote (lo que más se hace); con historial dice "Volver".
+- Debajo, botones iguales para **WhatsApp**, **Como texto** e **Imprimir** (este último en la computadora).
+- Al final y aparte, en una tarjeta: **Devolver algunos productos** y **Cancelar esta venta**.
+- El ticket no cambió.
+
+### Verificación
+- `flutter analyze` sin avisos y 118 pruebas pasan, 2 nuevas (`pay_methods_test.dart`): cómo empieza cada negocio, prender y apagar (el efectivo no se apaga), se guarda, sube y baja; con solo efectivo no salen los botones de forma de pago.
+- Revisión de pantallas (cobrar solo efectivo, botones de "Venta cobrada" y Formas de pago), imágenes borradas al terminar.
+- Versión 1.7.0+10.

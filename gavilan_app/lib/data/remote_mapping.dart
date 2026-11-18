@@ -71,6 +71,20 @@ RemoteRow customerToRemote(Customer c) => {
   'credit_limit': c.creditLimitCents == null ? null : _pesos(c.creditLimitCents!),
 };
 
+/// Formas de pago que acepta el negocio (en su fila de `businesses`).
+RemoteRow payMethodsToRemote(Set<PayMethod> methods) => {
+  'pay_methods': [
+    for (final m in PayMethod.values)
+      if (methods.contains(m) || m == PayMethod.efectivo) _methodOut[m],
+  ],
+};
+
+/// null si la nube no dice nada (negocio de antes: acepta las tres).
+Set<PayMethod>? payMethodsFromRemote(Object? value) {
+  if (value is! List || value.isEmpty) return null;
+  return {PayMethod.efectivo, for (final v in value) ?_methodIn[v]};
+}
+
 /// Tope general de fiado del negocio (se actualiza en su fila de `businesses`).
 RemoteRow creditLimitToRemote(int? cents) => {'credit_limit': cents == null ? null : _pesos(cents)};
 

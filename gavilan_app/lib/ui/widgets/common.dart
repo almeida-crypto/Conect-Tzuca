@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../core/money.dart';
+import '../../domain/models.dart';
 import '../../domain/plan.dart';
 import '../../state/store.dart';
 import '../../state/sync.dart';
@@ -568,3 +569,27 @@ Color marginColor(double margin) => margin <= 0
 /// termina su animación de salida (si se libera antes, la ventana lo sigue usando y falla).
 void disposeAfterClose(ChangeNotifier controller) =>
     Future<void>.delayed(const Duration(milliseconds: 600), controller.dispose);
+
+/// Botones de forma de pago: solo las que acepta el negocio. Si solo acepta efectivo, no enseña nada.
+class PayMethodChips extends ConsumerWidget {
+  const PayMethodChips({super.key, required this.selected, required this.onPick});
+
+  final PayMethod selected;
+  final ValueChanged<PayMethod> onPick;
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final methods = ref.watch(storeProvider).acceptedMethods;
+    if (methods.length < 2) return const SizedBox.shrink();
+    return Row(
+      children: [
+        for (final (i, m) in methods.indexed) ...[
+          if (i > 0) const SizedBox(width: 6),
+          Expanded(
+            child: GChip(label: m.short, selected: selected == m, onTap: () => onPick(m)),
+          ),
+        ],
+      ],
+    );
+  }
+}

@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../domain/business.dart';
+import '../../domain/models.dart';
 import '../../domain/plan.dart';
 import '../../state/app_state.dart';
 import '../../state/store.dart';
@@ -287,7 +288,12 @@ class MasScreen extends ConsumerWidget {
             ),
           ),
         ],
-        if (can.editCatalog) ...[const SectionTitle('Lo que uso'), const _ModulesCard()],
+        if (can.editCatalog) ...[
+          const SectionTitle('Lo que uso'),
+          const _ModulesCard(),
+          const SectionTitle('Formas de pago'),
+          const _PayMethodsCard(),
+        ],
         const SectionTitle('Respaldo en la nube'),
         Builder(
           builder: (context) {
@@ -535,6 +541,48 @@ class _ModulesCard extends ConsumerWidget {
                 trackOutlineColor: const WidgetStatePropertyAll(Colors.transparent),
                 title: Text(m.label, style: GText.sans(size: 15, weight: FontWeight.w700)),
                 subtitle: Text(m.description, style: GText.muted(size: 12.5)),
+              ),
+            ],
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+/// Qué formas de pago acepta el negocio. Solo esas salen al cobrar y al recibir abonos.
+class _PayMethodsCard extends ConsumerWidget {
+  const _PayMethodsCard();
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final accepted = ref.watch(storeProvider).acceptedMethods;
+    return GCard(
+      margin: const EdgeInsets.symmetric(horizontal: 16),
+      padding: EdgeInsets.zero,
+      child: Material(
+        type: MaterialType.transparency,
+        child: Column(
+          children: [
+            ListTile(
+              title: Text('Efectivo', style: GText.sans(size: 15, weight: FontWeight.w700)),
+              subtitle: Text('Siempre', style: GText.muted(size: 12.5)),
+            ),
+            for (final (m, sub) in const [
+              (PayMethod.transferencia, 'Te depositan a tu cuenta (SPEI, CoDi)'),
+              (PayMethod.tarjeta, 'Necesitas una terminal'),
+            ]) ...[
+              const Divider(height: 1, indent: 14, color: GColors.linea),
+              SwitchListTile(
+                value: accepted.contains(m),
+                onChanged: (on) => ref.read(storeProvider.notifier).togglePayMethod(m, on),
+                activeThumbColor: Colors.white,
+                activeTrackColor: GColors.cenote,
+                inactiveThumbColor: GColors.tintaTenue,
+                inactiveTrackColor: GColors.hundido,
+                trackOutlineColor: const WidgetStatePropertyAll(Colors.transparent),
+                title: Text(m.label, style: GText.sans(size: 15, weight: FontWeight.w700)),
+                subtitle: Text(sub, style: GText.muted(size: 12.5)),
               ),
             ],
           ],

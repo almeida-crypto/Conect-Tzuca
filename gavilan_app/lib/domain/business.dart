@@ -1,4 +1,7 @@
+import 'models.dart';
+
 /// Partes de la app que no todos los negocios usan. Lo demás (cobrar, fiados, inventario, caja) es para todos.
+
 enum Module {
   restaurante('Mesas y cocina', 'Meseros, comandas, extras y pantalla de cocina'),
   apartados('Apartados', 'Anticipo, abonos y fecha límite'),
@@ -36,3 +39,20 @@ String modulesToText(Set<Module> modules) => [
   for (final m in Module.values)
     if (modules.contains(m)) m.name,
 ].join(',');
+
+/// Formas de pago guardadas como texto: "efectivo,transferencia". null = las tres (negocios de antes).
+Set<PayMethod>? payMethodsFromText(String? text) {
+  if (text == null || text.isEmpty) return null;
+  return {
+    PayMethod.efectivo,
+    for (final part in text.split(',')) ...PayMethod.values.where((m) => m.name == part.trim()),
+  };
+}
+
+String payMethodsToText(Set<PayMethod> methods) => [
+  for (final m in PayMethod.values)
+    if (methods.contains(m) || m == PayMethod.efectivo) m.name,
+].join(',');
+
+/// Con qué empieza un negocio nuevo: efectivo y transferencia (la tarjeta necesita terminal).
+const defaultPayMethods = {PayMethod.efectivo, PayMethod.transferencia};

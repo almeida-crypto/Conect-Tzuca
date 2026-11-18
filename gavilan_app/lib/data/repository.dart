@@ -51,6 +51,9 @@ abstract class StoreRepository {
 
   /// Tope general de fiado; sube a la fila del negocio si está enlazado.
   Future<void> setDefaultCreditLimit(int? cents);
+
+  /// Formas de pago que acepta; sube a la fila del negocio si está enlazado.
+  Future<void> setPayMethods(Set<PayMethod> methods);
   Future<void> insertCredit(CreditEntry entry);
   Future<void> upsertSession(CashSession session);
   Future<void> insertMovement(CashMovement movement);
@@ -155,6 +158,8 @@ class MemoryRepository implements StoreRepository {
   @override
   Future<void> setDefaultCreditLimit(int? cents) async {}
   @override
+  Future<void> setPayMethods(Set<PayMethod> methods) async {}
+  @override
   Future<void> insertCredit(CreditEntry entry) async {}
   @override
   Future<void> upsertSession(CashSession session) async {}
@@ -196,6 +201,7 @@ const _kClerks = 'clerks';
 const _kClerkLock = 'clerk_lock';
 const _kModules = 'modules';
 const _kCreditLimit = 'credit_limit';
+const _kPayMethods = 'pay_methods';
 const _kBusinessId = 'business_id';
 const _kDemo = 'is_demo';
 const _kFolio = 'next_folio';
@@ -333,6 +339,7 @@ class DriftRepository implements StoreRepository, SyncStore {
       lockMinutes: int.tryParse(meta[_kClerkLock] ?? ''),
       modules: modulesFromText(meta[_kModules]),
       defaultCreditLimitCents: int.tryParse(meta[_kCreditLimit] ?? ''),
+      payMethods: payMethodsFromText(meta[_kPayMethods]),
       nextFolio: int.tryParse(meta[_kFolio] ?? '') ?? 1,
       products: [for (final p in await db.select(db.productsTable).get()) _product(p)],
       customers: [
@@ -730,6 +737,7 @@ class DriftRepository implements StoreRepository, SyncStore {
     if (state.businessType != null) await _setMeta(_kType, state.businessType!.name);
     if (state.modules != null) await _setMeta(_kModules, modulesToText(state.modules!));
     if (state.defaultCreditLimitCents != null) await _setMeta(_kCreditLimit, '${state.defaultCreditLimitCents}');
+    if (state.payMethods != null) await _setMeta(_kPayMethods, payMethodsToText(state.payMethods!));
     if (state.clerks.isNotEmpty) await setClerks(state.clerks, state.lockMinutes);
     await _setMeta(_kDemo, state.isDemo ? '1' : '0');
     await _setMeta(_kFolio, '${state.nextFolio}');
@@ -848,6 +856,14 @@ class DriftRepository implements StoreRepository, SyncStore {
         );
     await _enqueue([
       (table: 'customers', rows: [customerToRemote(customer)]),
+    ]);
+  });
+
+  @override
+  Future<void> setPayMethods(Set<PayMethod> methods) => db.transaction(() async {
+    await _setMeta(_kPayMethods, payMethodsToText(methods));
+    await _enqueue([
+      (table: 'businesses', rows: [payMethodsToRemote(methods)]),
     ]);
   });
 
@@ -1131,6 +1147,8 @@ class DriftRepository implements StoreRepository, SyncStore {
           if (type != null) await _setMeta(_kType, type.name);
           final modules = modulesFromRemote(r['modules']);
           if (modules != null) await _setMeta(_kModules, modulesToText(modules));
+          final methods = payMethodsFromRemote(r['pay_methods']);
+          if (methods != null) await _setMeta(_kPayMethods, payMethodsToText(methods));
           if (r.containsKey('credit_limit')) {
             await _setMeta(_kCreditLimit, _centsText(r['credit_limit']));
           }

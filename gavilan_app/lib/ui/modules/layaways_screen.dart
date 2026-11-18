@@ -257,16 +257,7 @@ class _NewLayawaySheetState extends ConsumerState<_NewLayawaySheet> {
           ],
         ),
         const SizedBox(height: 10),
-        Row(
-          children: [
-            for (final m in PayMethod.values) ...[
-              Expanded(
-                child: GChip(label: m.short, selected: _method == m, onTap: () => setState(() => _method = m)),
-              ),
-              if (m != PayMethod.values.last) const SizedBox(width: 6),
-            ],
-          ],
-        ),
+        PayMethodChips(selected: _method, onPick: (m) => setState(() => _method = m)),
         const SizedBox(height: 10),
         ListTile(
           contentPadding: EdgeInsets.zero,
@@ -449,16 +440,7 @@ class _LayawayDetailState extends ConsumerState<_LayawayDetail> {
             onChanged: (_) => setState(() => _error = null),
           ),
           const SizedBox(height: 8),
-          Row(
-            children: [
-              for (final m in PayMethod.values) ...[
-                Expanded(
-                  child: GChip(label: m.short, selected: _method == m, onTap: () => setState(() => _method = m)),
-                ),
-                if (m != PayMethod.values.last) const SizedBox(width: 6),
-              ],
-            ],
-          ),
+          PayMethodChips(selected: _method, onPick: (m) => setState(() => _method = m)),
           const SizedBox(height: 10),
           GButton(label: 'Registrar abono', kind: GButtonKind.money, expand: true, onPressed: () => _pay(pending)),
         ],

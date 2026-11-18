@@ -27,7 +27,12 @@ Future<SplitResult?> showSplitPaySheet(
   BuildContext context, {
   required int totalCents,
   SplitMode mode = SplitMode.iguales,
-}) => showGSheet<SplitResult>(context, (_) => _SplitPaySheet(total: totalCents, initialMode: mode));
+  List<PayMethod> methods = PayMethod.values,
+}) => showGSheet<SplitResult>(
+  context,
+  (_) =>
+      _SplitPaySheet(total: totalCents, initialMode: methods.length < 2 ? SplitMode.iguales : mode, methods: methods),
+);
 
 class _Part {
   _Part(this.method, [String amount = '']) : amount = TextEditingController(text: amount);
@@ -37,10 +42,13 @@ class _Part {
 }
 
 class _SplitPaySheet extends StatefulWidget {
-  const _SplitPaySheet({required this.total, required this.initialMode});
+  const _SplitPaySheet({required this.total, required this.initialMode, required this.methods});
 
   final int total;
   final SplitMode initialMode;
+
+  /// Formas de pago que acepta el negocio.
+  final List<PayMethod> methods;
 
   @override
   State<_SplitPaySheet> createState() => _SplitPaySheetState();
@@ -54,7 +62,10 @@ class _SplitPaySheetState extends State<_SplitPaySheet> {
   late List<PayMethod> _equalMethods = List.filled(_people, PayMethod.efectivo);
 
   // Montos libres: empieza con efectivo y tarjeta.
-  late final List<_Part> _parts = [_Part(PayMethod.efectivo), _Part(PayMethod.tarjeta)];
+  late final List<_Part> _parts = [
+    _Part(PayMethod.efectivo),
+    _Part(widget.methods.length > 1 ? widget.methods[1] : PayMethod.efectivo),
+  ];
 
   final _received = TextEditingController();
   String? _error;
@@ -142,16 +153,18 @@ class _SplitPaySheetState extends State<_SplitPaySheet> {
     Navigator.of(context).pop<SplitResult>((payments: payments, cashReceived: received));
   }
 
-  Widget _methodChips(PayMethod selected, ValueChanged<PayMethod> onPick) => Row(
-    children: [
-      for (final m in PayMethod.values) ...[
-        Expanded(
-          child: GChip(label: m.short, selected: selected == m, onTap: () => onPick(m)),
-        ),
-        if (m != PayMethod.values.last) const SizedBox(width: 6),
-      ],
-    ],
-  );
+  Widget _methodChips(PayMethod selected, ValueChanged<PayMethod> onPick) => widget.methods.length < 2
+      ? const SizedBox.shrink()
+      : Row(
+          children: [
+            for (final (i, m) in widget.methods.indexed) ...[
+              if (i > 0) const SizedBox(width: 6),
+              Expanded(
+                child: GChip(label: m.short, selected: selected == m, onTap: () => onPick(m)),
+              ),
+            ],
+          ],
+        );
 
   @override
   Widget build(BuildContext context) {
@@ -164,31 +177,32 @@ class _SplitPaySheetState extends State<_SplitPaySheet> {
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
         SheetHeader('Pagar en partes', caption: 'Total ${money(widget.total)}'),
-        Row(
-          children: [
-            Expanded(
-              child: GChip(
-                label: 'Partes iguales',
-                selected: _mode == SplitMode.iguales,
-                onTap: () => setState(() {
-                  _mode = SplitMode.iguales;
-                  _error = null;
-                }),
+        if (widget.methods.length > 1)
+          Row(
+            children: [
+              Expanded(
+                child: GChip(
+                  label: 'Partes iguales',
+                  selected: _mode == SplitMode.iguales,
+                  onTap: () => setState(() {
+                    _mode = SplitMode.iguales;
+                    _error = null;
+                  }),
+                ),
               ),
-            ),
-            const SizedBox(width: 8),
-            Expanded(
-              child: GChip(
-                label: 'Varios métodos',
-                selected: _mode == SplitMode.libres,
-                onTap: () => setState(() {
-                  _mode = SplitMode.libres;
-                  _error = null;
-                }),
+              const SizedBox(width: 8),
+              Expanded(
+                child: GChip(
+                  label: 'Varios métodos',
+                  selected: _mode == SplitMode.libres,
+                  onTap: () => setState(() {
+                    _mode = SplitMode.libres;
+                    _error = null;
+                  }),
+                ),
               ),
-            ),
-          ],
-        ),
+            ],
+          ),
         const SizedBox(height: 14),
         if (_mode == SplitMode.iguales) ...[
           Row(

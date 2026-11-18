@@ -228,57 +228,77 @@ class _TicketScreenState extends ConsumerState<TicketScreen> {
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.stretch,
                       children: [
-                        if (canPrintTicket) ...[
-                          GButton(
-                            label: 'Imprimir ticket',
-                            icon: Icons.print_outlined,
-                            kind: GButtonKind.dark,
-                            expand: true,
-                            onPressed: printTicket,
-                          ),
-                          const SizedBox(height: 8),
-                        ],
-                        GButton(
-                          label: 'Mandar por WhatsApp',
-                          icon: Icons.send_outlined,
-                          kind: GButtonKind.money,
-                          expand: true,
-                          onPressed: () => shareAsImage(
-                            context,
-                            _ticketKey,
-                            fileName: 'ticket-${sale.folioLabel}.png',
-                            fallbackText: text,
-                          ),
-                        ),
-                        TextButton(
-                          onPressed: () => shareText(context, text),
-                          child: Text('Mandar como texto', style: GText.sans(size: 13.5, color: GColors.marca)),
-                        ),
-                        const SizedBox(height: 4),
+                        // Lo de todos los días primero: la siguiente venta.
                         GButton(
                           label: widget.fromHistory ? 'Volver' : 'Nueva venta',
-                          kind: GButtonKind.outline,
+                          icon: widget.fromHistory ? Icons.arrow_back_rounded : Icons.add_shopping_cart_rounded,
+                          kind: GButtonKind.money,
                           expand: true,
+                          big: true,
                           onPressed: () => Navigator.of(context).pop(),
                         ),
-                        if (canCancel && (sale.lines.length > 1 || sale.lines.any((l) => l.qty > 1)))
-                          TextButton.icon(
-                            onPressed: () => _returnItems(sale),
-                            icon: const Icon(Icons.assignment_return_outlined, size: 18, color: GColors.tintaSuave),
-                            label: Text(
-                              'Devolver algunos productos',
-                              style: GText.sans(size: 13.5, weight: FontWeight.w700, color: GColors.tintaSuave),
+                        const SizedBox(height: 12),
+                        // Mandar o imprimir el ticket: tres botones iguales.
+                        Row(
+                          children: [
+                            Expanded(
+                              child: _TicketAction(
+                                icon: Icons.send_outlined,
+                                label: 'WhatsApp',
+                                onTap: () => shareAsImage(
+                                  context,
+                                  _ticketKey,
+                                  fileName: 'ticket-${sale.folioLabel}.png',
+                                  fallbackText: text,
+                                ),
+                              ),
+                            ),
+                            const SizedBox(width: 8),
+                            Expanded(
+                              child: _TicketAction(
+                                icon: Icons.notes_rounded,
+                                label: 'Como texto',
+                                onTap: () => shareText(context, text),
+                              ),
+                            ),
+                            if (canPrintTicket) ...[
+                              const SizedBox(width: 8),
+                              Expanded(
+                                child: _TicketAction(icon: Icons.print_outlined, label: 'Imprimir', onTap: printTicket),
+                              ),
+                            ],
+                          ],
+                        ),
+                        // Corregir la venta, al final y aparte.
+                        if (canCancel) ...[
+                          const SizedBox(height: 18),
+                          Container(
+                            decoration: GShape.card(),
+                            clipBehavior: Clip.antiAlias,
+                            child: Material(
+                              type: MaterialType.transparency,
+                              child: Column(
+                                children: [
+                                  if (sale.lines.length > 1 || sale.lines.any((l) => l.qty > 1)) ...[
+                                    _FixRow(
+                                      icon: Icons.assignment_return_outlined,
+                                      label: 'Devolver algunos productos',
+                                      color: GColors.tinta,
+                                      onTap: () => _returnItems(sale),
+                                    ),
+                                    const Divider(height: 1, indent: 50, color: GColors.linea),
+                                  ],
+                                  _FixRow(
+                                    icon: Icons.undo_rounded,
+                                    label: 'Cancelar esta venta',
+                                    color: GColors.rojo,
+                                    onTap: () => _confirmCancel(sale, customer?.name),
+                                  ),
+                                ],
+                              ),
                             ),
                           ),
-                        if (canCancel)
-                          TextButton.icon(
-                            onPressed: () => _confirmCancel(sale, customer?.name),
-                            icon: const Icon(Icons.undo_rounded, size: 18, color: GColors.rojo),
-                            label: Text(
-                              'Cancelar esta venta',
-                              style: GText.sans(size: 13.5, weight: FontWeight.w700, color: GColors.rojo),
-                            ),
-                          ),
+                        ],
                         if (canPrintTicket)
                           Padding(
                             padding: const EdgeInsets.only(top: 10),
@@ -435,4 +455,75 @@ Future<String?> showCancelSaleDialog(BuildContext context, Sale sale, {String? c
       ),
     ),
   );
+}
+
+/// Botón para mandar o imprimir el ticket: los tres iguales, con su icono arriba.
+class _TicketAction extends StatelessWidget {
+  const _TicketAction({required this.icon, required this.label, required this.onTap});
+
+  final IconData icon;
+  final String label;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    return Semantics(
+      button: true,
+      label: label,
+      excludeSemantics: true,
+      child: Pressable(
+        onTap: onTap,
+        scale: 0.96,
+        child: Container(
+          height: 72,
+          decoration: BoxDecoration(
+            color: GColors.superficie,
+            borderRadius: BorderRadius.circular(GShape.radius),
+            border: Border.all(color: GColors.linea, width: 1.5),
+          ),
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Icon(icon, size: 22, color: GColors.cenote),
+              const SizedBox(height: 5),
+              Text(label, style: GText.sans(size: 13, weight: FontWeight.w700)),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+/// Renglón para corregir la venta (devolver o cancelar).
+class _FixRow extends StatelessWidget {
+  const _FixRow({required this.icon, required this.label, required this.color, required this.onTap});
+
+  final IconData icon;
+  final String label;
+  final Color color;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    return InkWell(
+      onTap: onTap,
+      child: Padding(
+        padding: const EdgeInsets.fromLTRB(16, 14, 12, 14),
+        child: Row(
+          children: [
+            Icon(icon, size: 20, color: color == GColors.tinta ? GColors.tintaSuave : color),
+            const SizedBox(width: 14),
+            Expanded(
+              child: Text(
+                label,
+                style: GText.sans(size: 14.5, weight: FontWeight.w700, color: color),
+              ),
+            ),
+            const Icon(Icons.chevron_right_rounded, color: GColors.tintaTenue),
+          ],
+        ),
+      ),
+    );
+  }
 }

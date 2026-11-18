@@ -38,6 +38,7 @@ class StoreState {
     this.lockMinutes,
     this.businessType,
     this.modules,
+    this.payMethods,
     required this.businessName,
     required this.products,
     required this.sales,
@@ -103,6 +104,15 @@ class StoreState {
 
   /// Módulos prendidos. null = todos (negocios de antes de poder elegir).
   final Set<Module>? modules;
+
+  /// Formas de pago que acepta el negocio (efectivo siempre). null = las tres (negocios de antes).
+  final Set<PayMethod>? payMethods;
+
+  /// Formas de pago para los botones, en orden; efectivo siempre va.
+  List<PayMethod> get acceptedMethods => [
+    for (final m in PayMethod.values)
+      if (m == PayMethod.efectivo || payMethods == null || payMethods!.contains(m)) m,
+  ];
 
   bool uses(Module m) => modules == null || modules!.contains(m);
 
@@ -383,6 +393,7 @@ class StoreState {
     bool clearLock = false,
     BusinessType? businessType,
     Set<Module>? modules,
+    Set<PayMethod>? payMethods,
     String? businessId,
     bool? isDemo,
     String? businessName,
@@ -409,6 +420,7 @@ class StoreState {
     lockMinutes: clearLock ? null : (lockMinutes ?? this.lockMinutes),
     businessType: businessType ?? this.businessType,
     modules: modules ?? this.modules,
+    payMethods: payMethods ?? this.payMethods,
     businessId: businessId ?? this.businessId,
     isDemo: isDemo ?? this.isDemo,
     businessName: businessName ?? this.businessName,
@@ -496,6 +508,7 @@ class StoreNotifier extends Notifier<StoreState> {
       businessName: name.trim(),
       businessType: type,
       modules: type.defaultModules,
+      payMethods: defaultPayMethods,
     );
     state = fresh;
     final plan = ref.read(planProvider);
@@ -562,6 +575,16 @@ class StoreNotifier extends Notifier<StoreState> {
   }
 
   /// Prende o apaga un módulo.
+  /// Prende o apaga una forma de pago (el efectivo no se apaga).
+  void togglePayMethod(PayMethod m, bool on) {
+    if (m == PayMethod.efectivo) return;
+    final current = {...(state.payMethods ?? PayMethod.values.toSet())};
+    on ? current.add(m) : current.remove(m);
+    current.add(PayMethod.efectivo);
+    state = state.copyWith(payMethods: Set.unmodifiable(current));
+    _save((r) => r.setPayMethods(current));
+  }
+
   void toggleModule(Module m, bool on) {
     final current = {...(state.modules ?? Module.values.toSet())};
     on ? current.add(m) : current.remove(m);
