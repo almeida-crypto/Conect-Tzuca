@@ -366,7 +366,7 @@ class SyncController extends Notifier<SyncStatus> {
       state = switch (e.kind) {
         SyncFailure.network => state.copyWith(online: false, clearProblem: true),
         SyncFailure.auth => state.copyWith(problem: 'Tu sesión venció. Vuelve a entrar para respaldar.'),
-        SyncFailure.rejected => state.copyWith(problem: 'Un cambio no se pudo subir: ${e.message}'),
+        SyncFailure.rejected => state.copyWith(problem: 'No se pudo respaldar: ${e.message}'),
       };
     } finally {
       _running = false;

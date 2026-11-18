@@ -883,3 +883,10 @@ Se abren desde **Más → Módulos** con el plan Emprendedor o superior. Los tre
 ### Verificación
 - `flutter analyze` sin avisos y 123 pruebas pasan, 4 nuevas (`late_cancel_test.dart`): venta de un corte cerrado (el corte no cambia, gasto solo por lo de efectivo, inventario, sin caja abierta no se puede, no se cancela dos veces); fiada de otro día; hacia la nube; nombre de la caja (se guarda, lo toma el turno, Todas las cajas).
 - Revisión de pantallas (nombre en Caja, aviso al cancelar una venta de otro día, ticket viejo), imágenes borradas al terminar.
+
+### Arreglo: "column sale_payments.synced_at does not exist" (18/11/2026)
+- **Qué pasó:** desde la 1.7.0 la app baja `sale_payments` (pagos en partes), pero esa tabla del servidor nunca tuvo `synced_at`, la hora con la que cada celular baja lo que cambió. El respaldo fallaba al bajar y, en un celular nuevo, no se podía bajar el negocio al entrar con la cuenta. El usuario lo vio probando la 1.8.0.
+- **Arreglo en el servidor (migración 0022):** `sale_payments.synced_at` con su trigger e índice, igual que las demás tablas. No hace falta otro APK: basta con "Respaldar ahora" o volver a entrar. Se comprobó la consulta que hace la app con un dueño simulado.
+- Se revisaron las 19 tablas que baja la app: solo a esta le faltaba.
+- **App:** el error al bajar ya no dice "Un cambio no se pudo subir", sino "No se pudo respaldar" (sale en el siguiente APK).
+- **Por qué no lo vio ninguna prueba:** el servidor de prueba de la app no revisa columnas. Regla nueva en BASE_DE_DATOS.md: toda tabla que se agregue a `pullTables` necesita `synced_at` con su trigger.

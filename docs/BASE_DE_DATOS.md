@@ -13,6 +13,7 @@ Proyecto de Supabase **proyecto-Gavilan** (`jveklinfbptnxmtavnez`, región us-ea
 | [0005_team.sql](../pos-backend/supabase/migrations/0005_team.sql) | `pos_team` | Invitaciones con código (`business_invites`), funciones del equipo y sin altas ni cambios directos en `business_members` |
 | [0006_restaurant_sync.sql](../pos-backend/supabase/migrations/0006_restaurant_sync.sql) | `pos_restaurant_sync` | `synced_at` en mesas, comandas y platillos; orden de las mesas, nombre de la comanda para llevar, hora de cierre y hora en que se sirvió |
 | [0007_table_zones.sql](../pos-backend/supabase/migrations/0007_table_zones.sql) | `pos_table_zones` | Zona de cada mesa (`restaurant_tables.zone`) |
+| [0022_sale_payments_synced_at.sql](../pos-backend/supabase/migrations/0022_sale_payments_synced_at.sql) | `0022_sale_payments_synced_at` | `sale_payments.synced_at` con su trigger e índice: faltaba y el respaldo fallaba al bajar los pagos en partes |
 | [0021_register_name_late_cancel.sql](../pos-backend/supabase/migrations/0021_register_name_late_cancel.sql) | `0021_register_name_late_cancel` | `cash_sessions.register_name` (nombre de la caja) y `sales.cancelled_session_id` (turno donde se canceló una venta de un corte cerrado) |
 | [0020_session_device.sql](../pos-backend/supabase/migrations/0020_session_device.sql) | `0020_session_device` | `cash_sessions.device_id`: de qué celular es cada turno de caja (la clave de los folios) |
 | [0019_pay_methods.sql](../pos-backend/supabase/migrations/0019_pay_methods.sql) | `0019_pay_methods` | `businesses.pay_methods`: formas de pago que acepta el negocio (null = las tres; siempre incluye efectivo) |
@@ -163,3 +164,13 @@ No hay servicios externos: la app habla directo con Supabase (`gavilan_app/lib/s
 | clave del teléfono | `device_id`: el folio que se ve es "clave-número" (K7-0043). Ventas viejas sin clave se ven como "A-" |
 
 Pendiente: la app guarda la forma de pago en `sales.pay_method`; `sale_payments` (pagos mixtos) todavía no se usa.
+
+## Regla para tablas que baja la app
+Toda tabla en `pullTables` (`gavilan_app/lib/data/repository.dart`) necesita `synced_at timestamptz not null default now()`, el trigger `trg_synced_at` (`set_synced_at()`) y un índice `(business_id, synced_at)`. Para revisarlo:
+
+```sql
+select table_name from information_schema.tables t
+where table_schema = 'public' and table_type = 'BASE TABLE'
+  and not exists (select 1 from information_schema.columns c
+                  where c.table_schema = 'public' and c.table_name = t.table_name and c.column_name = 'synced_at');
+```
