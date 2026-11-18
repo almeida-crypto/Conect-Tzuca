@@ -91,10 +91,25 @@ abstract class SyncStore {
   /// Borra lo local y prepara el teléfono para bajar un negocio de la nube.
   Future<void> prepareDownload(String businessId, String businessName);
 
-  Future<List<OutboxRow>> pending({int limit = 50});
+  /// Cambios por subir en orden, después de [afterId]. Incluye los que el servidor rechazó menos de
+  /// [maxAutoRetries] veces: se vuelven a intentar solos por si fue algo pasajero.
+  Future<List<OutboxRow>> pending({int limit = 50, int afterId = 0});
+
+  /// Cambios que todavía no se intentan o que no han fallado ("Por subir").
   Future<int> pendingCount();
   Future<void> markSent(int outboxId);
   Future<void> markFailed(int outboxId, String error);
+
+  /// Cambios que el servidor rechazó (apartados: no frenan a los demás).
+  Future<List<OutboxRow>> failed();
+  Future<int> failedCount();
+
+  /// Vuelve a intentar todos los apartados.
+  Future<void> retryFailed();
+
+  /// Deja de intentar subir un cambio apartado y vuelve a bajar de la nube sus tablas,
+  /// para que el teléfono quede igual que la nube.
+  Future<void> discardFailed(int outboxId);
 
   Future<DateTime?> cursor(String table);
   Future<void> setCursor(String table, DateTime at);
@@ -178,6 +193,14 @@ const _kLinked = 'linked_business';
 const _kDevice = 'device_code';
 const _kRole = 'member_role';
 String _kCursor(String table) => 'cursor:$table';
+
+/// Veces que un cambio rechazado se vuelve a intentar solo antes de quedar apartado para el usuario.
+const maxAutoRetries = 3;
+
+/// Tablas de Supabase que toca un cambio de la fila.
+Set<String> outboxTables(String payload) => {
+  for (final c in (jsonDecode(payload) as List).cast<Map<String, dynamic>>()) c['table'] as String,
+};
 
 /// Tablas de Supabase en el orden en que se bajan (primero lo que otras filas referencian).
 const pullTables = [
@@ -951,8 +974,9 @@ class DriftRepository implements StoreRepository, SyncStore {
   });
 
   @override
-  Future<List<OutboxRow>> pending({int limit = 50}) =>
+  Future<List<OutboxRow>> pending({int limit = 50, int afterId = 0}) =>
       (db.select(db.outboxTable)
+            ..where((t) => t.id.isBiggerThanValue(afterId) & t.attempts.isSmallerThanValue(maxAutoRetries))
             ..orderBy([(t) => OrderingTerm.asc(t.id)])
             ..limit(limit))
           .get();
@@ -960,9 +984,47 @@ class DriftRepository implements StoreRepository, SyncStore {
   @override
   Future<int> pendingCount() async {
     final count = db.outboxTable.id.count();
-    final row = await (db.selectOnly(db.outboxTable)..addColumns([count])).getSingle();
+    final row =
+        await (db.selectOnly(db.outboxTable)
+              ..addColumns([count])
+              ..where(db.outboxTable.lastError.isNull()))
+            .getSingle();
     return row.read(count) ?? 0;
   }
+
+  @override
+  Future<List<OutboxRow>> failed() =>
+      (db.select(db.outboxTable)
+            ..where((t) => t.lastError.isNotNull())
+            ..orderBy([(t) => OrderingTerm.asc(t.id)]))
+          .get();
+
+  @override
+  Future<int> failedCount() async {
+    final count = db.outboxTable.id.count();
+    final row =
+        await (db.selectOnly(db.outboxTable)
+              ..addColumns([count])
+              ..where(db.outboxTable.lastError.isNotNull()))
+            .getSingle();
+    return row.read(count) ?? 0;
+  }
+
+  @override
+  Future<void> retryFailed() => db.customUpdate(
+    'UPDATE outbox SET attempts = 0, last_error = NULL WHERE last_error IS NOT NULL',
+    updates: {db.outboxTable},
+  );
+
+  @override
+  Future<void> discardFailed(int outboxId) => db.transaction(() async {
+    final row = await (db.select(db.outboxTable)..where((t) => t.id.equals(outboxId))).getSingleOrNull();
+    if (row == null) return;
+    for (final table in outboxTables(row.payload)) {
+      await (db.delete(db.metaTable)..where((t) => t.key.equals(_kCursor(table)))).go();
+    }
+    await (db.delete(db.outboxTable)..where((t) => t.id.equals(outboxId))).go();
+  });
 
   @override
   Future<void> markSent(int outboxId) => (db.delete(db.outboxTable)..where((t) => t.id.equals(outboxId))).go();

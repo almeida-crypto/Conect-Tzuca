@@ -29,7 +29,11 @@ class SyncStatus {
     this.lastSync,
     this.problem,
     this.role,
+    this.failed = 0,
   });
+
+  /// Cambios que el servidor rechazó y quedaron apartados (los demás siguen subiendo).
+  final int failed;
 
   final bool configured;
   final bool online;
@@ -58,6 +62,7 @@ class SyncStatus {
     String? problem,
     bool clearProblem = false,
     MemberRole? role,
+    int? failed,
   }) => SyncStatus(
     configured: configured,
     online: online ?? this.online,
@@ -68,7 +73,63 @@ class SyncStatus {
     lastSync: lastSync ?? this.lastSync,
     problem: clearProblem ? null : (problem ?? this.problem),
     role: role ?? this.role,
+    failed: failed ?? this.failed,
   );
+}
+
+/// Un cambio que el servidor no aceptó, para mostrarlo con "Reintentar" o "Descartar".
+class FailedChange {
+  const FailedChange({required this.id, required this.what, required this.createdAt, required this.error});
+
+  final int id;
+
+  /// Qué era, en palabras: "Venta", "Gasto o entrada"…
+  final String what;
+  final DateTime createdAt;
+  final String error;
+}
+
+const _tableLabels = {
+  'businesses': 'Datos del negocio',
+  'customers': 'Cliente',
+  'products': 'Producto',
+  'inventory_movements': 'Movimiento de inventario',
+  'cash_sessions': 'Corte de caja',
+  'sales': 'Venta',
+  'sale_items': 'Productos de una venta',
+  'sale_payments': 'Pago de una venta',
+  'credit_entries': 'Fiado o abono',
+  'cash_movements': 'Gasto, entrada o entrega de caja',
+  'lots': 'Paca o lote',
+  'lot_sales': 'Venta de paca',
+  'layaways': 'Apartado',
+  'layaway_payments': 'Abono de apartado',
+  'batches': 'Tanda',
+  'batch_orders': 'Pedido de tanda',
+  'restaurant_tables': 'Mesa',
+  'extras': 'Extra',
+  'orders': 'Cuenta de mesa',
+  'order_items': 'Platillo',
+};
+
+/// "Venta y Productos de una venta" a partir de lo que trae el cambio.
+String describeChange(String payload) {
+  final labels = [for (final t in outboxTables(payload)) _tableLabels[t] ?? t];
+  if (labels.length <= 1) return labels.isEmpty ? 'Cambio' : labels.first;
+  String lower(String t) => t[0].toLowerCase() + t.substring(1);
+  return '${[labels.first, ...labels.skip(1).take(labels.length - 2).map(lower)].join(', ')} y ${lower(labels.last)}';
+}
+
+/// El motivo del rechazo en palabras, sin los mensajes técnicos de la base.
+String friendlyRejection(String error) {
+  final e = error.toLowerCase();
+  if (e.contains('row-level security') || e.contains('permission denied') || e.contains('rls')) {
+    return 'Tu cuenta no tiene permiso para este cambio';
+  }
+  if (e.contains('foreign key')) return 'Depende de otro cambio que tampoco se subió';
+  if (e.contains('violates check') || e.contains('out of range')) return 'Algún dato está fuera de lo permitido';
+  if (e.contains('duplicate key')) return 'Ya existe en la nube con otros datos';
+  return error;
 }
 
 /// Resultado de enlazar el teléfono con la cuenta.
@@ -224,8 +285,9 @@ class SyncController extends Notifier<SyncStatus> {
     final store = _store;
     if (store == null) return;
     final pending = await store.pendingCount();
+    final failed = await store.failedCount();
     if (!ref.mounted) return; // la app se cerró mientras contaba
-    if (pending != state.pending) state = state.copyWith(pending: pending);
+    if (pending != state.pending || failed != state.failed) state = state.copyWith(pending: pending, failed: failed);
   }
 
   /// Sube y baja ahora, si se puede. Nunca lanza errores: los deja en [SyncStatus.problem].
@@ -247,7 +309,15 @@ class SyncController extends Notifier<SyncStatus> {
     try {
       await _push(remote, store, businessId);
       if (await store.pendingCount() == 0) await _pull(remote, store, businessId, only: only);
-      state = state.copyWith(lastSync: DateTime.now(), clearProblem: true, online: true);
+      final failed = await store.failedCount();
+      state = failed == 0
+          ? state.copyWith(lastSync: DateTime.now(), clearProblem: true, online: true, failed: 0)
+          : state.copyWith(
+              lastSync: DateTime.now(),
+              online: true,
+              failed: failed,
+              problem: failed == 1 ? 'Un cambio no se pudo subir' : '$failed cambios no se pudieron subir',
+            );
     } on SyncException catch (e) {
       state = switch (e.kind) {
         SyncFailure.network => state.copyWith(online: false, clearProblem: true),
@@ -276,13 +346,17 @@ class SyncController extends Notifier<SyncStatus> {
     });
   }
 
-  /// Sube la fila de pendientes en orden. Si una falla, se detiene ahí: lo que sigue
-  /// puede depender de ella (un renglón necesita su venta).
+  /// Sube la fila de pendientes en orden, una sola pasada. Sin internet o con la sesión vencida se detiene
+  /// (se intenta después). Si el servidor rechaza un cambio, ese se aparta y los demás siguen: antes uno
+  /// solo trababa todo el respaldo. Lo que dependa del apartado (los productos de una venta rechazada)
+  /// también lo rechaza el servidor y queda apartado junto con él.
   Future<void> _push(SyncRemote remote, SyncStore store, String businessId) async {
+    var after = 0;
     while (true) {
-      final batch = await store.pending();
+      final batch = await store.pending(afterId: after);
       if (batch.isEmpty) return;
       for (final entry in batch) {
+        after = entry.id;
         final changes = (jsonDecode(entry.payload) as List).cast<Map<String, dynamic>>();
         try {
           for (final c in changes) {
@@ -290,12 +364,40 @@ class SyncController extends Notifier<SyncStatus> {
             await remote.upsert(c['table'] as String, businessId, rows);
           }
         } on SyncException catch (e) {
-          if (e.kind == SyncFailure.rejected) await store.markFailed(entry.id, e.message);
-          rethrow;
+          if (e.kind != SyncFailure.rejected) rethrow;
+          await store.markFailed(entry.id, e.message);
+          continue;
         }
         await store.markSent(entry.id);
       }
     }
+  }
+
+  /// Los cambios apartados, para enseñarlos en "Respaldo".
+  Future<List<FailedChange>> failedChanges() async {
+    final store = _store;
+    if (store == null) return const [];
+    return [
+      for (final r in await store.failed())
+        FailedChange(
+          id: r.id,
+          what: describeChange(r.payload),
+          createdAt: r.createdAt,
+          error: friendlyRejection(r.lastError ?? ''),
+        ),
+    ];
+  }
+
+  /// "Reintentar": vuelve a mandar todos los apartados (por si ya se arregló lo que faltaba).
+  Future<void> retryFailed() async {
+    await _store?.retryFailed();
+    await syncNow();
+  }
+
+  /// "Descartar": deja de subir ese cambio y el teléfono vuelve a bajar lo que hay en la nube.
+  Future<void> discardFailed(int id) async {
+    await _store?.discardFailed(id);
+    await syncNow();
   }
 
   /// Baja lo que cambió desde la última vez. Repasa los últimos minutos por si una

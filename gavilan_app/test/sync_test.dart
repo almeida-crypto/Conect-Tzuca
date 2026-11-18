@@ -259,7 +259,7 @@ void main() {
     expect(c.state.sales, hasLength(2));
   });
 
-  test('si el servidor rechaza un cambio, se detiene sin perder nada', () async {
+  test('si el servidor rechaza un cambio, se aparta y lo demás sigue subiendo', () async {
     final a = await phone();
     await _setUpShop(a);
     await a.login('mary@correo.mx');
@@ -269,16 +269,66 @@ void main() {
     a.sell('coca', 1);
     a.store.addMovement(CashKind.gasto, 500, 'Bolsas');
     await a.settle();
-    expect(a.status.problem, contains('rechazado'));
-    expect(a.status.pending, 2);
-    expect(server.rows('cash_movements'), hasLength(1));
+    // La venta queda apartada, pero el gasto (que va después) sí sube.
+    expect(a.status.failed, 1);
+    expect(a.status.pending, 0);
+    expect(a.status.problem, 'Un cambio no se pudo subir');
+    expect(server.rows('cash_movements'), hasLength(2));
+    final failed = await a.sync.failedChanges();
+    expect(failed.single.what, startsWith('Venta'));
+    expect(failed.single.error, contains('rechazado'));
 
+    // Se reintenta sola unas veces; luego espera al usuario.
+    await a.settle();
+    await a.settle();
+    expect((await a.repo.failed()).single.attempts, maxAutoRetries);
     server.rejectTables.clear();
     await a.settle();
-    expect(a.status.pending, 0);
+    expect(a.status.failed, 1);
+    expect(server.rows('sales'), hasLength(2));
+
+    await a.sync.retryFailed();
+    await a.store.flush();
+    expect(a.status.failed, 0);
     expect(a.status.problem, isNull);
     expect(server.rows('sales'), hasLength(3));
-    expect(server.rows('cash_movements'), hasLength(2));
+  });
+
+  test('los cambios apartados se explican en palabras', () {
+    expect(describeChange('[{"table":"customers","rows":[]}]'), 'Cliente');
+    expect(
+      describeChange('[{"table":"sales"},{"table":"sale_items"},{"table":"sale_payments"}]'),
+      'Venta, productos de una venta y pago de una venta',
+    );
+    expect(
+      friendlyRejection('new row violates row-level security policy'),
+      'Tu cuenta no tiene permiso para este cambio',
+    );
+    expect(friendlyRejection('insert violates foreign key constraint'), 'Depende de otro cambio que tampoco se subió');
+    expect(friendlyRejection('Solo el dueño puede'), 'Solo el dueño puede');
+  });
+
+  test('descartar un cambio apartado deja el teléfono como la nube', () async {
+    final a = await phone();
+    await _setUpShop(a);
+    await a.login('mary@correo.mx');
+    await a.settle();
+    final coca = a.state.productById('coca')!;
+
+    server.rejectTables.add('products');
+    a.store.saveProduct(coca.copyWith(priceCents: 2000));
+    await a.settle();
+    expect(a.status.failed, 1);
+    expect(a.state.productById('coca')!.priceCents, 2000);
+
+    final change = (await a.sync.failedChanges()).single;
+    expect(change.what, 'Producto');
+    await a.sync.discardFailed(change.id);
+    await a.store.flush();
+    expect(a.status.failed, 0);
+    expect(a.status.problem, isNull);
+    // Volvió a bajar el catálogo: el precio es otra vez el de la nube.
+    expect(a.state.productById('coca')!.priceCents, 1800);
   });
 
   test('pacas, apartados y tandas se suben y otro teléfono los baja', () async {

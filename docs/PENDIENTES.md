@@ -110,11 +110,11 @@ Prioridad: **Alta** = sin esto no se puede usar con un negocio real · **Media**
 - [ ] **Media** · Los meseros con una versión vieja de la app (antes del 12/11/2026) ya no bajan productos: hay que actualizarles la app.
 - [x] **Media** · La cocina solo cambia el estado de los platillos: no abre ni cambia cuentas ni agrega platillos (migración 0009). Probado en la base con mesero y cocina simulados. *12/11/2026*
 - [x] **Alta** · Llave propia para firmar el APK; desde la 1.6.1 los APK salen firmados con ella. *18/11/2026*
-- [ ] **Alta** · Copia de la llave (`gavilan-upload.jks`) y su contraseña fuera de la computadora (USB, Drive o gestor de contraseñas). Sin ellas no se pueden sacar actualizaciones.
+- [x] **Alta** · Copia de la llave (`gavilan-upload.jks`) y su contraseña guardada en Drive por el usuario. *18/11/2026*
 - [ ] **Media** · En el panel de Supabase (Authentication → Passwords): largo mínimo 8 y prender la protección de contraseñas filtradas.
 - [x] **Alta** · El servidor respeta que solo dueño y administrador cancelan o cambian ventas, fiados, movimientos y cortes cerrados, y meseros y cocina ya no leen el dinero ni a los clientes (migración 0015). *17/11/2026*
 - [x] **Media** · Sin cuenta no se toca ninguna tabla, ni las futuras (migración 0016). *17/11/2026*
-- [ ] **Media** · Si el servidor rechaza un cambio, ese renglón se queda primero en la cola y frena lo demás. Pensar cómo apartarlo (con aviso) para que el resto siga subiendo.
+- [x] **Media** · Si el servidor rechaza un cambio, se aparta y lo demás sigue subiendo; en Respaldo se puede reintentar o descartar. *18/11/2026*
 - [ ] **Baja** · Revisar los 3 avisos "WARN" de Supabase cuando cambie el esquema. Hoy son intencionales; ver [BASE_DE_DATOS.md](BASE_DE_DATOS.md).
 
 ## Diseño

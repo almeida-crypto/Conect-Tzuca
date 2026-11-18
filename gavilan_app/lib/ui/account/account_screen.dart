@@ -9,6 +9,7 @@ import '../../state/sync.dart';
 import '../../theme/colors.dart';
 import '../../theme/theme.dart';
 import '../widgets/buttons.dart';
+import 'failed_changes.dart';
 
 /// Cuenta y respaldo en la nube. Entrar es opcional: sin cuenta todo funciona en el teléfono.
 class AccountScreen extends ConsumerStatefulWidget {
@@ -398,6 +399,7 @@ class _AccountScreenState extends ConsumerState<AccountScreen> {
           ],
         ),
       ),
+      const FailedChanges(),
       const SizedBox(height: 16),
       if (!sync.linked) ...[
         Text(

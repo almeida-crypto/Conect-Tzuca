@@ -759,3 +759,22 @@ Se abren desde **Más → Módulos** con el plan Emprendedor o superior. Los tre
 - El usuario creó su llave (`C:\Users\mende\gavilan-upload.jks`, alias `gavilan`) y escribió la contraseña en `gavilan_app/android/key.properties`. Ninguno de los dos está en el repositorio.
 - APK 1.6.1+9 firmado con esa llave (huella SHA-256 del certificado: `7d2c87c3beb23e49ec0ef3ed68a33d7fed4dd3caae81bbace760761e8a72b08b`), comprobado con `apksigner`.
 - Quien tenga un APK anterior (firmado con la llave de prueba) debe respaldar con su cuenta, desinstalar e instalar este una sola vez.
+
+### El respaldo ya no se traba (18/11/2026)
+- **Antes:** si el servidor rechazaba un cambio, se quedaba primero en la fila y no dejaba subir nada de lo que venía después, ni bajar lo de otros teléfonos.
+- **Ahora:**
+  - El cambio rechazado se **aparta** y los demás siguen subiendo; después se baja lo de la nube como siempre.
+  - Lo que depende del apartado (por ejemplo, los productos de una venta rechazada) también lo rechaza el servidor y queda apartado junto con él.
+  - Un apartado se vuelve a intentar solo en los siguientes respaldos, hasta 3 veces (`maxAutoRetries`), por si fue algo pasajero. Después espera al usuario.
+- **En Más › Respaldo** sale un recuadro "N cambios no se pudieron subir" con qué era cada uno ("Venta, productos de una venta y pago de una venta"), la fecha y el motivo en palabras:
+  - **Reintentar:** vuelve a mandar todos (por ejemplo, después de darle permisos a la cuenta).
+  - **Descartar:** ese cambio ya no se sube y el teléfono vuelve a bajar esas tablas, así queda igual que la nube.
+- La pastilla del encabezado dice "Revisar respaldo" mientras haya apartados; "Por subir" ya no los cuenta.
+- **Código:** `SyncStore.pending(afterId:)` recorre la fila una vez por respaldo; nuevos `failed`, `failedCount`, `retryFailed`, `discardFailed`. `SyncStatus.failed`, `FailedChange`, `describeChange` y `friendlyRejection` en `state/sync.dart`; recuadro en `ui/account/failed_changes.dart`.
+
+### Verificación
+- `flutter analyze` sin avisos y 102 pruebas pasan, 3 nuevas o cambiadas en `sync_test.dart`:
+  - Venta rechazada: el gasto que va después sí sube; tras 3 intentos espera; "Reintentar" la sube.
+  - "Descartar" un precio rechazado regresa el precio de la nube.
+  - Los nombres y motivos en palabras.
+- Revisión de la pantalla con una imagen de prueba (borrada al terminar).
