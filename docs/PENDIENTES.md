@@ -109,7 +109,8 @@ Prioridad: **Alta** = sin esto no se puede usar con un negocio real · **Media**
 - [x] **Media** · Que meseros y cocina no vean el costo de compra (migración 0008, `pull_products`). Se probó en la base con un dueño y un mesero simulados. *12/11/2026*
 - [ ] **Media** · Los meseros con una versión vieja de la app (antes del 12/11/2026) ya no bajan productos: hay que actualizarles la app.
 - [x] **Media** · La cocina solo cambia el estado de los platillos: no abre ni cambia cuentas ni agrega platillos (migración 0009). Probado en la base con mesero y cocina simulados. *12/11/2026*
-- [ ] **Alta** · Crear la llave propia para firmar el APK (lo hace el usuario: ver `docs/REVISION_SEGURIDAD.md`, I1, y `gavilan_app/android/key.properties.example`). Guardar copia del `.jks` y sus contraseñas fuera de la computadora.
+- [x] **Alta** · Llave propia para firmar el APK; desde la 1.6.1 los APK salen firmados con ella. *18/11/2026*
+- [ ] **Alta** · Copia de la llave (`gavilan-upload.jks`) y su contraseña fuera de la computadora (USB, Drive o gestor de contraseñas). Sin ellas no se pueden sacar actualizaciones.
 - [ ] **Media** · En el panel de Supabase (Authentication → Passwords): largo mínimo 8 y prender la protección de contraseñas filtradas.
 - [x] **Alta** · El servidor respeta que solo dueño y administrador cancelan o cambian ventas, fiados, movimientos y cortes cerrados, y meseros y cocina ya no leen el dinero ni a los clientes (migración 0015). *17/11/2026*
 - [x] **Media** · Sin cuenta no se toca ninguna tabla, ni las futuras (migración 0016). *17/11/2026*

@@ -754,3 +754,8 @@ Se abren desde **Más → Módulos** con el plan Emprendedor o superior. Los tre
 - El servidor de prueba de la app aplica las mismas reglas. Prueba nueva en `sync_test.dart`: el cajero no cancela por la nube, el dueño sí, y el mesero baja productos pero no ventas, cortes, fiados ni clientes.
 - `flutter analyze` sin avisos y 100 pruebas pasan.
 - No se hizo APK: el siguiente conviene firmarlo ya con la llave propia.
+
+### Firma propia del APK (18/11/2026)
+- El usuario creó su llave (`C:\Users\mende\gavilan-upload.jks`, alias `gavilan`) y escribió la contraseña en `gavilan_app/android/key.properties`. Ninguno de los dos está en el repositorio.
+- APK 1.6.1+9 firmado con esa llave (huella SHA-256 del certificado: `7d2c87c3beb23e49ec0ef3ed68a33d7fed4dd3caae81bbace760761e8a72b08b`), comprobado con `apksigner`.
+- Quien tenga un APK anterior (firmado con la llave de prueba) debe respaldar con su cuenta, desinstalar e instalar este una sola vez.

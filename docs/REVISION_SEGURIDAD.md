@@ -8,7 +8,7 @@ Este archivo dice qué se revisó, qué se encontró y qué hay que mejorar. La 
 
 | Punto | Estado |
 |---|---|
-| I1 · Firma propia | Preparada en `build.gradle.kts`; falta que el usuario cree la llave |
+| I1 · Firma propia | Hecho: APK 1.6.1 firmado con la llave del usuario (18/11/2026) |
 | I2 · Servidor respeta quién cancela y quién lee | Hecho (migración 0015, 17/11/2026) |
 | I3 · Sin permisos para `anon` | Hecho (migración 0016, 17/11/2026) |
 | I4 · Contraseñas | App hecha (8 para cuentas y contraseñas nuevas); falta el ajuste del panel de Supabase (usuario) |
