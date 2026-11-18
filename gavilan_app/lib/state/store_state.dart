@@ -5,6 +5,7 @@ part of 'store.dart';
 class StoreState {
   const StoreState({
     this.photos = const {},
+    this.logoPath,
     this.device,
     this.registerName,
     this.kitchenPrint = false,
@@ -61,6 +62,12 @@ class StoreState {
 
   /// Bytes de la foto de un producto, si ya está aquí.
   Uint8List? photoOf(Product p) => p.photoPath == null ? null : photos[p.photoPath];
+
+  /// Ruta en la nube del logo del negocio (va en la misma carpeta que las fotos). null = sin logo.
+  final String? logoPath;
+
+  /// Bytes del logo (PNG con fondo blanco), si ya está en este celular.
+  Uint8List? get logo => logoPath == null ? null : photos[logoPath];
 
   /// Clave de este celular (la misma de los folios, "K7"). La pone el repositorio al abrir.
   final String? device;
@@ -447,6 +454,8 @@ class StoreState {
 
   StoreState copyWith({
     Map<String, Uint8List>? photos,
+    String? logoPath,
+    bool clearLogo = false,
     String? device,
     String? registerName,
     bool clearRegisterName = false,
@@ -481,6 +490,7 @@ class StoreState {
     int? nextFolio,
   }) => StoreState(
     photos: photos ?? this.photos,
+    logoPath: clearLogo ? null : (logoPath ?? this.logoPath),
     device: device ?? this.device,
     registerName: clearRegisterName ? null : (registerName ?? this.registerName),
     kitchenPrint: kitchenPrint ?? this.kitchenPrint,

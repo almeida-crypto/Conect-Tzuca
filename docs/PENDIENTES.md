@@ -52,7 +52,8 @@ Prioridad: **Alta** = sin esto no se puede usar con un negocio real · **Media**
 - [ ] **Media** · Probarla en un celular de gama baja (2 o 3 GB de RAM), como los de muchos comerciantes.
 - [x] **Media** · Pantalla de carga en color papel en Android e iPhone; en Android 12 o más sale el icono de Gavilán. *01/11/2026*
 - [x] **Media** · Ticket como imagen PNG para WhatsApp (`RepaintBoundary` + `share_plus`), con la opción de mandarlo como texto. *31/10/2026*
-- [ ] **Media** · Logo del negocio en el ticket para los planes de pago.
+- [x] **Media** · Logo del negocio en el ticket para los planes de pago. *18/11/2026*
+- [ ] **Media** · Probar el logo en un celular real: elegirlo de la galería (PNG transparente y JPG), verlo en otro celular e imprimirlo en una térmica.
 - [ ] **Media** · Tarjeta para Estados de WhatsApp: foto del producto, precio y sello "Disponible".
 - [x] **Media** · Fotos de producto en planes de pago: 600×600 JPEG en el teléfono, guardadas sin internet y respaldadas en Supabase Storage. *18/11/2026*
 - [x] **Media** · Políticas de Supabase Storage para fotos de productos (migración 0023). *18/11/2026*

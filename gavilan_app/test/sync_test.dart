@@ -617,6 +617,35 @@ void main() {
     expect(b.state.productById('coca')!.photoPath, isNull);
   });
 
+  test('el logo del negocio se sube y el otro celular lo baja', () async {
+    final a = await phone(device: 'K7');
+    await _setUpShop(a);
+    await a.login('mary@correo.mx');
+    await a.settle();
+
+    final png = Uint8List.fromList([0x89, 0x50, 0x4E, 0x47, ...List.filled(100, 9)]);
+    a.store.setLogo(png);
+    final path = a.state.logoPath!;
+    expect(path, startsWith('${a.state.businessId}/logo-'));
+    await a.settle();
+    expect(server.storage[path], png);
+    expect(server.table('businesses')[a.state.businessId]!['logo_path'], path);
+    expect(server.table('businesses')[a.state.businessId]!['name'], isNotNull); // no pisa lo demás
+
+    final b = await phone(device: 'R3');
+    await b.login('mary@correo.mx');
+    await b.settle();
+    expect(b.state.logoPath, path);
+    expect(b.state.logo, png);
+
+    // Quitarlo también llega al otro celular.
+    a.store.setLogo(null);
+    await a.settle();
+    await b.settle();
+    expect(b.state.logoPath, isNull);
+    expect(b.state.logo, isNull);
+  });
+
   test('el mesero manda la comanda y la cocina la recibe sola', () async {
     final waiter = await phone(device: 'K7');
     await _setUpShop(waiter);

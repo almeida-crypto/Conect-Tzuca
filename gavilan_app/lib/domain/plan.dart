@@ -37,6 +37,7 @@ class PlanLimits {
     required this.maxDebtors,
     required this.maxLots,
     required this.photos,
+    required this.logo,
     required this.watermark,
     required this.layaways,
     required this.batches,
@@ -51,6 +52,9 @@ class PlanLimits {
   final int? maxDebtors;
   final int? maxLots;
   final bool photos;
+
+  /// El logo del negocio arriba del ticket.
+  final bool logo;
   final bool watermark;
   final bool layaways;
   final bool batches;
@@ -66,6 +70,7 @@ class PlanLimits {
       maxDebtors: 20,
       maxLots: 1,
       photos: false,
+      logo: false,
       watermark: true,
       layaways: false,
       batches: false,
@@ -80,6 +85,7 @@ class PlanLimits {
       maxDebtors: null,
       maxLots: null,
       photos: true,
+      logo: true,
       watermark: false,
       layaways: true,
       batches: true,
@@ -94,6 +100,7 @@ class PlanLimits {
       maxDebtors: null,
       maxLots: null,
       photos: true,
+      logo: true,
       watermark: false,
       layaways: true,
       batches: true,
@@ -123,7 +130,7 @@ List<String> planHighlights(Plan plan) => switch (plan) {
     'Pacas y lotes con barra de recuperación',
     'Pedidos por tanda',
     'Reportes de ventas en la computadora',
-    'Ticket sin marca de agua',
+    'Ticket sin marca de agua y con tu logo',
   ],
   Plan.negocio => const [
     'Todo lo de Emprendedor, sin límite de productos',
@@ -137,6 +144,6 @@ List<String> planHighlights(Plan plan) => switch (plan) {
 /// Lo que llegará a cada plan más adelante.
 List<String> planComingSoon(Plan plan) => switch (plan) {
   Plan.semilla => const [],
-  Plan.emprendedor => const ['Tu logo en el ticket'],
+  Plan.emprendedor => const [],
   Plan.negocio => const ['Impresora de tickets Bluetooth'],
 };

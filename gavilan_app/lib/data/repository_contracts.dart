@@ -1,5 +1,8 @@
 part of 'repository.dart';
 
+/// En la tabla de fotos, el logo del negocio va con este id en lugar del de un producto.
+const logoPhotoId = 'logo';
+
 /// Lo que se recupera al abrir la app.
 class LoadedData {
   const LoadedData({required this.store, required this.plan});
@@ -56,6 +59,10 @@ abstract class StoreRepository {
 
   /// Guarda la foto de un producto (y borra las anteriores de ese producto).
   Future<void> savePhoto(String productId, String path, Uint8List bytes, {bool uploaded = false});
+
+  /// Logo del negocio: se guarda con las fotos (con [logoPhotoId]) y su ruta sube a la fila del negocio.
+  /// Con null se quita.
+  Future<void> setLogo(String? path, Uint8List? bytes);
 
   /// Tipo de negocio y módulos prendidos; sube a Supabase si el teléfono está enlazado.
   Future<void> setBusinessSetup(BusinessType type, Set<Module> modules);
@@ -177,6 +184,8 @@ class MemoryRepository implements StoreRepository {
   Future<void> setBusinessSetup(BusinessType type, Set<Module> modules) async {}
   @override
   Future<void> savePhoto(String productId, String path, Uint8List bytes, {bool uploaded = false}) async {}
+  @override
+  Future<void> setLogo(String? path, Uint8List? bytes) async {}
   @override
   Future<void> setClerks(List<Clerk> clerks, int? lockMinutes) async {}
   @override

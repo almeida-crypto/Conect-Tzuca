@@ -86,6 +86,9 @@ Set<PayMethod>? payMethodsFromRemote(Object? value) {
   return {PayMethod.efectivo, for (final v in value) ?_methodIn[v]};
 }
 
+/// Logo del negocio: su ruta en el almacenamiento (null = sin logo).
+RemoteRow logoToRemote(String? path) => {'logo_path': path};
+
 /// Tope general de fiado del negocio (se actualiza en su fila de `businesses`).
 RemoteRow creditLimitToRemote(int? cents) => {'credit_limit': cents == null ? null : _pesos(cents)};
 

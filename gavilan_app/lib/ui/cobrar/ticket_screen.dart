@@ -90,6 +90,7 @@ class _TicketScreenState extends ConsumerState<TicketScreen> {
     final canReturn = canCancel && open != null && sale.sessionId == open.id;
     final order = sale.orderId == null ? null : store.orderById(sale.orderId!);
     final place = order == null ? null : store.orderTitle(order);
+    final logo = plan.limits.logo ? store.logo : null;
     final text = ticketText(
       place: place,
       business: store.businessName,
@@ -107,6 +108,7 @@ class _TicketScreenState extends ConsumerState<TicketScreen> {
         customerName: customer?.name,
         newBalanceCents: balance,
         watermark: plan.limits.watermark,
+        logo: logo,
       ),
     );
     void newSale() => Navigator.of(context).maybePop();
@@ -154,6 +156,15 @@ class _TicketScreenState extends ConsumerState<TicketScreen> {
                             Column(
                               crossAxisAlignment: CrossAxisAlignment.stretch,
                               children: [
+                                if (logo != null) ...[
+                                  Center(
+                                    child: ConstrainedBox(
+                                      constraints: const BoxConstraints(maxWidth: 220, maxHeight: 76),
+                                      child: Image.memory(logo, fit: BoxFit.contain, gaplessPlayback: true),
+                                    ),
+                                  ),
+                                  const SizedBox(height: 8),
+                                ],
                                 Text(
                                   store.businessName.toUpperCase(),
                                   textAlign: TextAlign.center,

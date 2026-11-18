@@ -1,3 +1,6 @@
+import 'dart:convert';
+import 'dart:typed_data';
+
 import '../domain/models.dart';
 import '../domain/restaurant.dart';
 import 'money.dart';
@@ -12,6 +15,7 @@ String ticketHtml({
   int? newBalanceCents,
   bool watermark = false,
   String? place,
+  Uint8List? logo,
 }) {
   final paid = sale.kind == SaleKind.pagada;
   final rows = StringBuffer();
@@ -56,6 +60,7 @@ String ticketHtml({
   .t { width: 100%; max-width: 72mm; margin: 0 auto; }
   h1 { font-size: 14px; text-align: center; letter-spacing: 1px; margin: 0 0 2px; text-transform: uppercase; }
   .sub { text-align: center; font-size: 11px; margin-bottom: 8px; }
+  .logo { display: block; max-width: 70%; max-height: 22mm; margin: 0 auto 4px; }
   table { width: 100%; border-collapse: collapse; }
   td { padding: 1px 0; vertical-align: top; }
   td.r { text-align: right; white-space: nowrap; padding-left: 8px; }
@@ -66,6 +71,7 @@ String ticketHtml({
   .pie { text-align: center; font-size: 10px; margin-top: 8px; }
 </style></head>
 <body><div class="t">
+${logo == null ? '' : '<img class="logo" alt="" src="${imageDataUri(logo)}">'}
 <h1>${_esc(business)}</h1>
 <div class="sub">Folio ${_esc(sale.folioLabel)} · ${_esc(dateTimeLabel(sale.createdAt))}${place == null ? '' : '<br>${_esc(place)}'}${sale.clerk == null ? '' : '<br>Te atendió: ${_esc(sale.clerk!)}'}</div>
 <table>
@@ -75,6 +81,12 @@ ${sale.cancelled ? '<div class="pie">${_esc(sale.cancelReason ?? '')}</div>' : '
 <div class="pie">¡Gracias por su compra!</div>
 ${watermark ? '<div class="pie">Hecho con Gavilán</div>' : ''}
 </div></body></html>''';
+}
+
+/// La imagen dentro del mismo HTML (sin pedir nada a internet).
+String imageDataUri(Uint8List bytes) {
+  final png = bytes.length > 3 && bytes[0] == 0x89 && bytes[1] == 0x50 && bytes[2] == 0x4E;
+  return 'data:image/${png ? 'png' : 'jpeg'};base64,${base64Encode(bytes)}';
 }
 
 String _esc(String s) =>

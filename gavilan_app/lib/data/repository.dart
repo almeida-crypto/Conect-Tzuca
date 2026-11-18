@@ -26,6 +26,7 @@ const _kCreditLimit = 'credit_limit';
 const _kPayMethods = 'pay_methods';
 const _kRegisterName = 'register_name';
 const _kKitchenPrint = 'kitchen_print';
+const _kLogo = 'logo_path';
 const _kBusinessId = 'business_id';
 const _kDemo = 'is_demo';
 const _kFolio = 'next_folio';
@@ -166,6 +167,7 @@ class DriftRepository implements StoreRepository, SyncStore {
       payMethods: payMethodsFromText(meta[_kPayMethods]),
       registerName: (meta[_kRegisterName] ?? '').isEmpty ? null : meta[_kRegisterName],
       kitchenPrint: meta[_kKitchenPrint] == '1',
+      logoPath: (meta[_kLogo] ?? '').isEmpty ? null : meta[_kLogo],
       nextFolio: int.tryParse(meta[_kFolio] ?? '') ?? 1,
       products: [for (final p in await db.select(db.productsTable).get()) _product(p)],
       photos: {for (final f in await db.select(db.productPhotosTable).get()) f.path: f.bytes},
@@ -496,6 +498,19 @@ class DriftRepository implements StoreRepository, SyncStore {
       });
 
   @override
+  Future<void> setLogo(String? path, Uint8List? bytes) => db.transaction(() async {
+    if (path != null && bytes != null) {
+      await savePhoto(logoPhotoId, path, bytes);
+    } else {
+      await (db.delete(db.productPhotosTable)..where((t) => t.productId.equals(logoPhotoId))).go();
+    }
+    await _setMeta(_kLogo, path ?? '');
+    await _enqueue([
+      (table: 'businesses', rows: [logoToRemote(path)]),
+    ]);
+  });
+
+  @override
   Future<List<PhotoRow>> pendingPhotos() =>
       (db.select(db.productPhotosTable)..where((t) => t.uploaded.equals(false))).get();
 
@@ -665,6 +680,11 @@ class DriftRepository implements StoreRepository, SyncStore {
         (table: 'businesses', rows: [businessSetupToRemote(s.businessType, s.modules)]),
       ]);
     }
+    if (s.logoPath != null) {
+      await _enqueue([
+        (table: 'businesses', rows: [logoToRemote(s.logoPath)]),
+      ]);
+    }
     // Todo lo que ya existía en el teléfono, en orden de dependencias. Los productos
     // suben con su existencia actual, por eso las ventas viejas no vuelven a descontar.
     if (s.customers.isNotEmpty) {
@@ -802,6 +822,13 @@ class DriftRepository implements StoreRepository, SyncStore {
           if (methods != null) await _setMeta(_kPayMethods, payMethodsToText(methods));
           if (r.containsKey('credit_limit')) {
             await _setMeta(_kCreditLimit, _centsText(r['credit_limit']));
+          }
+          if (r.containsKey('logo_path')) {
+            final logo = (r['logo_path'] as String?) ?? '';
+            await _setMeta(_kLogo, logo);
+            if (logo.isEmpty) {
+              await (db.delete(db.productPhotosTable)..where((t) => t.productId.equals(logoPhotoId))).go();
+            }
           }
         case 'customers':
           await db.into(db.customersTable).put(customerFromRemote(r));

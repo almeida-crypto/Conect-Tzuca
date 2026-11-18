@@ -470,6 +470,18 @@ abstract class _StoreCore extends Notifier<StoreState> {
     });
   }
 
+  /// Pone (o quita, con null) el logo del negocio. Los bytes ya vienen listos ([prepareLogo]).
+  /// Como las fotos, la ruta cambia con cada logo para que los demás celulares bajen el nuevo.
+  void setLogo(Uint8List? bytes) {
+    final path = bytes == null ? null : '${state.businessId}/logo-${_clock().millisecondsSinceEpoch}.png';
+    state = state.copyWith(
+      logoPath: path,
+      clearLogo: path == null,
+      photos: path == null ? null : {...state.photos, path: bytes!},
+    );
+    _save((r) => r.setLogo(path, bytes));
+  }
+
   /// Prende o apaga imprimir solas las comandas nuevas en la cocina de este aparato.
   void setKitchenPrint(bool on) {
     state = state.copyWith(kitchenPrint: on);

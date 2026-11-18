@@ -20,6 +20,7 @@ import '../restaurant/restaurant_screen.dart';
 import '../team/team_screen.dart';
 import '../widgets/buttons.dart';
 import '../widgets/common.dart';
+import 'logo_card.dart';
 import 'plan_screen.dart';
 import '../account/business_switcher.dart';
 import '../../state/profiles.dart';
@@ -293,6 +294,8 @@ class MasScreen extends ConsumerWidget {
           const _ModulesCard(),
           const SectionTitle('Formas de pago'),
           const _PayMethodsCard(),
+          const SectionTitle('Tu ticket'),
+          const LogoCard(),
         ],
         const SectionTitle('Respaldo en la nube'),
         Builder(

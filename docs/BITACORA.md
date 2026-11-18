@@ -935,3 +935,11 @@ Se abren desde **Más → Módulos** con el plan Emprendedor o superior. Los tre
 ### Verificación
 - `flutter analyze` sin avisos y 128 pruebas pasan, 2 nuevas en `clerks_test.dart`: PBKDF2 contra los valores de la norma (RFC 7914) y un PIN de antes que sigue sirviendo y se rehace al entrar.
 - En GitHub la app pasó a la primera; el panel, después de agregar `next typegen`.
+
+### Logo del negocio en el ticket
+- En **Más → Tu ticket → Logo del negocio** (dueño y administradores): elegir de la galería, tomarle foto o quitarlo. Desde el plan Emprendedor; en Semilla abre la invitación a subir de plan. En "Mi plan", Emprendedor dice "Ticket sin marca de agua y con tu logo" y ya no está en "lo que viene".
+- `core/logo.dart` → `prepareLogo`: lo deja de hasta 600×240 sin deformarse, con fondo blanco (lo transparente saldría negro en la térmica) y en PNG; si pesa más de 450 KB lo achica.
+- Sale arriba del ticket en pantalla (y en la imagen que se manda por WhatsApp) y en el ticket impreso, dentro del mismo HTML (`data:`), que la CSP de la versión web ya permitía.
+- Se guarda con las fotos (tabla `product_photos` con id `logo`), su ruta en `businesses.logo_path` (la columna ya existía) y se sube al bucket `product-photos` como `<negocio>/logo-<hora>.png`. Los otros celulares lo bajan al respaldar; quitarlo también llega a ellos. Al enlazar un negocio que ya tenía logo, se sube.
+- Migración **0025**: el bucket acepta también PNG.
+- Pruebas: `logo_test.dart` (HTML con y sin logo, planes, `prepareLogo` con un PNG transparente, guardar y quitar al reabrir) y una nueva en `sync_test.dart` (un celular lo sube, el otro lo baja y lo quita). 133 pruebas pasan, `flutter analyze` sin avisos. Revisado a ojo el ticket en pantalla, la tarjeta de Más y el ticket impreso (Edge).

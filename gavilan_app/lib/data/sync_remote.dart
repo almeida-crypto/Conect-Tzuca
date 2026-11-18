@@ -66,7 +66,7 @@ abstract class SyncRemote {
     required int limit,
   });
 
-  /// Fotos de producto en el almacenamiento privado del negocio (bucket "product-photos").
+  /// Fotos de producto y logo en el almacenamiento privado del negocio (bucket "product-photos").
   Future<void> uploadPhoto(String path, Uint8List bytes);
   Future<Uint8List> downloadPhoto(String path);
 }
@@ -82,7 +82,11 @@ class SupabaseRemote implements SyncRemote {
   Future<void> uploadPhoto(String path, Uint8List bytes) => _guard(
     () => client.storage
         .from(_photos)
-        .uploadBinary(path, bytes, fileOptions: const FileOptions(upsert: true, contentType: 'image/jpeg')),
+        .uploadBinary(
+          path,
+          bytes,
+          fileOptions: FileOptions(upsert: true, contentType: path.endsWith('.png') ? 'image/png' : 'image/jpeg'),
+        ),
   );
 
   @override

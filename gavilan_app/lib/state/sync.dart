@@ -418,7 +418,7 @@ class SyncController extends Notifier<SyncStatus> {
     }
   }
 
-  /// Fotos de producto: sube las tomadas aquí y baja las que faltan (de 20 en 20 por respaldo).
+  /// Fotos de producto y logo: sube las tomadas aquí y baja las que faltan (de 20 en 20 por respaldo).
   /// Una foto que todavía no está en la nube (otro celular no la ha subido) se intenta en el siguiente.
   Future<void> _syncPhotos(SyncRemote remote, SyncStore store) async {
     for (final p in await store.pendingPhotos()) {
@@ -430,8 +430,10 @@ class SyncController extends Notifier<SyncStatus> {
       }
     }
     final have = await store.photoPaths();
+    final local = ref.read(storeProvider);
     final missing = {
-      for (final p in ref.read(storeProvider).products)
+      if (local.logoPath case final logo? when !have.contains(logo)) (logoPhotoId, logo),
+      for (final p in local.products)
         if (p.photoPath != null && !have.contains(p.photoPath)) (p.id, p.photoPath!),
     }.take(20);
     var got = false;
