@@ -91,7 +91,11 @@ class _SaleRow extends StatelessWidget {
   Widget build(BuildContext context) {
     final s = sale;
     final items = s.lines.map((l) => '${qtyLabel(l.qty)} ${l.name}').join(', ');
-    final how = s.kind == SaleKind.fiada ? 'Fiado${customer == null ? '' : ' · $customer'}' : s.method?.label ?? '';
+    final how = s.kind == SaleKind.fiada
+        ? 'Fiado${customer == null ? '' : ' · $customer'}'
+        : s.split
+        ? paymentsLabel(s.payments)
+        : s.method?.label ?? '';
     final muted = s.cancelled;
     return InkWell(
       onTap: () =>

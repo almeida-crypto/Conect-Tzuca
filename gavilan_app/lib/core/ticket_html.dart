@@ -27,7 +27,15 @@ String ticketHtml({
   }
   row('TOTAL', money(sale.totalCents), strong: true);
   rows.writeln('<tr class="sep"><td colspan="2"></td></tr>');
-  if (paid) {
+  if (paid && sale.split) {
+    for (final p in sale.payments) {
+      row(p.method.label, money(p.amountCents));
+    }
+    if (sale.receivedCents != null && sale.cashCents > 0) {
+      row('Recibió (efectivo)', money(sale.receivedCents!));
+      row('Cambio', money(sale.changeCents));
+    }
+  } else if (paid) {
     row('Pago', sale.method!.label);
     if (sale.method == PayMethod.efectivo) {
       row('Recibió', money(sale.receivedCents ?? sale.totalCents));

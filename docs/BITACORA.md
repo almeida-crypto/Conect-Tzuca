@@ -812,3 +812,21 @@ Se abren desde **Más → Módulos** con el plan Emprendedor o superior. Los tre
 ### Verificación
 - `flutter analyze` sin avisos y 109 pruebas pasan, 5 nuevas (`credit_limit_test.dart`): tope del cliente, general y ninguno; se guarda, sube y baja; dentro del tope no pregunta; el dueño fía de todos modos; el cajero necesita el PIN y con "No fiar" no se fía.
 - Revisión de pantallas (Fiados, tope de un cliente y aviso) con imágenes de prueba, borradas al terminar.
+
+### Dividir la cuenta y pagos mixtos (18/11/2026)
+- **Al cobrar se escoge** (el usuario pidió que sea a elegir):
+  - **Todo junto**, como siempre.
+  - **Pagar en partes** (mostrador) o **Dividir la cuenta** (mesa), junto a "Forma de pago":
+    - **Partes iguales:** "¿Entre cuántos?" (2 a 20); la app reparte el total exacto (los centavos que sobran van en las primeras partes) y cada parte elige efectivo, tarjeta o transferencia.
+    - **Varios métodos (pago mixto):** montos libres; el último se llena solo con lo que falta. "Con cuánto pagan" (opcional) da el cambio de lo de efectivo.
+    - **Por platillos (solo mesas):** "¿Qué paga esta persona?" con + y − por platillo; se cobra aparte con su ticket (también con descuento, fiado o en partes). La cuenta sigue abierta con lo demás ("Pagado 2 de 3") y se cierra sola al pagar todo.
+- **Corte:** cada pago cuenta según su método (antes la venta entera iba a un solo método). Devolver parte de una venta pagada en partes regresa primero el efectivo. El ticket (pantalla, WhatsApp e impreso) muestra cada pago.
+- **Reglas:** lo pagado de un platillo no se puede quitar; cancelar una mesa con parte pagada deja lo pagado y la cierra como cobrada; si los pagos no suman exacto, el último absorbe la diferencia.
+- **Servidor (migración 0018):** `order_items.paid_qty` (piezas ya cobradas). Trigger `order_item_paid_qty`: solo dueño, admin y cajero lo suben y nunca baja (una copia vieja en el celular de un mesero no lo regresa); la cocina tampoco lo toca. Los pagos van en `sale_payments` (ya existía) y la venta queda con `pay_method` vacío. Probado en la base con mesero y cajero simulados (transacción deshecha).
+- **Teléfono:** base local versión 12 (tabla `sale_payments`, `order_items.paidQty`). `Sale.payments`, `paymentParts`, `cashCents`, `split`; `chargeOrderItems`; `ui/cobrar/split_pay_sheet.dart` y `ui/restaurant/split_items_sheet.dart`.
+- **Panel web:** las ventas pagadas en partes reparten su total entre sus métodos ("Cómo te pagan").
+
+### Verificación
+- `flutter analyze` sin avisos y 116 pruebas pasan, 7 nuevas (`split_bill_test.dart`): partes iguales exactas; pago mixto en el corte y el cambio; un solo pago es pago normal; pagos que no cuadran; devolución de una venta en partes; guardar, subir y bajar los pagos; mesa por platillos (no se cobra dos veces, se libera al final, lo pagado no se quita, cancelar con parte pagada) y `paid_qty` hacia la nube.
+- Panel: `tsc` y `eslint` sin errores.
+- Revisión de pantallas (cobrar mesa, partes iguales, varios métodos, por platillos, mesa con parte pagada y ticket), imágenes borradas al terminar.

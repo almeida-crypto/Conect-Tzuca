@@ -124,7 +124,20 @@ class OrderItem {
     this.sentAt,
     this.readyAt,
     this.servedAt,
+    this.paidQty = 0,
   });
+
+  /// Piezas que ya se cobraron al dividir la cuenta por platillos.
+  final double paidQty;
+
+  /// Lo que falta por cobrar de este platillo.
+  double get dueQty => cancelled ? 0 : (qty - paidQty).clamp(0, qty).toDouble();
+
+  /// Ya se cobró completo.
+  bool get fullyPaid => !cancelled && dueQty <= 0.0001;
+
+  /// Lo que falta por cobrar, en centavos.
+  int get dueCents => (unitWithExtrasCents * dueQty).round();
 
   final String id;
   final String orderId;
@@ -166,6 +179,7 @@ class OrderItem {
     DateTime? sentAt,
     DateTime? readyAt,
     DateTime? servedAt,
+    double? paidQty,
   }) => OrderItem(
     id: id,
     orderId: orderId,
@@ -180,5 +194,6 @@ class OrderItem {
     sentAt: sentAt ?? this.sentAt,
     readyAt: readyAt ?? this.readyAt,
     servedAt: servedAt ?? this.servedAt,
+    paidQty: paidQty ?? this.paidQty,
   );
 }

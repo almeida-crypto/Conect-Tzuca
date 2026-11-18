@@ -41,7 +41,14 @@ async function fetchAll<T>(page: (from: number, to: number) => PromiseLike<{ dat
   }
 }
 
-type SaleRow = { id: string; created_at: string; total: number; status: string; pay_method: string | null };
+type SaleRow = {
+  id: string;
+  created_at: string;
+  total: number;
+  status: string;
+  pay_method: string | null;
+  sale_payments?: { method: string; amount: number }[] | null;
+};
 type ItemRow = {
   sale_id: string;
   name_snapshot: string;
@@ -56,6 +63,10 @@ const toSale = (r: SaleRow): Sale => ({
   at: new Date(r.created_at),
   totalCents: cents(r.total),
   method: r.status === "credit" ? "fiado" : (methodIn[r.pay_method ?? ""] ?? "efectivo"),
+  parts:
+    r.status !== "credit" && r.sale_payments && r.sale_payments.length > 1
+      ? r.sale_payments.map((p) => ({ method: methodIn[p.method] ?? "efectivo", totalCents: cents(p.amount) }))
+      : undefined,
 });
 
 export async function loadReport(client: SupabaseClient, businessId: string, period: Period): Promise<ReportData> {
@@ -66,7 +77,7 @@ export async function loadReport(client: SupabaseClient, businessId: string, per
     fetchAll<SaleRow>((a, b) =>
       client
         .from("sales")
-        .select("id, created_at, total, status, pay_method")
+        .select("id, created_at, total, status, pay_method, sale_payments(method, amount)")
         .eq("business_id", businessId)
         .neq("status", "cancelled")
         .gte("created_at", iso(prev.from))

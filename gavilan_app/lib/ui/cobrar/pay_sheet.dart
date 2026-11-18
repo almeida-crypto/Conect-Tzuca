@@ -14,11 +14,14 @@ import '../widgets/buttons.dart';
 import '../widgets/common.dart';
 import '../fiados/credit_limit.dart';
 import 'customer_picker.dart';
+import 'split_pay_sheet.dart';
+import '../restaurant/split_items_sheet.dart';
 import 'ticket_screen.dart';
 
-/// Cobra la cuenta del mostrador o, con [orderId], la comanda de una mesa.
-Future<void> showPaySheet(BuildContext context, {String? orderId}) =>
-    showGSheet(context, (_) => _PaySheet(orderId: orderId));
+/// Cobra la cuenta del mostrador o, con [orderId], la comanda de una mesa. Con [items], solo esos
+/// platillos de la mesa (cuenta dividida por platillos: cuántas piezas de cada uno).
+Future<void> showPaySheet(BuildContext context, {String? orderId, Map<String, double>? items}) =>
+    showGSheet(context, (_) => _PaySheet(orderId: orderId, items: items));
 
 /// Billetes que suele dar el cliente, mayores o iguales al total.
 List<int> suggestedBills(int totalCents) {
@@ -27,9 +30,10 @@ List<int> suggestedBills(int totalCents) {
 }
 
 class _PaySheet extends ConsumerStatefulWidget {
-  const _PaySheet({this.orderId});
+  const _PaySheet({this.orderId, this.items});
 
   final String? orderId;
+  final Map<String, double>? items;
 
   @override
   ConsumerState<_PaySheet> createState() => _PaySheetState();
@@ -46,8 +50,19 @@ class _PaySheetState extends ConsumerState<_PaySheet> {
   /// Descuento a toda la cuenta, en centavos.
   int _discount = 0;
 
-  int _subtotal() =>
-      widget.orderId == null ? ref.read(cartTotalProvider) : ref.read(storeProvider).totalOfOrder(widget.orderId!);
+  int _subtotal() => _subtotalOf(ref.read(storeProvider), ref.read(cartTotalProvider));
+
+  /// Lo que se cobra: el carrito, lo que falta de la mesa o solo los platillos elegidos.
+  int _subtotalOf(StoreState store, int cartTotal) {
+    final orderId = widget.orderId;
+    if (orderId == null) return cartTotal;
+    final items = widget.items;
+    if (items == null) return store.totalOfOrder(orderId);
+    return [
+      for (final i in store.itemsOfOrder(orderId))
+        if (items.containsKey(i.id)) (i.unitWithExtrasCents * items[i.id]!.clamp(0, i.dueQty)).round(),
+    ].fold(0, (a, c) => a + c);
+  }
 
   Future<void> _askDiscount() async {
     final cents = await showDiscountDialog(context, subtotalCents: _subtotal(), currentCents: _discount);
@@ -67,11 +82,11 @@ class _PaySheetState extends ConsumerState<_PaySheet> {
     super.dispose();
   }
 
-  void _finish({required SaleKind kind, String? customerId}) {
+  void _finish({required SaleKind kind, String? customerId, List<SalePayment> payments = const [], int? cashReceived}) {
     final orderId = widget.orderId;
     final total = (_subtotal() - _discount).clamp(0, _subtotal());
-    int? received;
-    if (kind == SaleKind.pagada && _method == PayMethod.efectivo) {
+    int? received = cashReceived;
+    if (kind == SaleKind.pagada && payments.isEmpty && _method == PayMethod.efectivo) {
       received = _otherMode ? parseMoney(_other.text) : _received;
       if (received != null && received < total) {
         setState(() => _error = 'Lo recibido es menos que el total');
@@ -83,7 +98,7 @@ class _PaySheetState extends ConsumerState<_PaySheet> {
       }
     }
     final store = ref.read(storeProvider.notifier);
-    final paid = received ?? (kind == SaleKind.pagada ? total : null);
+    final paid = payments.isNotEmpty ? received : received ?? (kind == SaleKind.pagada ? total : null);
     final Sale sale;
     if (orderId == null) {
       sale = store.checkout(
@@ -93,8 +108,25 @@ class _PaySheetState extends ConsumerState<_PaySheet> {
         receivedCents: paid,
         customerId: customerId,
         discountCents: _discount,
+        payments: payments,
       );
       ref.read(cartProvider.notifier).clear();
+    } else if (widget.items != null) {
+      final charged = store.chargeOrderItems(
+        orderId,
+        widget.items!,
+        kind: kind,
+        method: _method,
+        receivedCents: paid,
+        customerId: customerId,
+        discountCents: _discount,
+        payments: payments,
+      );
+      if (charged == null) {
+        setState(() => _error = 'Esos platillos ya se cobraron');
+        return;
+      }
+      sale = charged;
     } else {
       sale = store.chargeOrder(
         orderId,
@@ -103,6 +135,7 @@ class _PaySheetState extends ConsumerState<_PaySheet> {
         receivedCents: paid,
         customerId: customerId,
         discountCents: _discount,
+        payments: payments,
       );
     }
     final navigator = Navigator.of(context);
@@ -155,6 +188,59 @@ class _PaySheetState extends ConsumerState<_PaySheet> {
     });
   }
 
+  /// Pagar en partes (iguales o con varios métodos).
+  Future<void> _split(int totalCents, SplitMode mode) async {
+    final result = await showSplitPaySheet(context, totalCents: totalCents, mode: mode);
+    if (result == null || !mounted) return;
+    _finish(kind: SaleKind.pagada, payments: result.payments, cashReceived: result.cashReceived);
+  }
+
+  /// En una mesa: por platillos, en partes iguales o con varios métodos.
+  Future<void> _divide(int totalCents) async {
+    // En el mostrador o si ya se eligieron platillos: solo partes iguales o varios métodos.
+    if (widget.orderId == null || widget.items != null) return _split(totalCents, SplitMode.libres);
+    final choice = await showModalBottomSheet<String>(
+      context: context,
+      showDragHandle: true,
+      builder: (ctx) => SafeArea(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            for (final (key, icon, title, sub) in const [
+              (
+                'platillos',
+                Icons.restaurant_menu_rounded,
+                'Por platillos',
+                'Cada quien paga lo que comió, con su ticket',
+              ),
+              ('iguales', Icons.groups_rounded, 'Partes iguales', 'El total entre varias personas'),
+              ('libres', Icons.payments_outlined, 'Varios métodos', 'Una parte en efectivo y otra con tarjeta'),
+            ])
+              ListTile(
+                leading: Icon(icon, color: GColors.cenote),
+                title: Text(title, style: GText.sans(size: 15, weight: FontWeight.w700)),
+                subtitle: Text(sub, style: GText.muted(size: 12.5)),
+                onTap: () => Navigator.of(ctx).pop(key),
+              ),
+            const SizedBox(height: 8),
+          ],
+        ),
+      ),
+    );
+    if (choice == null || !mounted) return;
+    switch (choice) {
+      case 'platillos':
+        final navigator = Navigator.of(context);
+        final orderId = widget.orderId!;
+        navigator.pop();
+        await showSplitByItemsSheet(navigator.context, orderId: orderId);
+      case 'iguales':
+        await _split(totalCents, SplitMode.iguales);
+      default:
+        await _split(totalCents, SplitMode.libres);
+    }
+  }
+
   Future<void> _fiar(int totalCents) async {
     final customer = await pickCustomerForCredit(context, ref);
     if (customer == null || !mounted) return;
@@ -165,9 +251,7 @@ class _PaySheetState extends ConsumerState<_PaySheet> {
 
   @override
   Widget build(BuildContext context) {
-    final subtotal = widget.orderId == null
-        ? ref.watch(cartTotalProvider)
-        : ref.watch(storeProvider.select((s) => s.totalOfOrder(widget.orderId!)));
+    final subtotal = _subtotalOf(ref.watch(storeProvider), ref.watch(cartTotalProvider));
     final total = (subtotal - _discount).clamp(0, subtotal);
     final received = _otherMode ? parseMoney(_other.text) : _received;
     final change = (_method == PayMethod.efectivo && received != null) ? received - total : 0;
@@ -179,7 +263,7 @@ class _PaySheetState extends ConsumerState<_PaySheet> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          const SheetHeader('Cobrar', caption: 'Total a cobrar'),
+          SheetHeader('Cobrar', caption: widget.items == null ? 'Total a cobrar' : 'Sus platillos'),
           Row(
             crossAxisAlignment: CrossAxisAlignment.end,
             children: [
@@ -215,8 +299,20 @@ class _PaySheetState extends ConsumerState<_PaySheet> {
               ),
             ),
           const SizedBox(height: 14),
-          Text('Forma de pago', style: GText.sans(size: 12)),
-          const SizedBox(height: 6),
+          Row(
+            children: [
+              Expanded(child: Text('Forma de pago', style: GText.sans(size: 12))),
+              TextButton.icon(
+                onPressed: total > 0 ? () => _divide(total) : null,
+                icon: const Icon(Icons.call_split_rounded, size: 18, color: GColors.cenote),
+                label: Text(
+                  widget.orderId == null ? 'Pagar en partes' : 'Dividir la cuenta',
+                  style: GText.sans(size: 13.5, weight: FontWeight.w700, color: GColors.cenote),
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 2),
           Row(
             children: [
               for (final m in PayMethod.values) ...[

@@ -218,7 +218,11 @@ class StoreState {
 
   List<OrderItem> itemsOfOrder(String orderId) => orderItems.where((i) => i.orderId == orderId).toList();
 
-  int totalOfOrder(String orderId) => itemsOfOrder(orderId).fold(0, (a, i) => a + i.totalCents);
+  /// Lo que falta por cobrar de la cuenta (sin lo que ya se pagó por platillos).
+  int totalOfOrder(String orderId) => itemsOfOrder(orderId).fold(0, (a, i) => a + i.dueCents);
+
+  /// Ya se cobró una parte de la cuenta por platillos.
+  bool partlyPaid(String orderId) => itemsOfOrder(orderId).any((i) => i.paidQty > 0);
 
   /// "Mesa 4" o "Para llevar · Juan".
   String orderTitle(RestaurantOrder o) => o.takeout
@@ -317,11 +321,12 @@ class StoreState {
       count++;
       if (s.kind == SaleKind.fiada) {
         onCredit += s.totalCents;
-      } else if (s.method == PayMethod.efectivo) {
-        cash += s.totalCents;
-      } else {
-        other += s.totalCents;
+        continue;
       }
+      // Pagada: cada parte cuenta según cómo se pagó (pago mixto o cuenta en partes).
+      final inCash = s.cashCents;
+      cash += inCash;
+      other += s.totalCents - inCash;
     }
     var cashAbonos = 0, otherAbonos = 0;
     for (final e in credit.where((e) => e.sessionId == session.id && e.type == CreditType.abono)) {
@@ -604,11 +609,28 @@ class StoreNotifier extends Notifier<StoreState> {
     String? customerId,
     String? orderId,
     int discountCents = 0,
+    List<SalePayment> payments = const [],
   }) {
     assert(lines.isNotEmpty);
+    // Un solo pago es lo mismo que pagar con ese método.
+    if (payments.length == 1) {
+      method = payments.single.method;
+      payments = const [];
+    }
     assert(kind == SaleKind.pagada || customerId != null);
     final now = _clock();
     final subtotal = lines.fold(0, (a, l) => a + l.totalCents);
+    // Los pagos en partes siempre suman el total: si no cuadran, el último absorbe la diferencia.
+    final total = (subtotal - discountCents.clamp(0, subtotal)).clamp(0, subtotal);
+    final paidSum = payments.fold(0, (a, p) => a + p.amountCents);
+    if (payments.isNotEmpty && paidSum != total) {
+      final last = payments.last;
+      final fixed = (last.amountCents + total - paidSum).clamp(0, total);
+      payments = [
+        ...payments.take(payments.length - 1),
+        if (fixed > 0) SalePayment(method: last.method, amountCents: fixed),
+      ];
+    }
     final sale = Sale(
       id: newId(),
       folio: state.nextFolio,
@@ -616,7 +638,8 @@ class StoreNotifier extends Notifier<StoreState> {
       lines: List.unmodifiable(lines),
       kind: kind,
       sessionId: state.openSession?.id,
-      method: kind == SaleKind.pagada ? (method ?? PayMethod.efectivo) : null,
+      method: kind == SaleKind.pagada ? (payments.isNotEmpty ? null : (method ?? PayMethod.efectivo)) : null,
+      payments: kind == SaleKind.pagada ? List.unmodifiable(payments) : const [],
       receivedCents: kind == SaleKind.pagada ? receivedCents : null,
       customerId: customerId,
       device: ref.read(repositoryProvider).deviceCode,
@@ -725,10 +748,15 @@ class StoreNotifier extends Notifier<StoreState> {
     final device = ref.read(repositoryProvider).deviceCode;
     final nextLabel = '$device-${state.nextFolio.toString().padLeft(4, '0')}';
     cancelSale(saleId, reason: 'Devolvió $what ($reason). Queda en la venta $nextLabel');
+    // Pagada en partes: lo devuelto sale primero del efectivo.
+    final payments = sale.split
+        ? reducePayments(sale.payments, sale.totalCents - (newSubtotal - discount))
+        : const <SalePayment>[];
     return checkout(
       lines: kept,
       kind: sale.kind,
       method: sale.method,
+      payments: payments,
       receivedCents: sale.kind == SaleKind.pagada ? newSubtotal - discount : null,
       customerId: sale.customerId,
       orderId: sale.orderId,
@@ -1058,6 +1086,8 @@ class StoreNotifier extends Notifier<StoreState> {
   void setItemQty(String itemId, double qty) {
     final item = state.orderItems.where((i) => i.id == itemId).firstOrNull;
     if (item == null || item.sent) return;
+    // Lo que ya se pagó por platillos no se quita.
+    if (qty < item.paidQty - 0.0001) return;
     _setItems([qty <= 0 ? item.copyWith(status: KitchenStatus.cancelado) : item.copyWith(qty: qty)]);
   }
 
@@ -1119,12 +1149,18 @@ class StoreNotifier extends Notifier<StoreState> {
   void cancelOrder(String orderId) {
     final order = state.orderById(orderId);
     if (order == null || !order.isOpen) return;
+    // Si ya se pagó una parte por platillos, eso se queda: solo se quita lo que faltaba y la cuenta se cierra.
+    final paidSome = state.partlyPaid(orderId);
     final items = [
       for (final i in state.itemsOfOrder(orderId))
-        if (!i.cancelled && i.status != KitchenStatus.servido) i.copyWith(status: KitchenStatus.cancelado),
+        if (!i.cancelled && !i.fullyPaid)
+          if (i.paidQty > 0)
+            i.copyWith(qty: i.paidQty)
+          else if (i.status != KitchenStatus.servido)
+            i.copyWith(status: KitchenStatus.cancelado),
     ];
     if (items.isNotEmpty) _setItems(items);
-    _closeOrder(order.close(OrderStatus.cancelada, _now()));
+    _closeOrder(order.close(paidSome ? OrderStatus.cerrada : OrderStatus.cancelada, _now()));
   }
 
   /// Cobra la cuenta: se vuelve una venta normal (corte, fiado, ticket) y la mesa queda libre.
@@ -1135,21 +1171,13 @@ class StoreNotifier extends Notifier<StoreState> {
     int? receivedCents,
     String? customerId,
     int discountCents = 0,
+    List<SalePayment> payments = const [],
   }) {
     final order = state.orderById(orderId)!;
+    // Lo que falta por cobrar (si ya se pagó una parte por platillos, solo lo demás).
     final lines = [
       for (final i in state.itemsOfOrder(orderId))
-        if (!i.cancelled)
-          SaleLine(
-            key: i.id,
-            productId: i.productId,
-            // Con extras: "Tacos de pastor (extra queso)" y el precio de la pieza ya con ellos.
-            name: i.fullName,
-            unitCents: i.unitWithExtrasCents,
-            qty: i.qty,
-            // El costo se toma al cobrar (quien cobra sí lo tiene), para que la ganancia de la mesa cuente.
-            unitCostCents: i.productId == null ? 0 : (state.productById(i.productId!)?.costCents ?? 0),
-          ),
+        if (!i.cancelled && !i.fullyPaid) _lineOf(i, i.dueQty),
     ];
     final sale = checkout(
       lines: lines,
@@ -1159,8 +1187,59 @@ class StoreNotifier extends Notifier<StoreState> {
       customerId: customerId,
       orderId: orderId,
       discountCents: discountCents,
+      payments: payments,
     );
     _closeOrder(order.close(OrderStatus.cerrada, _now()));
+    return sale;
+  }
+
+  /// Renglón de venta de un platillo de la cuenta. Con extras: "Tacos de pastor (extra queso)" y el precio de
+  /// la pieza ya con ellos. El costo se toma al cobrar (quien cobra sí lo tiene), para que la ganancia cuente.
+  SaleLine _lineOf(OrderItem i, double qty) => SaleLine(
+    key: i.id,
+    productId: i.productId,
+    name: i.fullName,
+    unitCents: i.unitWithExtrasCents,
+    qty: qty,
+    unitCostCents: i.productId == null ? 0 : (state.productById(i.productId!)?.costCents ?? 0),
+  );
+
+  /// Cobra solo unos platillos de la cuenta ([qtyByItem]: cuántas piezas de cada uno). La cuenta sigue
+  /// abierta con lo demás; si ya no queda nada por cobrar, se cierra y la mesa queda libre.
+  Sale? chargeOrderItems(
+    String orderId,
+    Map<String, double> qtyByItem, {
+    required SaleKind kind,
+    PayMethod? method,
+    int? receivedCents,
+    String? customerId,
+    int discountCents = 0,
+    List<SalePayment> payments = const [],
+  }) {
+    final order = state.orderById(orderId);
+    if (order == null || !order.isOpen) return null;
+    final paid = <OrderItem>[];
+    final lines = <SaleLine>[];
+    for (final i in state.itemsOfOrder(orderId)) {
+      final want = (qtyByItem[i.id] ?? 0).clamp(0, i.dueQty).toDouble();
+      if (want <= 0) continue;
+      lines.add(_lineOf(i, want));
+      paid.add(i.copyWith(paidQty: i.paidQty + want));
+    }
+    if (lines.isEmpty) return null;
+    final sale = checkout(
+      lines: lines,
+      kind: kind,
+      method: method,
+      receivedCents: receivedCents,
+      customerId: customerId,
+      orderId: orderId,
+      discountCents: discountCents,
+      payments: payments,
+    );
+    _setItems(paid);
+    final left = state.itemsOfOrder(orderId).where((i) => !i.cancelled && !i.fullyPaid);
+    if (left.isEmpty) _closeOrder(order.close(OrderStatus.cerrada, _now()));
     return sale;
   }
 

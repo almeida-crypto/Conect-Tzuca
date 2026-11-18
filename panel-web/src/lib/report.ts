@@ -92,7 +92,12 @@ export function byMethod(sales: Sale[]): Share[] {
   const total = sum(sales.map((s) => s.totalCents));
   return (Object.keys(methodLabel) as PayMethod[])
     .map((m) => {
-      const cents = sum(sales.filter((s) => s.method === m).map((s) => s.totalCents));
+      // Una venta pagada en partes reparte su total entre sus métodos.
+      const cents = sum(
+        sales.flatMap((s) =>
+          s.parts ? s.parts.filter((p) => p.method === m).map((p) => p.totalCents) : s.method === m ? [s.totalCents] : [],
+        ),
+      );
       return { key: m, label: methodLabel[m], cents, share: total ? cents / total : 0 };
     })
     .filter((x) => x.cents > 0)

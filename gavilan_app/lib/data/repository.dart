@@ -222,6 +222,7 @@ const pullTables = [
   'cash_sessions',
   'sales',
   'sale_items',
+  'sale_payments',
   'credit_entries',
   'cash_movements',
   'lots',
@@ -300,6 +301,13 @@ class DriftRepository implements StoreRepository, SyncStore {
     if (name == null || name.isEmpty) return null;
 
     final lines = await (db.select(db.saleLinesTable)..orderBy([(t) => OrderingTerm.asc(t.position)])).get();
+    final payRows = await (db.select(
+      db.salePaymentsTable,
+    )..orderBy([(t) => OrderingTerm.asc(t.position), (t) => OrderingTerm.asc(t.id)])).get();
+    final paysBySale = <String, List<SalePayment>>{};
+    for (final p in payRows) {
+      paysBySale.putIfAbsent(p.saleId, () => []).add(SalePayment(method: p.method, amountCents: p.amountCents));
+    }
     final bySale = <String, List<SaleLine>>{};
     for (final l in lines) {
       bySale
@@ -349,6 +357,7 @@ class DriftRepository implements StoreRepository, SyncStore {
             cancelReason: s.cancelReason,
             discountCents: s.discountCents,
             clerk: s.clerkName,
+            payments: List.unmodifiable(paysBySale[s.id] ?? const <SalePayment>[]),
           ),
       ],
       credit: [
@@ -550,6 +559,7 @@ class DriftRepository implements StoreRepository, SyncStore {
     sentAt: r.sentAt,
     readyAt: r.readyAt,
     servedAt: r.servedAt,
+    paidQty: r.paidQty,
   );
   static OrderItemRow _orderItemRow(OrderItem i) => OrderItemRow(
     id: i.id,
@@ -565,6 +575,7 @@ class DriftRepository implements StoreRepository, SyncStore {
     sentAt: i.sentAt,
     readyAt: i.readyAt,
     servedAt: i.servedAt,
+    paidQty: i.paidQty,
   );
 
   // ---------- Conversión a renglones locales ----------
@@ -634,6 +645,19 @@ class DriftRepository implements StoreRepository, SyncStore {
             clerkName: s.clerk,
           ),
         );
+    for (final (i, p) in s.payments.indexed) {
+      await db
+          .into(db.salePaymentsTable)
+          .insertOnConflictUpdate(
+            SalePaymentRow(
+              id: salePaymentId(s.id, i),
+              saleId: s.id,
+              method: p.method,
+              amountCents: p.amountCents,
+              position: i,
+            ),
+          );
+    }
     for (var i = 0; i < s.lines.length; i++) {
       final l = s.lines[i];
       await db
@@ -1126,6 +1150,13 @@ class DriftRepository implements StoreRepository, SyncStore {
           }
         case 'sale_items':
           await db.into(db.saleLinesTable).insertOnConflictUpdate(saleLineFromRemote(r));
+        case 'sale_payments':
+          // El orden de los pagos sale de su hora (cada uno se sube con un milisegundo de diferencia).
+          final row = salePaymentFromRemote(r);
+          final at = DateTime.tryParse(r['created_at'] as String? ?? '');
+          await db
+              .into(db.salePaymentsTable)
+              .insertOnConflictUpdate(row.copyWith(position: (at?.millisecondsSinceEpoch ?? 0) % 1000));
         case 'credit_entries':
           await db.into(db.creditEntriesTable).insertOnConflictUpdate(creditFromRemote(r));
         case 'cash_movements':

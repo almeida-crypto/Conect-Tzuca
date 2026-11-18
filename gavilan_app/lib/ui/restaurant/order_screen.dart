@@ -405,6 +405,11 @@ class _SentRow extends StatelessWidget {
                     item.notes!,
                     style: GText.sans(size: 13, color: GColors.marca).copyWith(fontStyle: FontStyle.italic),
                   ),
+                if (item.paidQty > 0)
+                  Text(
+                    item.fullyPaid ? 'Pagado' : 'Pagado ${qtyLabel(item.paidQty)} de ${qtyLabel(item.qty)}',
+                    style: GText.sans(size: 12.5, weight: FontWeight.w800, color: GColors.cenote),
+                  ),
               ],
             ),
           ),
@@ -421,7 +426,11 @@ class _SentRow extends StatelessWidget {
             KitchenStatusPill(item.status),
           SizedBox(
             width: 72,
-            child: Text(money(item.totalCents), textAlign: TextAlign.right, style: GText.figures(size: 13)),
+            child: Text(
+              money(item.dueCents),
+              textAlign: TextAlign.right,
+              style: GText.figures(size: 13, color: item.fullyPaid ? GColors.tintaTenue : GColors.tinta),
+            ),
           ),
         ],
       ),

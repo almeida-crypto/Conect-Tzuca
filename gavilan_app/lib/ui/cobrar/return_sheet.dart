@@ -45,6 +45,8 @@ class _ReturnSheetState extends State<_ReturnSheet> {
     final any = _back.values.any((v) => v > 0);
     final howBack = sale.kind == SaleKind.fiada
         ? 'Se le quitan ${money(refund)} de la deuda.'
+        : sale.split
+        ? 'Devuélvele ${money(refund)}, primero de lo que pagó en efectivo.'
         : sale.method == PayMethod.efectivo
         ? 'Devuélvele ${money(refund)} en efectivo.'
         : 'Devuélvele ${money(refund)} por ${sale.method?.label.toLowerCase() ?? 'el mismo medio'}.';

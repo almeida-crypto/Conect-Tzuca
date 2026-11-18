@@ -28,7 +28,12 @@ String ticketText({
     b.writeln('Subtotal ${money(sale.subtotalCents)} · Descuento -${money(sale.discountCents)}');
   }
   b.writeln('*TOTAL ${money(sale.totalCents)}*');
-  if (sale.kind == SaleKind.pagada) {
+  if (sale.kind == SaleKind.pagada && sale.split) {
+    b.writeln('Pagado: ${[for (final p in sale.payments) '${p.method.label} ${money(p.amountCents)}'].join(' · ')}');
+    if (sale.receivedCents != null && sale.cashCents > 0) {
+      b.writeln('Recibido en efectivo ${money(sale.receivedCents!)} · Cambio ${money(sale.changeCents)}');
+    }
+  } else if (sale.kind == SaleKind.pagada) {
     b.writeln('Pagado con ${sale.method!.label.toLowerCase()}');
     if (sale.method == PayMethod.efectivo && sale.receivedCents != null) {
       b.writeln('Recibido ${money(sale.receivedCents!)} · Cambio ${money(sale.changeCents)}');

@@ -1383,6 +1383,16 @@ class $OrderItemsTableTable extends OrderItemsTable with TableInfo<$OrderItemsTa
     type: DriftSqlType.dateTime,
     requiredDuringInsert: false,
   );
+  static const VerificationMeta _paidQtyMeta = const VerificationMeta('paidQty');
+  @override
+  late final GeneratedColumn<double> paidQty = GeneratedColumn<double>(
+    'paid_qty',
+    aliasedName,
+    false,
+    type: DriftSqlType.double,
+    requiredDuringInsert: false,
+    defaultValue: const Constant(0),
+  );
   @override
   List<GeneratedColumn> get $columns => [
     id,
@@ -1398,6 +1408,7 @@ class $OrderItemsTableTable extends OrderItemsTable with TableInfo<$OrderItemsTa
     sentAt,
     readyAt,
     servedAt,
+    paidQty,
   ];
   @override
   String get aliasedName => _alias ?? actualTableName;
@@ -1456,6 +1467,9 @@ class $OrderItemsTableTable extends OrderItemsTable with TableInfo<$OrderItemsTa
     if (data.containsKey('served_at')) {
       context.handle(_servedAtMeta, servedAt.isAcceptableOrUnknown(data['served_at']!, _servedAtMeta));
     }
+    if (data.containsKey('paid_qty')) {
+      context.handle(_paidQtyMeta, paidQty.isAcceptableOrUnknown(data['paid_qty']!, _paidQtyMeta));
+    }
     return context;
   }
 
@@ -1480,6 +1494,7 @@ class $OrderItemsTableTable extends OrderItemsTable with TableInfo<$OrderItemsTa
       sentAt: attachedDatabase.typeMapping.read(DriftSqlType.dateTime, data['${effectivePrefix}sent_at']),
       readyAt: attachedDatabase.typeMapping.read(DriftSqlType.dateTime, data['${effectivePrefix}ready_at']),
       servedAt: attachedDatabase.typeMapping.read(DriftSqlType.dateTime, data['${effectivePrefix}served_at']),
+      paidQty: attachedDatabase.typeMapping.read(DriftSqlType.double, data['${effectivePrefix}paid_qty'])!,
     );
   }
 
@@ -1509,6 +1524,9 @@ class OrderItemRow extends DataClass implements Insertable<OrderItemRow> {
   final DateTime? sentAt;
   final DateTime? readyAt;
   final DateTime? servedAt;
+
+  /// Piezas ya cobradas al dividir la cuenta por platillos.
+  final double paidQty;
   const OrderItemRow({
     required this.id,
     required this.orderId,
@@ -1523,6 +1541,7 @@ class OrderItemRow extends DataClass implements Insertable<OrderItemRow> {
     this.sentAt,
     this.readyAt,
     this.servedAt,
+    required this.paidQty,
   });
   @override
   Map<String, Expression> toColumns(bool nullToAbsent) {
@@ -1554,6 +1573,7 @@ class OrderItemRow extends DataClass implements Insertable<OrderItemRow> {
     if (!nullToAbsent || servedAt != null) {
       map['served_at'] = Variable<DateTime>(servedAt);
     }
+    map['paid_qty'] = Variable<double>(paidQty);
     return map;
   }
 
@@ -1572,6 +1592,7 @@ class OrderItemRow extends DataClass implements Insertable<OrderItemRow> {
       sentAt: sentAt == null && nullToAbsent ? const Value.absent() : Value(sentAt),
       readyAt: readyAt == null && nullToAbsent ? const Value.absent() : Value(readyAt),
       servedAt: servedAt == null && nullToAbsent ? const Value.absent() : Value(servedAt),
+      paidQty: Value(paidQty),
     );
   }
 
@@ -1591,6 +1612,7 @@ class OrderItemRow extends DataClass implements Insertable<OrderItemRow> {
       sentAt: serializer.fromJson<DateTime?>(json['sentAt']),
       readyAt: serializer.fromJson<DateTime?>(json['readyAt']),
       servedAt: serializer.fromJson<DateTime?>(json['servedAt']),
+      paidQty: serializer.fromJson<double>(json['paidQty']),
     );
   }
   @override
@@ -1610,6 +1632,7 @@ class OrderItemRow extends DataClass implements Insertable<OrderItemRow> {
       'sentAt': serializer.toJson<DateTime?>(sentAt),
       'readyAt': serializer.toJson<DateTime?>(readyAt),
       'servedAt': serializer.toJson<DateTime?>(servedAt),
+      'paidQty': serializer.toJson<double>(paidQty),
     };
   }
 
@@ -1627,6 +1650,7 @@ class OrderItemRow extends DataClass implements Insertable<OrderItemRow> {
     Value<DateTime?> sentAt = const Value.absent(),
     Value<DateTime?> readyAt = const Value.absent(),
     Value<DateTime?> servedAt = const Value.absent(),
+    double? paidQty,
   }) => OrderItemRow(
     id: id ?? this.id,
     orderId: orderId ?? this.orderId,
@@ -1641,6 +1665,7 @@ class OrderItemRow extends DataClass implements Insertable<OrderItemRow> {
     sentAt: sentAt.present ? sentAt.value : this.sentAt,
     readyAt: readyAt.present ? readyAt.value : this.readyAt,
     servedAt: servedAt.present ? servedAt.value : this.servedAt,
+    paidQty: paidQty ?? this.paidQty,
   );
   OrderItemRow copyWithCompanion(OrderItemsTableCompanion data) {
     return OrderItemRow(
@@ -1657,6 +1682,7 @@ class OrderItemRow extends DataClass implements Insertable<OrderItemRow> {
       sentAt: data.sentAt.present ? data.sentAt.value : this.sentAt,
       readyAt: data.readyAt.present ? data.readyAt.value : this.readyAt,
       servedAt: data.servedAt.present ? data.servedAt.value : this.servedAt,
+      paidQty: data.paidQty.present ? data.paidQty.value : this.paidQty,
     );
   }
 
@@ -1675,7 +1701,8 @@ class OrderItemRow extends DataClass implements Insertable<OrderItemRow> {
           ..write('createdAt: $createdAt, ')
           ..write('sentAt: $sentAt, ')
           ..write('readyAt: $readyAt, ')
-          ..write('servedAt: $servedAt')
+          ..write('servedAt: $servedAt, ')
+          ..write('paidQty: $paidQty')
           ..write(')'))
         .toString();
   }
@@ -1695,6 +1722,7 @@ class OrderItemRow extends DataClass implements Insertable<OrderItemRow> {
     sentAt,
     readyAt,
     servedAt,
+    paidQty,
   );
   @override
   bool operator ==(Object other) =>
@@ -1712,7 +1740,8 @@ class OrderItemRow extends DataClass implements Insertable<OrderItemRow> {
           other.createdAt == this.createdAt &&
           other.sentAt == this.sentAt &&
           other.readyAt == this.readyAt &&
-          other.servedAt == this.servedAt);
+          other.servedAt == this.servedAt &&
+          other.paidQty == this.paidQty);
 }
 
 class OrderItemsTableCompanion extends UpdateCompanion<OrderItemRow> {
@@ -1729,6 +1758,7 @@ class OrderItemsTableCompanion extends UpdateCompanion<OrderItemRow> {
   final Value<DateTime?> sentAt;
   final Value<DateTime?> readyAt;
   final Value<DateTime?> servedAt;
+  final Value<double> paidQty;
   final Value<int> rowid;
   const OrderItemsTableCompanion({
     this.id = const Value.absent(),
@@ -1744,6 +1774,7 @@ class OrderItemsTableCompanion extends UpdateCompanion<OrderItemRow> {
     this.sentAt = const Value.absent(),
     this.readyAt = const Value.absent(),
     this.servedAt = const Value.absent(),
+    this.paidQty = const Value.absent(),
     this.rowid = const Value.absent(),
   });
   OrderItemsTableCompanion.insert({
@@ -1760,6 +1791,7 @@ class OrderItemsTableCompanion extends UpdateCompanion<OrderItemRow> {
     this.sentAt = const Value.absent(),
     this.readyAt = const Value.absent(),
     this.servedAt = const Value.absent(),
+    this.paidQty = const Value.absent(),
     this.rowid = const Value.absent(),
   }) : id = Value(id),
        orderId = Value(orderId),
@@ -1782,6 +1814,7 @@ class OrderItemsTableCompanion extends UpdateCompanion<OrderItemRow> {
     Expression<DateTime>? sentAt,
     Expression<DateTime>? readyAt,
     Expression<DateTime>? servedAt,
+    Expression<double>? paidQty,
     Expression<int>? rowid,
   }) {
     return RawValuesInsertable({
@@ -1798,6 +1831,7 @@ class OrderItemsTableCompanion extends UpdateCompanion<OrderItemRow> {
       if (sentAt != null) 'sent_at': sentAt,
       if (readyAt != null) 'ready_at': readyAt,
       if (servedAt != null) 'served_at': servedAt,
+      if (paidQty != null) 'paid_qty': paidQty,
       if (rowid != null) 'rowid': rowid,
     });
   }
@@ -1816,6 +1850,7 @@ class OrderItemsTableCompanion extends UpdateCompanion<OrderItemRow> {
     Value<DateTime?>? sentAt,
     Value<DateTime?>? readyAt,
     Value<DateTime?>? servedAt,
+    Value<double>? paidQty,
     Value<int>? rowid,
   }) {
     return OrderItemsTableCompanion(
@@ -1832,6 +1867,7 @@ class OrderItemsTableCompanion extends UpdateCompanion<OrderItemRow> {
       sentAt: sentAt ?? this.sentAt,
       readyAt: readyAt ?? this.readyAt,
       servedAt: servedAt ?? this.servedAt,
+      paidQty: paidQty ?? this.paidQty,
       rowid: rowid ?? this.rowid,
     );
   }
@@ -1878,6 +1914,9 @@ class OrderItemsTableCompanion extends UpdateCompanion<OrderItemRow> {
     if (servedAt.present) {
       map['served_at'] = Variable<DateTime>(servedAt.value);
     }
+    if (paidQty.present) {
+      map['paid_qty'] = Variable<double>(paidQty.value);
+    }
     if (rowid.present) {
       map['rowid'] = Variable<int>(rowid.value);
     }
@@ -1900,6 +1939,7 @@ class OrderItemsTableCompanion extends UpdateCompanion<OrderItemRow> {
           ..write('sentAt: $sentAt, ')
           ..write('readyAt: $readyAt, ')
           ..write('servedAt: $servedAt, ')
+          ..write('paidQty: $paidQty, ')
           ..write('rowid: $rowid')
           ..write(')'))
         .toString();
@@ -5996,6 +6036,315 @@ class SaleLinesTableCompanion extends UpdateCompanion<SaleLineRow> {
   }
 }
 
+class $SalePaymentsTableTable extends SalePaymentsTable with TableInfo<$SalePaymentsTableTable, SalePaymentRow> {
+  @override
+  final GeneratedDatabase attachedDatabase;
+  final String? _alias;
+  $SalePaymentsTableTable(this.attachedDatabase, [this._alias]);
+  static const VerificationMeta _idMeta = const VerificationMeta('id');
+  @override
+  late final GeneratedColumn<String> id = GeneratedColumn<String>(
+    'id',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _saleIdMeta = const VerificationMeta('saleId');
+  @override
+  late final GeneratedColumn<String> saleId = GeneratedColumn<String>(
+    'sale_id',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  @override
+  late final GeneratedColumnWithTypeConverter<PayMethod, String> method = GeneratedColumn<String>(
+    'method',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  ).withConverter<PayMethod>($SalePaymentsTableTable.$convertermethod);
+  static const VerificationMeta _amountCentsMeta = const VerificationMeta('amountCents');
+  @override
+  late final GeneratedColumn<int> amountCents = GeneratedColumn<int>(
+    'amount_cents',
+    aliasedName,
+    false,
+    type: DriftSqlType.int,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _positionMeta = const VerificationMeta('position');
+  @override
+  late final GeneratedColumn<int> position = GeneratedColumn<int>(
+    'position',
+    aliasedName,
+    false,
+    type: DriftSqlType.int,
+    requiredDuringInsert: false,
+    defaultValue: const Constant(0),
+  );
+  @override
+  List<GeneratedColumn> get $columns => [id, saleId, method, amountCents, position];
+  @override
+  String get aliasedName => _alias ?? actualTableName;
+  @override
+  String get actualTableName => $name;
+  static const String $name = 'sale_payments';
+  @override
+  VerificationContext validateIntegrity(Insertable<SalePaymentRow> instance, {bool isInserting = false}) {
+    final context = VerificationContext();
+    final data = instance.toColumns(true);
+    if (data.containsKey('id')) {
+      context.handle(_idMeta, id.isAcceptableOrUnknown(data['id']!, _idMeta));
+    } else if (isInserting) {
+      context.missing(_idMeta);
+    }
+    if (data.containsKey('sale_id')) {
+      context.handle(_saleIdMeta, saleId.isAcceptableOrUnknown(data['sale_id']!, _saleIdMeta));
+    } else if (isInserting) {
+      context.missing(_saleIdMeta);
+    }
+    if (data.containsKey('amount_cents')) {
+      context.handle(_amountCentsMeta, amountCents.isAcceptableOrUnknown(data['amount_cents']!, _amountCentsMeta));
+    } else if (isInserting) {
+      context.missing(_amountCentsMeta);
+    }
+    if (data.containsKey('position')) {
+      context.handle(_positionMeta, position.isAcceptableOrUnknown(data['position']!, _positionMeta));
+    }
+    return context;
+  }
+
+  @override
+  Set<GeneratedColumn> get $primaryKey => {id};
+  @override
+  SalePaymentRow map(Map<String, dynamic> data, {String? tablePrefix}) {
+    final effectivePrefix = tablePrefix != null ? '$tablePrefix.' : '';
+    return SalePaymentRow(
+      id: attachedDatabase.typeMapping.read(DriftSqlType.string, data['${effectivePrefix}id'])!,
+      saleId: attachedDatabase.typeMapping.read(DriftSqlType.string, data['${effectivePrefix}sale_id'])!,
+      method: $SalePaymentsTableTable.$convertermethod.fromSql(
+        attachedDatabase.typeMapping.read(DriftSqlType.string, data['${effectivePrefix}method'])!,
+      ),
+      amountCents: attachedDatabase.typeMapping.read(DriftSqlType.int, data['${effectivePrefix}amount_cents'])!,
+      position: attachedDatabase.typeMapping.read(DriftSqlType.int, data['${effectivePrefix}position'])!,
+    );
+  }
+
+  @override
+  $SalePaymentsTableTable createAlias(String alias) {
+    return $SalePaymentsTableTable(attachedDatabase, alias);
+  }
+
+  static JsonTypeConverter2<PayMethod, String, String> $convertermethod = const EnumNameConverter<PayMethod>(
+    PayMethod.values,
+  );
+}
+
+class SalePaymentRow extends DataClass implements Insertable<SalePaymentRow> {
+  final String id;
+  final String saleId;
+  final PayMethod method;
+  final int amountCents;
+  final int position;
+  const SalePaymentRow({
+    required this.id,
+    required this.saleId,
+    required this.method,
+    required this.amountCents,
+    required this.position,
+  });
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    map['id'] = Variable<String>(id);
+    map['sale_id'] = Variable<String>(saleId);
+    {
+      map['method'] = Variable<String>($SalePaymentsTableTable.$convertermethod.toSql(method));
+    }
+    map['amount_cents'] = Variable<int>(amountCents);
+    map['position'] = Variable<int>(position);
+    return map;
+  }
+
+  SalePaymentsTableCompanion toCompanion(bool nullToAbsent) {
+    return SalePaymentsTableCompanion(
+      id: Value(id),
+      saleId: Value(saleId),
+      method: Value(method),
+      amountCents: Value(amountCents),
+      position: Value(position),
+    );
+  }
+
+  factory SalePaymentRow.fromJson(Map<String, dynamic> json, {ValueSerializer? serializer}) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return SalePaymentRow(
+      id: serializer.fromJson<String>(json['id']),
+      saleId: serializer.fromJson<String>(json['saleId']),
+      method: $SalePaymentsTableTable.$convertermethod.fromJson(serializer.fromJson<String>(json['method'])),
+      amountCents: serializer.fromJson<int>(json['amountCents']),
+      position: serializer.fromJson<int>(json['position']),
+    );
+  }
+  @override
+  Map<String, dynamic> toJson({ValueSerializer? serializer}) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return <String, dynamic>{
+      'id': serializer.toJson<String>(id),
+      'saleId': serializer.toJson<String>(saleId),
+      'method': serializer.toJson<String>($SalePaymentsTableTable.$convertermethod.toJson(method)),
+      'amountCents': serializer.toJson<int>(amountCents),
+      'position': serializer.toJson<int>(position),
+    };
+  }
+
+  SalePaymentRow copyWith({String? id, String? saleId, PayMethod? method, int? amountCents, int? position}) =>
+      SalePaymentRow(
+        id: id ?? this.id,
+        saleId: saleId ?? this.saleId,
+        method: method ?? this.method,
+        amountCents: amountCents ?? this.amountCents,
+        position: position ?? this.position,
+      );
+  SalePaymentRow copyWithCompanion(SalePaymentsTableCompanion data) {
+    return SalePaymentRow(
+      id: data.id.present ? data.id.value : this.id,
+      saleId: data.saleId.present ? data.saleId.value : this.saleId,
+      method: data.method.present ? data.method.value : this.method,
+      amountCents: data.amountCents.present ? data.amountCents.value : this.amountCents,
+      position: data.position.present ? data.position.value : this.position,
+    );
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('SalePaymentRow(')
+          ..write('id: $id, ')
+          ..write('saleId: $saleId, ')
+          ..write('method: $method, ')
+          ..write('amountCents: $amountCents, ')
+          ..write('position: $position')
+          ..write(')'))
+        .toString();
+  }
+
+  @override
+  int get hashCode => Object.hash(id, saleId, method, amountCents, position);
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      (other is SalePaymentRow &&
+          other.id == this.id &&
+          other.saleId == this.saleId &&
+          other.method == this.method &&
+          other.amountCents == this.amountCents &&
+          other.position == this.position);
+}
+
+class SalePaymentsTableCompanion extends UpdateCompanion<SalePaymentRow> {
+  final Value<String> id;
+  final Value<String> saleId;
+  final Value<PayMethod> method;
+  final Value<int> amountCents;
+  final Value<int> position;
+  final Value<int> rowid;
+  const SalePaymentsTableCompanion({
+    this.id = const Value.absent(),
+    this.saleId = const Value.absent(),
+    this.method = const Value.absent(),
+    this.amountCents = const Value.absent(),
+    this.position = const Value.absent(),
+    this.rowid = const Value.absent(),
+  });
+  SalePaymentsTableCompanion.insert({
+    required String id,
+    required String saleId,
+    required PayMethod method,
+    required int amountCents,
+    this.position = const Value.absent(),
+    this.rowid = const Value.absent(),
+  }) : id = Value(id),
+       saleId = Value(saleId),
+       method = Value(method),
+       amountCents = Value(amountCents);
+  static Insertable<SalePaymentRow> custom({
+    Expression<String>? id,
+    Expression<String>? saleId,
+    Expression<String>? method,
+    Expression<int>? amountCents,
+    Expression<int>? position,
+    Expression<int>? rowid,
+  }) {
+    return RawValuesInsertable({
+      if (id != null) 'id': id,
+      if (saleId != null) 'sale_id': saleId,
+      if (method != null) 'method': method,
+      if (amountCents != null) 'amount_cents': amountCents,
+      if (position != null) 'position': position,
+      if (rowid != null) 'rowid': rowid,
+    });
+  }
+
+  SalePaymentsTableCompanion copyWith({
+    Value<String>? id,
+    Value<String>? saleId,
+    Value<PayMethod>? method,
+    Value<int>? amountCents,
+    Value<int>? position,
+    Value<int>? rowid,
+  }) {
+    return SalePaymentsTableCompanion(
+      id: id ?? this.id,
+      saleId: saleId ?? this.saleId,
+      method: method ?? this.method,
+      amountCents: amountCents ?? this.amountCents,
+      position: position ?? this.position,
+      rowid: rowid ?? this.rowid,
+    );
+  }
+
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    if (id.present) {
+      map['id'] = Variable<String>(id.value);
+    }
+    if (saleId.present) {
+      map['sale_id'] = Variable<String>(saleId.value);
+    }
+    if (method.present) {
+      map['method'] = Variable<String>($SalePaymentsTableTable.$convertermethod.toSql(method.value));
+    }
+    if (amountCents.present) {
+      map['amount_cents'] = Variable<int>(amountCents.value);
+    }
+    if (position.present) {
+      map['position'] = Variable<int>(position.value);
+    }
+    if (rowid.present) {
+      map['rowid'] = Variable<int>(rowid.value);
+    }
+    return map;
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('SalePaymentsTableCompanion(')
+          ..write('id: $id, ')
+          ..write('saleId: $saleId, ')
+          ..write('method: $method, ')
+          ..write('amountCents: $amountCents, ')
+          ..write('position: $position, ')
+          ..write('rowid: $rowid')
+          ..write(')'))
+        .toString();
+  }
+}
+
 class $CreditEntriesTableTable extends CreditEntriesTable with TableInfo<$CreditEntriesTableTable, CreditRow> {
   @override
   final GeneratedDatabase attachedDatabase;
@@ -7399,6 +7748,7 @@ abstract class _$GavilanDb extends GeneratedDatabase {
   late final $CustomersTableTable customersTable = $CustomersTableTable(this);
   late final $SalesTableTable salesTable = $SalesTableTable(this);
   late final $SaleLinesTableTable saleLinesTable = $SaleLinesTableTable(this);
+  late final $SalePaymentsTableTable salePaymentsTable = $SalePaymentsTableTable(this);
   late final $CreditEntriesTableTable creditEntriesTable = $CreditEntriesTableTable(this);
   late final $CashSessionsTableTable cashSessionsTable = $CashSessionsTableTable(this);
   late final $CashMovementsTableTable cashMovementsTable = $CashMovementsTableTable(this);
@@ -7422,6 +7772,7 @@ abstract class _$GavilanDb extends GeneratedDatabase {
     customersTable,
     salesTable,
     saleLinesTable,
+    salePaymentsTable,
     creditEntriesTable,
     cashSessionsTable,
     cashMovementsTable,
@@ -8107,6 +8458,7 @@ typedef $$OrderItemsTableTableCreateCompanionBuilder = OrderItemsTableCompanion 
   Value<DateTime?> sentAt,
   Value<DateTime?> readyAt,
   Value<DateTime?> servedAt,
+  Value<double> paidQty,
   Value<int> rowid,
 });
 typedef $$OrderItemsTableTableUpdateCompanionBuilder = OrderItemsTableCompanion Function({
@@ -8123,6 +8475,7 @@ typedef $$OrderItemsTableTableUpdateCompanionBuilder = OrderItemsTableCompanion 
   Value<DateTime?> sentAt,
   Value<DateTime?> readyAt,
   Value<DateTime?> servedAt,
+  Value<double> paidQty,
   Value<int> rowid,
 });
 
@@ -8169,6 +8522,9 @@ class $$OrderItemsTableTableFilterComposer extends Composer<_$GavilanDb, $OrderI
 
   ColumnFilters<DateTime> get servedAt =>
       $composableBuilder(column: $table.servedAt, builder: (column) => ColumnFilters(column));
+
+  ColumnFilters<double> get paidQty =>
+      $composableBuilder(column: $table.paidQty, builder: (column) => ColumnFilters(column));
 }
 
 class $$OrderItemsTableTableOrderingComposer extends Composer<_$GavilanDb, $OrderItemsTableTable> {
@@ -8216,6 +8572,9 @@ class $$OrderItemsTableTableOrderingComposer extends Composer<_$GavilanDb, $Orde
 
   ColumnOrderings<DateTime> get servedAt =>
       $composableBuilder(column: $table.servedAt, builder: (column) => ColumnOrderings(column));
+
+  ColumnOrderings<double> get paidQty =>
+      $composableBuilder(column: $table.paidQty, builder: (column) => ColumnOrderings(column));
 }
 
 class $$OrderItemsTableTableAnnotationComposer extends Composer<_$GavilanDb, $OrderItemsTableTable> {
@@ -8252,6 +8611,8 @@ class $$OrderItemsTableTableAnnotationComposer extends Composer<_$GavilanDb, $Or
   GeneratedColumn<DateTime> get readyAt => $composableBuilder(column: $table.readyAt, builder: (column) => column);
 
   GeneratedColumn<DateTime> get servedAt => $composableBuilder(column: $table.servedAt, builder: (column) => column);
+
+  GeneratedColumn<double> get paidQty => $composableBuilder(column: $table.paidQty, builder: (column) => column);
 }
 
 class $$OrderItemsTableTableTableManager
@@ -8292,6 +8653,7 @@ class $$OrderItemsTableTableTableManager
                 Value<DateTime?> sentAt = const Value.absent(),
                 Value<DateTime?> readyAt = const Value.absent(),
                 Value<DateTime?> servedAt = const Value.absent(),
+                Value<double> paidQty = const Value.absent(),
                 Value<int> rowid = const Value.absent(),
               }) => OrderItemsTableCompanion(
                 id: id,
@@ -8307,6 +8669,7 @@ class $$OrderItemsTableTableTableManager
                 sentAt: sentAt,
                 readyAt: readyAt,
                 servedAt: servedAt,
+                paidQty: paidQty,
                 rowid: rowid,
               ),
           createCompanionCallback:
@@ -8324,6 +8687,7 @@ class $$OrderItemsTableTableTableManager
                 Value<DateTime?> sentAt = const Value.absent(),
                 Value<DateTime?> readyAt = const Value.absent(),
                 Value<DateTime?> servedAt = const Value.absent(),
+                Value<double> paidQty = const Value.absent(),
                 Value<int> rowid = const Value.absent(),
               }) => OrderItemsTableCompanion.insert(
                 id: id,
@@ -8339,6 +8703,7 @@ class $$OrderItemsTableTableTableManager
                 sentAt: sentAt,
                 readyAt: readyAt,
                 servedAt: servedAt,
+                paidQty: paidQty,
                 rowid: rowid,
               ),
           withReferenceMapper: (p0) => p0
@@ -10352,6 +10717,171 @@ typedef $$SaleLinesTableTableProcessedTableManager =
       SaleLineRow,
       PrefetchHooks Function()
     >;
+typedef $$SalePaymentsTableTableCreateCompanionBuilder = SalePaymentsTableCompanion Function({
+  required String id,
+  required String saleId,
+  required PayMethod method,
+  required int amountCents,
+  Value<int> position,
+  Value<int> rowid,
+});
+typedef $$SalePaymentsTableTableUpdateCompanionBuilder = SalePaymentsTableCompanion Function({
+  Value<String> id,
+  Value<String> saleId,
+  Value<PayMethod> method,
+  Value<int> amountCents,
+  Value<int> position,
+  Value<int> rowid,
+});
+
+class $$SalePaymentsTableTableFilterComposer extends Composer<_$GavilanDb, $SalePaymentsTableTable> {
+  $$SalePaymentsTableTableFilterComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnFilters<String> get id => $composableBuilder(column: $table.id, builder: (column) => ColumnFilters(column));
+
+  ColumnFilters<String> get saleId =>
+      $composableBuilder(column: $table.saleId, builder: (column) => ColumnFilters(column));
+
+  ColumnWithTypeConverterFilters<PayMethod, PayMethod, String> get method =>
+      $composableBuilder(column: $table.method, builder: (column) => ColumnWithTypeConverterFilters(column));
+
+  ColumnFilters<int> get amountCents =>
+      $composableBuilder(column: $table.amountCents, builder: (column) => ColumnFilters(column));
+
+  ColumnFilters<int> get position =>
+      $composableBuilder(column: $table.position, builder: (column) => ColumnFilters(column));
+}
+
+class $$SalePaymentsTableTableOrderingComposer extends Composer<_$GavilanDb, $SalePaymentsTableTable> {
+  $$SalePaymentsTableTableOrderingComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnOrderings<String> get id => $composableBuilder(column: $table.id, builder: (column) => ColumnOrderings(column));
+
+  ColumnOrderings<String> get saleId =>
+      $composableBuilder(column: $table.saleId, builder: (column) => ColumnOrderings(column));
+
+  ColumnOrderings<String> get method =>
+      $composableBuilder(column: $table.method, builder: (column) => ColumnOrderings(column));
+
+  ColumnOrderings<int> get amountCents =>
+      $composableBuilder(column: $table.amountCents, builder: (column) => ColumnOrderings(column));
+
+  ColumnOrderings<int> get position =>
+      $composableBuilder(column: $table.position, builder: (column) => ColumnOrderings(column));
+}
+
+class $$SalePaymentsTableTableAnnotationComposer extends Composer<_$GavilanDb, $SalePaymentsTableTable> {
+  $$SalePaymentsTableTableAnnotationComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  GeneratedColumn<String> get id => $composableBuilder(column: $table.id, builder: (column) => column);
+
+  GeneratedColumn<String> get saleId => $composableBuilder(column: $table.saleId, builder: (column) => column);
+
+  GeneratedColumnWithTypeConverter<PayMethod, String> get method =>
+      $composableBuilder(column: $table.method, builder: (column) => column);
+
+  GeneratedColumn<int> get amountCents => $composableBuilder(column: $table.amountCents, builder: (column) => column);
+
+  GeneratedColumn<int> get position => $composableBuilder(column: $table.position, builder: (column) => column);
+}
+
+class $$SalePaymentsTableTableTableManager
+    extends
+        RootTableManager<
+          _$GavilanDb,
+          $SalePaymentsTableTable,
+          SalePaymentRow,
+          $$SalePaymentsTableTableFilterComposer,
+          $$SalePaymentsTableTableOrderingComposer,
+          $$SalePaymentsTableTableAnnotationComposer,
+          $$SalePaymentsTableTableCreateCompanionBuilder,
+          $$SalePaymentsTableTableUpdateCompanionBuilder,
+          (SalePaymentRow, BaseReferences<_$GavilanDb, $SalePaymentsTableTable, SalePaymentRow>),
+          SalePaymentRow,
+          PrefetchHooks Function()
+        > {
+  $$SalePaymentsTableTableTableManager(_$GavilanDb db, $SalePaymentsTableTable table)
+    : super(
+        TableManagerState(
+          db: db,
+          table: table,
+          createFilteringComposer: () => $$SalePaymentsTableTableFilterComposer($db: db, $table: table),
+          createOrderingComposer: () => $$SalePaymentsTableTableOrderingComposer($db: db, $table: table),
+          createComputedFieldComposer: () => $$SalePaymentsTableTableAnnotationComposer($db: db, $table: table),
+          updateCompanionCallback:
+              ({
+                Value<String> id = const Value.absent(),
+                Value<String> saleId = const Value.absent(),
+                Value<PayMethod> method = const Value.absent(),
+                Value<int> amountCents = const Value.absent(),
+                Value<int> position = const Value.absent(),
+                Value<int> rowid = const Value.absent(),
+              }) => SalePaymentsTableCompanion(
+                id: id,
+                saleId: saleId,
+                method: method,
+                amountCents: amountCents,
+                position: position,
+                rowid: rowid,
+              ),
+          createCompanionCallback:
+              ({
+                required String id,
+                required String saleId,
+                required PayMethod method,
+                required int amountCents,
+                Value<int> position = const Value.absent(),
+                Value<int> rowid = const Value.absent(),
+              }) => SalePaymentsTableCompanion.insert(
+                id: id,
+                saleId: saleId,
+                method: method,
+                amountCents: amountCents,
+                position: position,
+                rowid: rowid,
+              ),
+          withReferenceMapper: (p0) => p0
+              .map(
+                (e) => (
+                  e.readTable<$SalePaymentsTableTable, SalePaymentRow>(table),
+                  BaseReferences<_$GavilanDb, $SalePaymentsTableTable, SalePaymentRow>(db, table, e),
+                ),
+              )
+              .toList(),
+          prefetchHooksCallback: null,
+        ),
+      );
+}
+
+typedef $$SalePaymentsTableTableProcessedTableManager =
+    ProcessedTableManager<
+      _$GavilanDb,
+      $SalePaymentsTableTable,
+      SalePaymentRow,
+      $$SalePaymentsTableTableFilterComposer,
+      $$SalePaymentsTableTableOrderingComposer,
+      $$SalePaymentsTableTableAnnotationComposer,
+      $$SalePaymentsTableTableCreateCompanionBuilder,
+      $$SalePaymentsTableTableUpdateCompanionBuilder,
+      (SalePaymentRow, BaseReferences<_$GavilanDb, $SalePaymentsTableTable, SalePaymentRow>),
+      SalePaymentRow,
+      PrefetchHooks Function()
+    >;
 typedef $$CreditEntriesTableTableCreateCompanionBuilder = CreditEntriesTableCompanion Function({
   required String id,
   required String customerId,
@@ -11082,6 +11612,8 @@ class $GavilanDbManager {
   $$CustomersTableTableTableManager get customersTable => $$CustomersTableTableTableManager(_db, _db.customersTable);
   $$SalesTableTableTableManager get salesTable => $$SalesTableTableTableManager(_db, _db.salesTable);
   $$SaleLinesTableTableTableManager get saleLinesTable => $$SaleLinesTableTableTableManager(_db, _db.saleLinesTable);
+  $$SalePaymentsTableTableTableManager get salePaymentsTable =>
+      $$SalePaymentsTableTableTableManager(_db, _db.salePaymentsTable);
   $$CreditEntriesTableTableTableManager get creditEntriesTable =>
       $$CreditEntriesTableTableTableManager(_db, _db.creditEntriesTable);
   $$CashSessionsTableTableTableManager get cashSessionsTable =>

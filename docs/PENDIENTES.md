@@ -22,7 +22,7 @@ Prioridad: **Alta** = sin esto no se puede usar con un negocio real · **Media**
 - [x] **Alta** · `mx.gavilan.gavilan://**` agregado en Supabase → Authentication → URL Configuration → Redirect URLs. El usuario probó "Olvidé mi contraseña" en su celular y funcionó. *09/11/2026*
 - [ ] **Baja** · Traducir al español las plantillas de correo de Supabase (Authentication → Emails).
 - [ ] **Media** · Decidir si el respaldo en la nube es solo de los planes de pago: el PDF lo pone en Emprendedor. Hoy está abierto para todos.
-- [ ] **Baja** · Pagos mixtos (`sale_payments`) y devoluciones en la sincronización.
+- [x] **Baja** · Pagos mixtos (`sale_payments`) en la app, la sincronización y el panel. *18/11/2026*
 - [x] **Alta** · Primer arranque: bienvenida con el nombre del negocio, o probar con la tiendita de ejemplo. En Más se puede borrar todo y empezar de nuevo. *26/10/2026*
 - [x] **Media** · Primer uso: con el negocio vacío, Cobrar e Inventario muestran "Agrega tus primeros productos": elegir de una lista de ~65 productos comunes de tiendita (se marca y se pone precio), agregar uno por uno o pegar desde Excel (computadora). *12/11/2026*
 - [x] **Media** · Un código de barras desconocido (lector USB o tecleado) ofrece "Darlo de alta" y lo agrega a la cuenta al guardarlo. *12/11/2026*
@@ -73,7 +73,8 @@ Prioridad: **Alta** = sin esto no se puede usar con un negocio real · **Media**
 - [ ] **Media** · Probar el restaurante con dos celulares reales (mesero y cocina) para medir cuánto tarda en llegar la comanda.
 - [x] **Media** · Zonas de mesas (Planta baja, Segunda planta, Terraza): cada zona con su numeración, mesas agrupadas y nombre completo en cocina. *11/11/2026*
 - [x] **Baja** · Restaurante: pasar una cuenta a otra mesa libre y poner la mesa en el ticket. *12/11/2026*
-- [ ] **Baja** · Restaurante: dividir la cuenta e imprimir la comanda en cocina.
+- [x] **Baja** · Restaurante: dividir la cuenta (por platillos, partes iguales o varios métodos). *18/11/2026*
+- [ ] **Baja** · Restaurante: imprimir la comanda en cocina.
 - [x] **Media** · Extras con precio (extra queso +\$10): el dueño los da de alta, el mesero los elige en cada platillo, salen en cocina y se cobran. *13/11/2026*
 - [ ] **Baja** · Platillos que no se venden en mostrador (que solo salgan en el restaurante).
 - [x] **Media** · Equipo y roles: el dueño invita cajeros y administradores con un código; el cajero no cambia el catálogo. *09/11/2026*

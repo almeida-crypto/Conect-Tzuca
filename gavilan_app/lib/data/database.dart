@@ -67,6 +67,22 @@ class SalesTable extends Table {
   Set<Column> get primaryKey => {id};
 }
 
+/// Pagos de una venta pagada en partes o con varios métodos.
+@DataClassName('SalePaymentRow')
+class SalePaymentsTable extends Table {
+  @override
+  String get tableName => 'sale_payments';
+
+  TextColumn get id => text()();
+  TextColumn get saleId => text()();
+  TextColumn get method => textEnum<PayMethod>()();
+  IntColumn get amountCents => integer()();
+  IntColumn get position => integer().withDefault(const Constant(0))();
+
+  @override
+  Set<Column> get primaryKey => {id};
+}
+
 @DataClassName('SaleLineRow')
 class SaleLinesTable extends Table {
   @override
@@ -320,6 +336,9 @@ class OrderItemsTable extends Table {
   DateTimeColumn get readyAt => dateTime().nullable()();
   DateTimeColumn get servedAt => dateTime().nullable()();
 
+  /// Piezas ya cobradas al dividir la cuenta por platillos.
+  RealColumn get paidQty => real().withDefault(const Constant(0))();
+
   @override
   Set<Column> get primaryKey => {id};
 }
@@ -357,6 +376,7 @@ class ExtrasTable extends Table {
     CustomersTable,
     SalesTable,
     SaleLinesTable,
+    SalePaymentsTable,
     CreditEntriesTable,
     CashSessionsTable,
     CashMovementsTable,
@@ -377,7 +397,7 @@ class GavilanDb extends _$GavilanDb {
   );
 
   @override
-  int get schemaVersion => 11;
+  int get schemaVersion => 12;
 
   @override
   MigrationStrategy get migration => MigrationStrategy(
@@ -424,6 +444,10 @@ class GavilanDb extends _$GavilanDb {
         await m.addColumn(cashMovementsTable, cashMovementsTable.clerkName);
       }
       if (from < 11) await m.addColumn(customersTable, customersTable.creditLimitCents);
+      if (from < 12) {
+        await m.createTable(salePaymentsTable);
+        if (from >= 5) await m.addColumn(orderItemsTable, orderItemsTable.paidQty);
+      }
     },
   );
 }

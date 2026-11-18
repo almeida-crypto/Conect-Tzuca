@@ -110,10 +110,28 @@ class Sale {
     this.cancelReason,
     this.discountCents = 0,
     this.clerk,
+    this.payments = const [],
   });
 
   /// Quién atendió (cambio de cajero con PIN). null si no se usan PIN.
   final String? clerk;
+
+  /// Pagos cuando se pagó con más de un método o en partes (pago mixto, cuenta en partes iguales).
+  /// Vacío = un solo pago con [method].
+  final List<SalePayment> payments;
+
+  /// Cómo se pagó: los pagos, o uno solo por el total. Vacío si fue fiada.
+  List<SalePayment> get paymentParts => kind == SaleKind.fiada
+      ? const []
+      : payments.isNotEmpty
+      ? payments
+      : [SalePayment(method: method ?? PayMethod.efectivo, amountCents: totalCents)];
+
+  /// Lo que entró en efectivo.
+  int get cashCents => paymentParts.where((p) => p.method == PayMethod.efectivo).fold(0, (a, p) => a + p.amountCents);
+
+  /// Se pagó con varios pagos.
+  bool get split => payments.length > 1;
 
   final String id;
   final int folio;
@@ -157,6 +175,7 @@ class Sale {
     cancelReason: reason,
     discountCents: discountCents,
     clerk: clerk,
+    payments: payments,
   );
 
   /// "K7-0043": cada teléfono lleva su propia numeración.
@@ -167,7 +186,49 @@ class Sale {
 
   /// Lo que se cobró: los productos menos el descuento.
   int get totalCents => (subtotalCents - discountCents).clamp(0, subtotalCents);
-  int get changeCents => (receivedCents ?? totalCents) - totalCents;
+
+  /// Cambio de la parte en efectivo ([receivedCents] es con cuánto pagaron esa parte).
+  int get changeCents {
+    final cash = cashCents;
+    if (cash == 0 || receivedCents == null) return 0;
+    return receivedCents! > cash ? receivedCents! - cash : 0;
+  }
+}
+
+/// Un pago de una venta (pago mixto o cuenta en partes).
+class SalePayment {
+  const SalePayment({required this.method, required this.amountCents});
+
+  final PayMethod method;
+  final int amountCents;
+}
+
+/// "Efectivo $200 · Tarjeta $100" -> "Efectivo y tarjeta".
+String paymentsLabel(List<SalePayment> parts) {
+  final methods = <PayMethod>{for (final p in parts) p.method}.toList();
+  if (methods.isEmpty) return '';
+  if (methods.length == 1) {
+    return parts.length > 1 ? '${methods.first.label} (${parts.length} pagos)' : methods.first.label;
+  }
+  final names = [methods.first.label, for (final m in methods.skip(1)) m.label.toLowerCase()];
+  return '${names.sublist(0, names.length - 1).join(', ')} y ${names.last}';
+}
+
+/// Quita [cents] a los pagos, primero al efectivo (lo que se le regresa en mano) y luego a lo demás.
+/// Para devoluciones de una venta pagada en partes.
+List<SalePayment> reducePayments(List<SalePayment> parts, int cents) {
+  var left = cents;
+  final ordered = [
+    ...parts.where((p) => p.method == PayMethod.efectivo),
+    ...parts.where((p) => p.method != PayMethod.efectivo),
+  ];
+  final out = <SalePayment>[];
+  for (final p in ordered) {
+    final take = left.clamp(0, p.amountCents);
+    left -= take;
+    if (p.amountCents - take > 0) out.add(SalePayment(method: p.method, amountCents: p.amountCents - take));
+  }
+  return out;
 }
 
 class Customer {

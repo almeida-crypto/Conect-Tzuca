@@ -176,7 +176,14 @@ class _TicketScreenState extends ConsumerState<TicketScreen> {
                                 ],
                                 _row('TOTAL', money(sale.totalCents), bold: true),
                                 const _Dashed(),
-                                if (paid) ...[
+                                if (paid && sale.split) ...[
+                                  // Pagada en partes: cada pago con su método.
+                                  for (final p in sale.payments) _row(p.method.label, money(p.amountCents)),
+                                  if (sale.receivedCents != null && sale.cashCents > 0) ...[
+                                    _row('Recibió (efectivo)', money(sale.receivedCents!)),
+                                    _row('Cambio', money(sale.changeCents)),
+                                  ],
+                                ] else if (paid) ...[
                                   _row('Pago', sale.method!.label),
                                   if (sale.method == PayMethod.efectivo) ...[
                                     _row('Recibió', money(sale.receivedCents ?? sale.totalCents)),
@@ -374,6 +381,8 @@ Future<String?> showCancelSaleDialog(BuildContext context, Sale sale, {String? c
   final total = money(sale.totalCents);
   final effect = switch ((sale.kind, sale.method)) {
     (SaleKind.fiada, _) => 'Se le quitan $total de la deuda${customerName == null ? '' : ' a $customerName'}.',
+    _ when sale.split =>
+      'Devuélvele lo que pagó: ${[for (final p in sale.payments) '${money(p.amountCents)} en ${p.method.label.toLowerCase()}'].join(', ')}.',
     (_, PayMethod.efectivo) => 'Devuélvele $total al cliente: ya no cuentan en la caja.',
     (_, final m) => 'Devuélvele $total por ${m?.label.toLowerCase() ?? 'el mismo medio'}. La app solo lo anota.',
   };

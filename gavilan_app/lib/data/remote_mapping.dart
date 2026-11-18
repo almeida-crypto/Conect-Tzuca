@@ -144,7 +144,8 @@ List<RemoteChange> saleToRemote(Sale s, {Set<String> stockTracked = const {}}) {
     'subtotal': _pesos(s.subtotalCents),
     'discount': _pesos(s.discountCents),
     'total': _pesos(s.totalCents),
-    'pay_method': _methodOut[s.method],
+    // Pagada en partes: cada pago va en sale_payments y aquí queda vacío.
+    'pay_method': s.split ? null : _methodOut[s.method],
     'received_amount': s.receivedCents == null ? null : _pesos(s.receivedCents!),
     'created_at': _iso(s.createdAt),
   };
@@ -171,6 +172,20 @@ List<RemoteChange> saleToRemote(Sale s, {Set<String> stockTracked = const {}}) {
   return [
     (table: 'sales', rows: [sale]),
     if (items.isNotEmpty) (table: 'sale_items', rows: items),
+    if (s.split)
+      (
+        table: 'sale_payments',
+        rows: [
+          for (final (i, p) in s.payments.indexed)
+            {
+              'id': salePaymentId(s.id, i),
+              'sale_id': s.id,
+              'method': _methodOut[p.method],
+              'amount': _pesos(p.amountCents),
+              'created_at': _iso(s.createdAt.add(Duration(milliseconds: i))),
+            },
+        ],
+      ),
     if (sold.isNotEmpty)
       (
         table: 'inventory_movements',
@@ -250,6 +265,17 @@ SaleLineRow saleLineFromRemote(RemoteRow r) => SaleLineRow(
   unitCents: _cents(r['unit_price']),
   unitCostCents: _cents(r['unit_cost']),
   qty: _double(r['qty']),
+);
+
+/// Id fijo de cada pago de una venta: subirlo dos veces no lo duplica.
+String salePaymentId(String saleId, int position) => stableId('$saleId/pay/$position');
+
+SalePaymentRow salePaymentFromRemote(RemoteRow r) => SalePaymentRow(
+  id: r['id']! as String,
+  saleId: r['sale_id']! as String,
+  method: _method(r['method']) ?? PayMethod.efectivo,
+  amountCents: _cents(r['amount']),
+  position: 0,
 );
 
 CreditRow creditFromRemote(RemoteRow r) => CreditRow(
@@ -466,6 +492,7 @@ RemoteRow orderItemToRemote(OrderItem i) => {
   'sent_at': i.sentAt == null ? null : _iso(i.sentAt!),
   'ready_at': i.readyAt == null ? null : _iso(i.readyAt!),
   'served_at': i.servedAt == null ? null : _iso(i.servedAt!),
+  'paid_qty': i.paidQty,
 };
 
 DiningTableRow tableFromRemote(RemoteRow r) => DiningTableRow(
@@ -502,6 +529,7 @@ OrderItemRow orderItemFromRemote(RemoteRow r) => OrderItemRow(
   sentAt: _dateOrNull(r['sent_at']),
   readyAt: _dateOrNull(r['ready_at']),
   servedAt: _dateOrNull(r['served_at']),
+  paidQty: r['paid_qty'] == null ? 0 : _double(r['paid_qty']),
 );
 
 RemoteRow extraToRemote(Extra e) => {

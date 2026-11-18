@@ -7,6 +7,8 @@ export type Sale = {
   at: Date;
   totalCents: number;
   method: PayMethod;
+  /** Pagada en partes (pago mixto o cuenta dividida): cuánto entró por cada método. */
+  parts?: { method: PayMethod; totalCents: number }[];
 };
 
 export type SaleItem = {
