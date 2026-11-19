@@ -48,7 +48,34 @@ type SaleRow = {
   status: string;
   pay_method: string | null;
   sale_payments?: { method: string; amount: number }[] | null;
+  folio: number | null;
+  device_id: string | null;
+  clerk_name: string | null;
+  // Llega como objeto (muchos a uno), aunque los tipos genéricos digan arreglo.
+  cash_sessions: SessionRef | SessionRef[] | null;
 };
+type SessionRef = { register_name: string | null; device_id: string | null };
+type ReturnRow = {
+  created_at: string;
+  amount: number;
+  cash_amount: number;
+  lines: { name?: string; qty?: number }[];
+  sales: SaleRef | SaleRef[] | null;
+};
+type SaleRef = { folio: number | null; device_id: string | null };
+
+/** Nombre de la caja, o "Caja K7" si no tiene nombre. */
+function registerOf(session: SessionRef | null, saleDevice: string | null) {
+  if (session?.register_name) return session.register_name;
+  const device = session?.device_id ?? saleDevice;
+  return device ? `Caja ${device}` : "Sin caja";
+}
+
+/** "K7-0043", como lo imprime la app. */
+const folioLabel = (device: string | null, folio: number | null) =>
+  `${device ? `${device}-` : ""}${String(folio ?? 0).padStart(4, "0")}`;
+
+const qtyText = (q: number) => (Number.isInteger(q) ? String(q) : q.toFixed(3).replace(/0+$/, ""));
 type ItemRow = {
   sale_id: string;
   name_snapshot: string;
@@ -57,6 +84,8 @@ type ItemRow = {
   unit_cost: number | null;
   sales: { created_at: string };
 };
+
+const sessionOf = (r: SaleRow) => (Array.isArray(r.cash_sessions) ? r.cash_sessions[0] : r.cash_sessions) ?? null;
 
 const toSale = (r: SaleRow): Sale => ({
   id: r.id,
@@ -67,23 +96,28 @@ const toSale = (r: SaleRow): Sale => ({
     r.status !== "credit" && r.sale_payments && r.sale_payments.length > 1
       ? r.sale_payments.map((p) => ({ method: methodIn[p.method] ?? "efectivo", totalCents: cents(p.amount) }))
       : undefined,
+  folio: folioLabel(r.device_id, r.folio),
+  clerk: r.clerk_name,
+  register: registerOf(sessionOf(r), r.device_id),
 });
 
 export async function loadReport(client: SupabaseClient, businessId: string, period: Period): Promise<ReportData> {
   const prev = previousPeriod(period);
   const iso = (d: Date) => d.toISOString();
 
-  const [sales, items, payments, cuts, debtors, products] = await Promise.all([
+  const [sales, items, payments, cuts, debtors, products, returns] = await Promise.all([
     fetchAll<SaleRow>((a, b) =>
       client
         .from("sales")
-        .select("id, created_at, total, status, pay_method, sale_payments(method, amount)")
+        .select(
+          "id, created_at, total, status, pay_method, folio, device_id, clerk_name, sale_payments(method, amount), cash_sessions(register_name, device_id)",
+        )
         .eq("business_id", businessId)
         .neq("status", "cancelled")
         .gte("created_at", iso(prev.from))
         .lt("created_at", iso(period.to))
         .order("created_at")
-        .range(a, b),
+        .range(a, b) as unknown as PromiseLike<{ data: SaleRow[] | null; error: unknown }>,
     ),
     fetchAll<ItemRow>((a, b) =>
       client
@@ -129,6 +163,16 @@ export async function loadReport(client: SupabaseClient, businessId: string, per
       .eq("is_active", true)
       .is("deleted_at", null)
       .not("min_stock", "is", null),
+    fetchAll<ReturnRow>((a, b) =>
+      client
+        .from("sale_returns")
+        .select("created_at, amount, cash_amount, lines, sales(folio, device_id)")
+        .eq("business_id", businessId)
+        .gte("created_at", iso(period.from))
+        .lt("created_at", iso(period.to))
+        .order("created_at", { ascending: false })
+        .range(a, b) as unknown as PromiseLike<{ data: ReturnRow[] | null; error: unknown }>,
+    ),
   ]);
   for (const r of [cuts, debtors, products]) if (r.error) throw r.error;
 
@@ -162,5 +206,15 @@ export async function loadReport(client: SupabaseClient, businessId: string, per
       .filter((p) => Number(p.stock_qty) <= Number(p.min_stock))
       .map((p) => ({ name: p.name, stock: Number(p.stock_qty), minStock: Number(p.min_stock) }))
       .sort((a, b) => a.stock - b.stock),
+    returns: returns.map((r) => {
+      const sale = (Array.isArray(r.sales) ? r.sales[0] : r.sales) ?? null;
+      return {
+        at: new Date(r.created_at),
+        folio: folioLabel(sale?.device_id ?? null, sale?.folio ?? null),
+        summary: (r.lines ?? []).map((l) => `${qtyText(Number(l.qty ?? 0))} ${l.name ?? ""}`.trim()).join(", "),
+        amountCents: cents(r.amount),
+        cashCents: cents(r.cash_amount),
+      };
+    }),
   };
 }

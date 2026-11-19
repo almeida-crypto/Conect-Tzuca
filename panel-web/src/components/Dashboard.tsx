@@ -8,14 +8,23 @@ import { type Business, loadReport } from "@/lib/data";
 import { demoReport } from "@/lib/demo";
 import {
   bestBucket,
+  byClerk,
   byDay,
   byHour,
   byMethod,
+  byRegister,
   change,
+  dayValue,
+  formatQty,
   money,
+  percent,
   type PeriodKey,
   periodFor,
+  productsCsv,
   profit,
+  profitByProduct,
+  rangePeriod,
+  salesCsv,
   topProducts,
   totals,
 } from "@/lib/report";
@@ -28,7 +37,18 @@ const periods: { key: PeriodKey; label: string }[] = [
   { key: "30d", label: "30 días" },
   { key: "mes", label: "Este mes" },
   { key: "mesPasado", label: "Mes pasado" },
+  { key: "rango", label: "Elegir fechas" },
 ];
+
+/** Baja un archivo hecho en el navegador (no pasa por ningún servidor). */
+function download(name: string, text: string) {
+  const url = URL.createObjectURL(new Blob([text], { type: "text/csv;charset=utf-8" }));
+  const a = document.createElement("a");
+  a.href = url;
+  a.download = name;
+  a.click();
+  setTimeout(() => URL.revokeObjectURL(url), 5000);
+}
 
 const dateTime = new Intl.DateTimeFormat("es-MX", {
   weekday: "short",
@@ -44,7 +64,14 @@ export function Dashboard({ business, onExit }: { business: Business | null; onE
   const [data, setData] = useState<ReportData | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
-  const period = useMemo(() => periodFor(key), [key]);
+  const [range, setRange] = useState(() => {
+    const week = periodFor("7d");
+    return { from: dayValue(week.from), to: dayValue(new Date(week.to.getTime() - 86_400_000)) };
+  });
+  const period = useMemo(
+    () => (key === "rango" ? (rangePeriod(range.from, range.to) ?? periodFor("7d")) : periodFor(key)),
+    [key, range],
+  );
 
   useEffect(() => {
     let alive = true;
@@ -66,11 +93,20 @@ export function Dashboard({ business, onExit }: { business: Business | null; onE
     setError(null);
   }
 
+  function changeRange(next: { from: string; to: string }) {
+    if (!rangePeriod(next.from, next.to)) return;
+    setRange(next);
+    setLoading(true);
+    setError(null);
+  }
+
+  const fileDay = dayValue(period.from);
+
   const name = business?.name ?? "Abarrotes Doña Mary";
 
   return (
     <div className="min-h-screen">
-      <header className="sticky top-0 z-20 border-b border-linea bg-fondo/90 backdrop-blur">
+      <header className="sticky top-0 z-20 border-b border-linea bg-fondo/90 backdrop-blur print:static print:border-0">
         <div className="mx-auto flex max-w-[1180px] items-center gap-3 px-4 py-3 sm:px-6">
           <Image src="/gavilan.png" alt="" width={58} height={33} />
           <div className="min-w-0 flex-1">
@@ -82,7 +118,7 @@ export function Dashboard({ business, onExit }: { business: Business | null; onE
           </div>
           <button
             onClick={onExit}
-            className="shrink-0 rounded-full border-[1.5px] border-linea bg-superficie px-4 py-2 text-[14px] font-bold hover:bg-hundido"
+            className="shrink-0 rounded-full print:hidden border-[1.5px] border-linea bg-superficie px-4 py-2 text-[14px] font-bold hover:bg-hundido"
           >
             <span className="sm:hidden">Salir</span>
             <span className="hidden sm:inline">{business ? "Cerrar sesión" : "Salir del ejemplo"}</span>
@@ -91,7 +127,7 @@ export function Dashboard({ business, onExit }: { business: Business | null; onE
       </header>
 
       <main className="mx-auto max-w-[1180px] px-4 pt-5 pb-16 sm:px-6">
-        <div className="mb-5 flex flex-wrap items-center gap-2">
+        <div className="mb-5 flex flex-wrap items-center gap-2 print:hidden">
           {periods.map((p) => (
             <button
               key={p.key}
@@ -107,11 +143,53 @@ export function Dashboard({ business, onExit }: { business: Business | null; onE
           {loading && <span className="ml-2 text-[13px] font-semibold text-tinta-tenue">Cargando…</span>}
         </div>
 
+        {key === "rango" && (
+          <div className="mb-5 flex flex-wrap items-end gap-3 print:hidden">
+            {(["from", "to"] as const).map((f) => (
+              <label key={f} className="text-[13px] font-semibold text-tinta-suave">
+                {f === "from" ? "Desde" : "Hasta"}
+                <input
+                  type="date"
+                  value={range[f]}
+                  max={dayValue(new Date())}
+                  onChange={(e) => changeRange({ ...range, [f]: e.target.value })}
+                  className="mt-1 block rounded-xl border-[1.5px] border-linea bg-superficie px-3 py-2 text-[15px] font-bold text-tinta"
+                />
+              </label>
+            ))}
+          </div>
+        )}
+
+        <p className="mb-4 hidden text-[15px] font-bold print:block">{period.label}</p>
+
+        {data && (
+          <div className="mb-5 flex flex-wrap gap-2 print:hidden">
+            <button
+              onClick={() => download(`ventas-${fileDay}.csv`, salesCsv(data))}
+              className="rounded-full border-[1.5px] border-linea bg-superficie px-4 py-2 text-[14px] font-bold hover:bg-hundido"
+            >
+              Descargar ventas (Excel)
+            </button>
+            <button
+              onClick={() => download(`productos-${fileDay}.csv`, productsCsv(data))}
+              className="rounded-full border-[1.5px] border-linea bg-superficie px-4 py-2 text-[14px] font-bold hover:bg-hundido"
+            >
+              Descargar productos (Excel)
+            </button>
+            <button
+              onClick={() => window.print()}
+              className="rounded-full border-[1.5px] border-linea bg-superficie px-4 py-2 text-[14px] font-bold hover:bg-hundido"
+            >
+              Imprimir o guardar PDF
+            </button>
+          </div>
+        )}
+
         {error && (
           <p className="mb-5 rounded-2xl bg-rojo-suave px-4 py-3 text-[14px] font-semibold text-rojo">{error}</p>
         )}
 
-        {data && <Report data={data} period={period} key={`${key}-${data.sales.length}`} />}
+        {data && <Report data={data} period={period} key={`${period.label}-${data.sales.length}`} />}
       </main>
     </div>
   );
@@ -128,6 +206,9 @@ function Report({ data, period }: { data: ReportData; period: ReturnType<typeof 
   const bestHour = bestBucket(hours);
   const bestDay = days ? bestBucket(days) : null;
   const vs = "vs periodo anterior";
+  const clerks = byClerk(data.sales);
+  const registers = byRegister(data.sales);
+  const returned = data.returns.reduce((a, r) => a + r.amountCents, 0);
 
   return (
     <div className="space-y-5">
@@ -184,6 +265,54 @@ function Report({ data, period }: { data: ReportData; period: ReturnType<typeof 
         <CardTitle title="Lo más vendido" subtitle="Por dinero que dejó en el periodo" />
         <BarList rows={topProducts(data)} empty="Todavía no hay productos vendidos en este periodo." />
       </Card>
+
+      <ProfitTable data={data} />
+
+      {(clerks.length > 1 || registers.length > 1) && (
+        <div className="grid gap-5 lg:grid-cols-2">
+          {clerks.length > 1 && (
+            <Card>
+              <CardTitle title="Por quien atendió" subtitle="Con PIN en el mostrador" />
+              <BarList rows={clerks} empty="Sin ventas en este periodo." />
+            </Card>
+          )}
+          {registers.length > 1 && (
+            <Card>
+              <CardTitle title="Por caja" subtitle="Cada celular o computadora que cobra" />
+              <BarList rows={registers} empty="Sin ventas en este periodo." />
+            </Card>
+          )}
+        </div>
+      )}
+
+      {data.returns.length > 0 && (
+        <Card>
+          <CardTitle
+            title="Devoluciones de otros días"
+            subtitle={`${money(returned)} devueltos · la venta sigue contando en su día`}
+          />
+          <ul className="tabular divide-y divide-linea text-[14px]">
+            {data.returns.map((r, i) => (
+              <li key={i} className="flex items-baseline justify-between gap-3 py-2">
+                <span className="min-w-0 truncate">
+                  <span className="font-semibold first-letter:uppercase">{dateTime.format(r.at)}</span>
+                  <span className="ml-2 text-tinta-suave">
+                    Venta {r.folio}: {r.summary}
+                  </span>
+                </span>
+                <span className="shrink-0 text-right">
+                  <b className="text-rojo">−{money(r.amountCents)}</b>
+                  {r.cashCents < r.amountCents && (
+                    <span className="ml-2 text-[12.5px] text-tinta-tenue">
+                      {r.cashCents > 0 ? `${money(r.cashCents)} en efectivo` : "sin efectivo"}
+                    </span>
+                  )}
+                </span>
+              </li>
+            ))}
+          </ul>
+        </Card>
+      )}
 
       <div className="grid gap-5 lg:grid-cols-3">
         <Card className="lg:col-span-2">
@@ -267,5 +396,65 @@ function Report({ data, period }: { data: ReportData; period: ReturnType<typeof 
         </div>
       </div>
     </div>
+  );
+}
+
+/** Ganancia de cada producto: lo vendido, su costo y lo que dejó. */
+function ProfitTable({ data }: { data: ReportData }) {
+  const [all, setAll] = useState(false);
+  const rows = profitByProduct(data);
+  const shown = all ? rows : rows.slice(0, 12);
+  const missing = rows.filter((r) => r.profitCents === null).length;
+  return (
+    <Card>
+      <CardTitle
+        title="Ganancia por producto"
+        subtitle={
+          missing > 0
+            ? `${missing} ${missing === 1 ? "producto no tiene" : "productos no tienen"} costo: captúralo en la app para ver su ganancia`
+            : "Lo vendido menos lo que te costó"
+        }
+      />
+      {rows.length === 0 ? (
+        <p className="py-6 text-center text-[14px] text-tinta-suave">Todavía no hay productos vendidos en este periodo.</p>
+      ) : (
+        <div className="overflow-x-auto">
+          <table className="tabular w-full min-w-[520px] text-[14px]">
+            <thead className="text-left text-[12px] text-tinta-tenue">
+              <tr>
+                <th className="py-1.5 font-semibold">Producto</th>
+                <th className="py-1.5 text-right font-semibold">Cantidad</th>
+                <th className="py-1.5 text-right font-semibold">Vendido</th>
+                <th className="py-1.5 text-right font-semibold">Costo</th>
+                <th className="py-1.5 text-right font-semibold">Ganancia</th>
+                <th className="py-1.5 text-right font-semibold">Margen</th>
+              </tr>
+            </thead>
+            <tbody>
+              {shown.map((r) => (
+                <tr key={r.name} className="border-t border-linea">
+                  <td className="max-w-[220px] truncate py-2 font-semibold">{r.name}</td>
+                  <td className="py-2 text-right">{formatQty(r.qty)}</td>
+                  <td className="py-2 text-right">{money(r.salesCents)}</td>
+                  <td className="py-2 text-right text-tinta-suave">{r.costCents === null ? "—" : money(r.costCents)}</td>
+                  <td className={`py-2 text-right font-bold ${(r.profitCents ?? 0) < 0 ? "text-rojo" : "text-cenote"}`}>
+                    {r.profitCents === null ? <span className="font-normal text-tinta-tenue">sin costo</span> : money(r.profitCents)}
+                  </td>
+                  <td className="py-2 text-right text-tinta-suave">{r.margin === null ? "—" : percent(r.margin)}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      )}
+      {rows.length > 12 && (
+        <button
+          onClick={() => setAll(!all)}
+          className="mt-3 text-[14px] font-bold text-marca hover:underline print:hidden"
+        >
+          {all ? "Ver menos" : `Ver los ${rows.length} productos`}
+        </button>
+      )}
+    </Card>
   );
 }

@@ -133,6 +133,68 @@ function unitOf(name: string, qty: number) {
   return qty === 1 ? "pieza" : "piezas";
 }
 
+/** Ganancia de cada producto: lo vendido menos su costo. Los que no tienen costo van al final, sin ganancia. */
+export type ProductProfit = {
+  name: string;
+  qty: number;
+  salesCents: number;
+  costCents: number | null;
+  profitCents: number | null;
+  /** Margen sobre lo vendido (0.25 = 25%). */
+  margin: number | null;
+};
+
+export function profitByProduct(data: ReportData): ProductProfit[] {
+  const map = new Map<string, { qty: number; sales: number; cost: number; missing: boolean }>();
+  for (const i of data.items) {
+    const p = map.get(i.name) ?? { qty: 0, sales: 0, cost: 0, missing: false };
+    p.qty += i.qty;
+    p.sales += i.totalCents;
+    if (i.costCents === null) p.missing = true;
+    else p.cost += i.costCents;
+    map.set(i.name, p);
+  }
+  return [...map.entries()]
+    .map(([name, p]) => {
+      // Si algún renglón no tiene costo, la ganancia de ese producto no se puede saber.
+      const profitCents = p.missing ? null : p.sales - p.cost;
+      return {
+        name,
+        qty: p.qty,
+        salesCents: p.sales,
+        costCents: p.missing ? null : p.cost,
+        profitCents,
+        margin: profitCents === null || p.sales === 0 ? null : profitCents / p.sales,
+      };
+    })
+    .sort((a, b) => (b.profitCents ?? -Infinity) - (a.profitCents ?? -Infinity) || b.salesCents - a.salesCents);
+}
+
+/** Ventas agrupadas por quien atendió o por caja. */
+export function byGroup(sales: Sale[], keyOf: (s: Sale) => string): Share[] {
+  const map = new Map<string, { cents: number; count: number }>();
+  for (const s of sales) {
+    const k = keyOf(s);
+    const g = map.get(k) ?? { cents: 0, count: 0 };
+    g.cents += s.totalCents;
+    g.count += 1;
+    map.set(k, g);
+  }
+  const total = sum([...map.values()].map((g) => g.cents));
+  return [...map.entries()]
+    .map(([k, g]) => ({
+      key: k,
+      label: k,
+      cents: g.cents,
+      share: total ? g.cents / total : 0,
+      extra: `${g.count} ${g.count === 1 ? "venta" : "ventas"}`,
+    }))
+    .sort((a, b) => b.cents - a.cents);
+}
+
+export const byClerk = (sales: Sale[]) => byGroup(sales, (s) => s.clerk || "Sin PIN");
+export const byRegister = (sales: Sale[]) => byGroup(sales, (s) => s.register ?? "Sin caja");
+
 export function bestBucket(buckets: Bucket[]): Bucket | null {
   return buckets.reduce<Bucket | null>((best, b) => (b.cents > (best?.cents ?? 0) ? b : best), null);
 }
@@ -158,7 +220,7 @@ export const percent = (x: number) => `${Math.round(x * 100)}%`;
 
 // ---------- Periodos ----------
 
-export type PeriodKey = "hoy" | "7d" | "30d" | "mes" | "mesPasado";
+export type PeriodKey = "hoy" | "7d" | "30d" | "mes" | "mesPasado" | "rango";
 
 export function periodFor(key: PeriodKey, now = new Date()): Period {
   const startOfDay = (d: Date) => new Date(d.getFullYear(), d.getMonth(), d.getDate());
@@ -186,7 +248,82 @@ export function periodFor(key: PeriodKey, now = new Date()): Period {
         to: new Date(today.getFullYear(), today.getMonth(), 1),
         label: "Mes pasado",
       };
+    case "rango":
+      return { from: new Date(today.getTime() - 6 * 86_400_000), to: tomorrow, label: "Últimos 7 días" };
   }
+}
+
+/** "2026-11-18" (de un campo de fecha) a medianoche local; null si no es una fecha. */
+export function parseDay(value: string): Date | null {
+  const m = /^(\d{4})-(\d{2})-(\d{2})$/.exec(value);
+  if (!m) return null;
+  const d = new Date(Number(m[1]), Number(m[2]) - 1, Number(m[3]));
+  return Number.isNaN(d.getTime()) ? null : d;
+}
+
+/** Fecha local como la pide un campo de fecha: "2026-11-18". */
+export const dayValue = (d: Date) =>
+  `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
+
+const rangeDay = new Intl.DateTimeFormat("es-MX", { day: "numeric", month: "short", year: "numeric" });
+
+/** Del día [from] al día [to], los dos incluidos. Si vienen al revés, se voltean. null si falta alguno. */
+export function rangePeriod(from: string, to: string): Period | null {
+  let a = parseDay(from);
+  let b = parseDay(to);
+  if (!a || !b) return null;
+  if (b < a) [a, b] = [b, a];
+  const end = new Date(b.getFullYear(), b.getMonth(), b.getDate() + 1);
+  const label = a.getTime() === b.getTime() ? rangeDay.format(a) : `${rangeDay.format(a)} al ${rangeDay.format(b)}`;
+  return { from: a, to: end, label };
+}
+
+// ---------- Descargas (Excel abre los CSV) ----------
+
+const csvCell = (v: string | number) => {
+  const s = String(v);
+  // Una celda que empieza con =, +, - o @ Excel la tomaría como fórmula: se le antepone un apóstrofo
+  // (menos a los números negativos, como una ganancia de -5.00).
+  const safe = /^[=+\-@]/.test(s) && !/^-?\d+(\.\d+)?$/.test(s) ? `'${s}` : s;
+  return /[",\n]/.test(safe) ? `"${safe.replace(/"/g, '""')}"` : safe;
+};
+
+/** CSV con BOM para que Excel respete los acentos. */
+export function toCsv(header: string[], rows: (string | number)[][]): string {
+  return "\uFEFF" + [header, ...rows].map((r) => r.map(csvCell).join(",")).join("\r\n");
+}
+
+const pesos = (cents: number) => (cents / 100).toFixed(2);
+const two = (n: number) => String(n).padStart(2, "0");
+/** "2026-11-18 14:05": Excel lo reconoce como fecha y hora. */
+const csvDate = (d: Date) => `${dayValue(d)} ${two(d.getHours())}:${two(d.getMinutes())}`;
+
+export function salesCsv(data: ReportData): string {
+  return toCsv(
+    ["Fecha", "Folio", "Total", "Forma de pago", "Atendió", "Caja"],
+    [...data.sales].sort((a, b) => a.at.getTime() - b.at.getTime()).map((s) => [
+      csvDate(s.at),
+      s.folio ?? "",
+      pesos(s.totalCents),
+      s.parts ? s.parts.map((p) => `${methodLabel[p.method]} ${pesos(p.totalCents)}`).join(" + ") : methodLabel[s.method],
+      s.clerk ?? "",
+      s.register ?? "",
+    ]),
+  );
+}
+
+export function productsCsv(data: ReportData): string {
+  return toCsv(
+    ["Producto", "Cantidad", "Vendido", "Costo", "Ganancia", "Margen %"],
+    profitByProduct(data).map((p) => [
+      p.name,
+      formatQty(p.qty),
+      pesos(p.salesCents),
+      p.costCents === null ? "" : pesos(p.costCents),
+      p.profitCents === null ? "" : pesos(p.profitCents),
+      p.margin === null ? "" : Math.round(p.margin * 100),
+    ]),
+  );
 }
 
 /** El periodo anterior del mismo largo, para comparar. */

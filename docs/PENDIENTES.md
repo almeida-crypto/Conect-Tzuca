@@ -54,7 +54,7 @@ Prioridad: **Alta** = sin esto no se puede usar con un negocio real · **Media**
 - [x] **Media** · Ticket como imagen PNG para WhatsApp (`RepaintBoundary` + `share_plus`), con la opción de mandarlo como texto. *31/10/2026*
 - [x] **Media** · Logo del negocio en el ticket para los planes de pago. *18/11/2026*
 - [ ] **Media** · Probar el logo en un celular real: elegirlo de la galería (PNG transparente y JPG), verlo en otro celular e imprimirlo en una térmica.
-- [ ] **Media** · Tarjeta para Estados de WhatsApp: foto del producto, precio y sello "Disponible".
+- [x] **Media** · Tarjeta para Estados de WhatsApp: foto del producto, precio y sello "Disponible". *18/11/2026*
 - [x] **Media** · Fotos de producto en planes de pago: 600×600 JPEG en el teléfono, guardadas sin internet y respaldadas en Supabase Storage. *18/11/2026*
 - [x] **Media** · Políticas de Supabase Storage para fotos de productos (migración 0023). *18/11/2026*
 - [x] **Baja** · Fotos de apartados (mismo bucket). *18/11/2026*
@@ -67,7 +67,7 @@ Prioridad: **Alta** = sin esto no se puede usar con un negocio real · **Media**
 - [x] **Media** · Descuento a la cuenta al cobrar (porcentaje o pesos), en el ticket y repartido en la ganancia. *12/11/2026*
 - [x] **Baja** · Cancelar ventas de cortes ya cerrados: el corte no cambia y la devolución se anota en la caja de hoy. *18/11/2026*
 - [x] **Baja** · Devolver solo una parte de una venta de un corte ya cerrado. *18/11/2026*
-- [ ] **Baja** · Panel web: mostrar las devoluciones de otro día (`sale_returns`) en los reportes.
+- [x] **Baja** · Panel web: mostrar las devoluciones de otro día (`sale_returns`) en los reportes. *18/11/2026*
 - [x] **Alta** · Cambio de cajero con PIN en un aparato compartido: "¿Quién atiende?", "Atiende: X" con F4, bloqueo por tiempo, ventas, gastos y abonos a nombre de quien atiende, "Ventas por persona" en el corte y "Entregar caja". *16/11/2026*
 - [ ] **Media** · Probar el cambio de cajero en un celular real y en la computadora del mostrador con dos personas.
 
@@ -93,7 +93,8 @@ Prioridad: **Alta** = sin esto no se puede usar con un negocio real · **Media**
 - [ ] **Baja** · Impresora térmica Bluetooth o USB.
 - [x] **Baja** · Tope de fiado general y por cliente, aviso al fiar de más (el cajero necesita PIN) y atraso en ámbar (30 días) y rojo (60). *18/11/2026*
 - [x] **Media** · Ganancia por producto en el corte (vendido, precio, costo, ganancia y margen), para dueño y administradores. También en los cortes anteriores. *12/11/2026*
-- [ ] **Baja** · Ganancia por producto en el panel web y por rango de fechas; costos por proveedor.
+- [x] **Baja** · Ganancia por producto en el panel web y por rango de fechas. *18/11/2026*
+- [ ] **Baja** · Costos por proveedor.
 
 ## Etapa 4 · Planes y cobro
 - [ ] **Media** · Confirmar los límites exactos de cada plan contra el PDF (la tabla salió desordenada al leerla).
@@ -106,7 +107,8 @@ Prioridad: **Alta** = sin esto no se puede usar con un negocio real · **Media**
 - [ ] **Media** · Que el usuario entre al panel con su cuenta y revise sus números reales.
 - [ ] **Media** · Publicar el panel en Vercel. Necesita que el usuario cree una cuenta gratuita.
 - [x] **Media** · Catálogo tipo Excel: "Editar en tabla" en Inventario (computadora). Cambia nombre, código, precio, costo, existencia y mínimo de muchos productos; da de alta renglones nuevos y se puede pegar desde Excel. *12/11/2026*
-- [ ] **Baja** · Panel: descargar los reportes en Excel o PDF, elegir un rango de fechas libre y reportes por cajero o por teléfono.
+- [x] **Baja** · Panel: descargar los reportes en Excel o PDF, elegir un rango de fechas libre y reportes por cajero o por teléfono. *18/11/2026*
+- [ ] **Media** · Revisar el panel con una cuenta real: rango de fechas, ganancia por producto, por cajero y caja, devoluciones y descargas.
 - [x] **Media** · Mostrador en la computadora: la misma app abierta en el navegador cobra, fía, lleva inventario, caja, mesas y equipo. Menú a la izquierda, la cuenta siempre a la derecha y lector láser USB sin tocar nada. *11/11/2026*
 - [ ] **Media** · Publicar el mostrador web (la app compilada con `flutter build web`) junto al panel, por ejemplo en `/mostrador`.
 - [x] **Media** · Mostrador web: atajos de teclado (F2, Esc, + y −, F3, F1, escribir sin dar clic) y cobrar escribiendo el monto con Enter. *12/11/2026*

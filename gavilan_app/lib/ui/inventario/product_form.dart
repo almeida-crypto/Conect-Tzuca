@@ -18,6 +18,7 @@ import '../widgets/common.dart';
 import '../scan/scan_screen.dart';
 import '../widgets/photo_picker.dart';
 import '../widgets/product_icons.dart';
+import 'status_card_screen.dart';
 
 /// Abre la ficha de producto. Devuelve el producto guardado (null si se canceló).
 Future<Product?> showProductForm(BuildContext context, {Product? product, String? initialBarcode}) async {
@@ -180,6 +181,17 @@ class _ProductFormState extends ConsumerState<_ProductForm> {
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
         SheetHeader(_editing ? 'Editar producto' : 'Nuevo producto'),
+        if (_editing)
+          Align(
+            alignment: Alignment.centerLeft,
+            child: TextButton.icon(
+              onPressed: () =>
+                  Navigator.of(context)
+                      .push(MaterialPageRoute<void>(builder: (_) => StatusCardScreen(productId: widget.product!.id))),
+              icon: const Icon(Icons.auto_awesome_outlined, size: 18),
+              label: Text('Tarjeta para Estados de WhatsApp', style: GText.sans(size: 13, color: GColors.marca)),
+            ),
+          ),
         TextField(
           controller: _name,
           inputFormatters: [maxChars(Limits.maxNameLength)],

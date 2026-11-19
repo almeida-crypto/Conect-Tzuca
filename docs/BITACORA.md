@@ -966,3 +966,19 @@ Se abren desde **Más → Módulos** con el plan Emprendedor o superior. Los tre
 ### Verificación
 - `flutter analyze` sin avisos y 145 pruebas pasan. Nuevas: `labels_test.dart` (cifra de control, código interno, tipo de barras, crear códigos, PDF), `late_return_test.dart` (efectivo, descuento y pagos en partes, fiada, regresar todo, cancelar después, guardar al reabrir) y en `sync_test.dart` (el cajero aparta con foto y el dueño la ve; el mesero y el cajero no suben lo que no les toca; una devolución pasa a otro celular).
 - Revisado a ojo: pantalla de etiquetas, apartado con foto, ticket con devolución y la hoja de devolver.
+
+### Tarjeta para Estados de WhatsApp
+- En la ficha de un producto: "Tarjeta para Estados de WhatsApp". Arma una imagen vertical (1080×1920) con la foto del producto (o su icono), el nombre, el precio (se puede quitar), un sello a elegir (Disponible, Recién llegado, Últimas piezas, Oferta), el nombre del negocio y su logo (planes de pago). Tres fondos: achiote, cenote y crema. En el plan gratis lleva "Hecho con Gavilán".
+- Se arma en el celular y se comparte con el menú del teléfono (en WhatsApp: "Mi estado"); no pasa por ningún servidor. `ui/inventario/status_card_screen.dart`, prueba en `status_card_test.dart`. Revisada a ojo en los tres colores.
+
+### Reportes del panel web
+- **Elegir fechas:** rango libre (desde, hasta), además de los periodos de siempre.
+- **Ganancia por producto:** tabla con cantidad, vendido, costo, ganancia y margen; avisa cuántos productos no tienen costo.
+- **Por quien atendió** (con PIN) y **por caja** (nombre de la caja o "Caja K7"): solo aparecen si hay más de uno.
+- **Devoluciones de otros días** (`sale_returns`): lista con la venta, lo devuelto y cuánto salió en efectivo.
+- **Descargas:** ventas y productos en CSV que abre Excel (con acentos, fechas "2026-11-18 14:05" y protección contra fórmulas), e "Imprimir o guardar PDF" (al imprimir se ocultan los botones).
+- Las ventas ahora traen folio, quien atendió y la caja (`cash_sessions(register_name, device_id)`). La tiendita de ejemplo también trae cajeros, dos cajas y devoluciones.
+- Probado en el navegador con los datos de ejemplo: rango de fechas, tablas nuevas, archivos descargados (BOM, orden y formato), sin errores en consola y sin desbordarse en el celular. `tsc` y `eslint` sin avisos. **Falta probarlo con una cuenta real** (las consultas nuevas a `sale_returns` y a la caja de cada venta).
+
+### Verificación
+- App: `flutter analyze` sin avisos y 147 pruebas pasan.

@@ -9,6 +9,22 @@ export type Sale = {
   method: PayMethod;
   /** Pagada en partes (pago mixto o cuenta dividida): cuánto entró por cada método. */
   parts?: { method: PayMethod; totalCents: number }[];
+  /** "K7-0043", como en el ticket. */
+  folio?: string;
+  /** Quién atendió (con PIN en el mostrador); null si no se usan PIN. */
+  clerk?: string | null;
+  /** Nombre de la caja ("Mostrador") o "Caja K7" si no tiene nombre. */
+  register?: string;
+};
+
+/** Devolución de una venta de otro día (la venta sigue contando en su día). */
+export type SaleReturn = {
+  at: Date;
+  folio: string;
+  summary: string;
+  amountCents: number;
+  /** Lo que salió en efectivo de la caja. */
+  cashCents: number;
 };
 
 export type SaleItem = {
@@ -44,6 +60,8 @@ export type ReportData = {
   cuts: CashCut[];
   debtors: Debtor[];
   lowStock: LowStock[];
+  /** Devoluciones de ventas de otros días hechas en el periodo. */
+  returns: SaleReturn[];
 };
 
 export type Period = { from: Date; to: Date; label: string };

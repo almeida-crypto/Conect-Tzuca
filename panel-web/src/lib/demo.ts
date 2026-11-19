@@ -1,6 +1,6 @@
 // Tiendita de ejemplo para ver el panel sin cuenta. Siempre da los mismos números para las mismas fechas.
 import { previousPeriod } from "./report";
-import type { CashCut, PayMethod, Period, ReportData, Sale, SaleItem } from "./types";
+import type { CashCut, PayMethod, Period, ReportData, Sale, SaleItem, SaleReturn } from "./types";
 
 const catalog: [name: string, price: number, cost: number, weight: number][] = [
   ["Coca 600 ml", 1800, 1300, 10],
@@ -64,7 +64,11 @@ function salesOfDay(day: Date, now: Date) {
     }
     const r = rand();
     const method: PayMethod = r < 0.7 ? "efectivo" : r < 0.82 ? "tarjeta" : r < 0.9 ? "transferencia" : "fiado";
-    sales.push({ id, at, totalCents: total, method });
+    // Dos personas en el mostrador; la caja de la entrada solo abre en la tarde.
+    const register = hour >= 17 && rand() < 0.4 ? "Caja de la entrada" : "Mostrador";
+    const clerk = hour < 14 ? "Mary" : rand() < 0.6 ? "Juan" : "Mary";
+    const folio = `${register === "Mostrador" ? "K7" : "R3"}-${String(day.getDate() * 100 + n).padStart(4, "0")}`;
+    sales.push({ id, at, totalCents: total, method, clerk, register, folio });
   }
   return { sales, items, rand };
 }
@@ -102,7 +106,27 @@ export function demoReport(period: Period, now = new Date()): ReportData {
       });
     }
   }
+  // Un par de devoluciones de días pasados.
+  const returns: SaleReturn[] = sales.length > 40
+    ? [
+        {
+          at: sales[sales.length - 5].at,
+          folio: sales[3].folio ?? "",
+          summary: "1 Leche 1 L",
+          amountCents: 2800,
+          cashCents: 2800,
+        },
+        {
+          at: sales[Math.floor(sales.length / 2)].at,
+          folio: sales[1].folio ?? "",
+          summary: "2 Sabritas",
+          amountCents: 3400,
+          cashCents: 0,
+        },
+      ]
+    : [];
   return {
+    returns,
     sales,
     previousSales,
     items,
