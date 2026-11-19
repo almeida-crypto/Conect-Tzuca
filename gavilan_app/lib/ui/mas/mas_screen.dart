@@ -10,6 +10,7 @@ import '../../state/sync.dart';
 import '../../theme/colors.dart';
 import '../../theme/theme.dart';
 import '../account/account_screen.dart';
+import '../caja/reports_screen.dart';
 import '../clerks/clerks_screen.dart';
 import '../fiados/fiados_screen.dart';
 import '../modules/layaways_screen.dart';
@@ -21,13 +22,26 @@ import '../team/team_screen.dart';
 import '../widgets/buttons.dart';
 import '../widgets/common.dart';
 import 'logo_card.dart';
+import 'offline_card.dart';
 import 'plan_screen.dart';
 import '../account/business_switcher.dart';
 import '../../state/profiles.dart';
 
 /// Módulo adicional del documento maestro y qué plan lo incluye.
 class _Module {
-  const _Module(this.icon, this.title, this.subtitle, this.needed, this.unlocked, {this.screen, this.module});
+  const _Module(
+    this.icon,
+    this.title,
+    this.subtitle,
+    this.needed,
+    this.unlocked, {
+    this.screen,
+    this.module,
+    this.ownerOnly = false,
+  });
+
+  /// Solo lo ve quien puede ver la ganancia (dueño o encargado).
+  final bool ownerOnly;
 
   /// Si el negocio puede apagarlo en "Lo que uso" (null = siempre se ve).
   final Module? module;
@@ -89,11 +103,13 @@ final _modules = [
   ),
   _Module(Icons.print_outlined, 'Impresora de tickets', 'Térmica por Bluetooth o USB', Plan.negocio, (l) => l.printer),
   _Module(
-    Icons.computer_outlined,
-    'Gavilán en la computadora',
-    'Mostrador y reportes en el navegador',
+    Icons.insights_rounded,
+    'Reportes',
+    'Ventas y ganancia por día, producto, persona y caja',
     Plan.emprendedor,
-    (l) => l.webPanel,
+    (l) => l.reports,
+    screen: () => const ReportsScreen(),
+    ownerOnly: true,
   ),
 ];
 
@@ -209,8 +225,9 @@ class MasScreen extends ConsumerWidget {
             // Solo lo que este negocio usa. Mesas ya es una pestaña cuando el restaurante está prendido.
             final visible = [
               for (final m in _modules)
-                if (m.module == null ||
-                    (store.uses(m.module!) && !(m.module == Module.restaurante && restaurantTab(store, plan))))
+                if ((!m.ownerOnly || can.seeProfit) &&
+                    (m.module == null ||
+                        (store.uses(m.module!) && !(m.module == Module.restaurante && restaurantTab(store, plan)))))
                   m,
             ];
             final fiadosHere = restaurantTab(store, plan);
@@ -297,6 +314,7 @@ class MasScreen extends ConsumerWidget {
           const SectionTitle('Tu ticket'),
           const LogoCard(),
         ],
+        if (OfflineCard.applies && can.editCatalog) ...[const SectionTitle('Esta computadora'), const OfflineCard()],
         const SectionTitle('Respaldo en la nube'),
         Builder(
           builder: (context) {

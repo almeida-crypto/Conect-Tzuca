@@ -19,6 +19,7 @@ import '../../state/app_state.dart';
 import 'all_cuts_screen.dart';
 import 'cash_dialogs.dart';
 import 'profit_card.dart';
+import 'reports_screen.dart';
 import 'sales_screen.dart';
 
 /// Corte de caja: lo que debe haber en el cajón, calculado de las ventas, abonos y gastos del turno.
@@ -220,6 +221,7 @@ class _CajaScreenState extends ConsumerState<CajaScreen> {
             onPressed: () => Navigator.of(context).push(MaterialPageRoute<void>(builder: (_) => const AllCutsScreen())),
           ),
         ),
+      if (ref.watch(permissionsProvider).seeProfit) const ReportsButton(),
       if (gastos.isNotEmpty)
         GCard(
           margin: const EdgeInsets.fromLTRB(16, 12, 16, 0),
@@ -383,6 +385,8 @@ class _CajaScreenState extends ConsumerState<CajaScreen> {
             onPressed: () => Navigator.of(context).push(MaterialPageRoute<void>(builder: (_) => const AllCutsScreen())),
           ),
         ),
+      // El dueño en su casa ve la caja cerrada: desde aquí entra a sus reportes.
+      if (ref.watch(permissionsProvider).seeProfit) const ReportsButton(),
       if (last != null)
         Padding(
           padding: const EdgeInsets.fromLTRB(16, 10, 16, 0),

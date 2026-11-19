@@ -44,7 +44,7 @@ class PlanLimits {
     required this.restaurant,
     required this.team,
     required this.printer,
-    required this.webPanel,
+    required this.reports,
     required this.devices,
   });
 
@@ -61,7 +61,9 @@ class PlanLimits {
   final bool restaurant;
   final bool team;
   final bool printer;
-  final bool webPanel;
+
+  /// Reportes completos (periodos, ganancia por producto, por persona y caja, descargas) en la app.
+  final bool reports;
   final int? devices;
 
   static PlanLimits of(Plan plan) => switch (plan) {
@@ -77,7 +79,7 @@ class PlanLimits {
       restaurant: false,
       team: false,
       printer: false,
-      webPanel: false,
+      reports: false,
       devices: 1,
     ),
     Plan.emprendedor => const PlanLimits(
@@ -92,7 +94,7 @@ class PlanLimits {
       restaurant: false,
       team: false,
       printer: false,
-      webPanel: true,
+      reports: true,
       devices: 2,
     ),
     Plan.negocio => const PlanLimits(
@@ -107,7 +109,7 @@ class PlanLimits {
       restaurant: true,
       team: true,
       printer: true,
-      webPanel: true,
+      reports: true,
       devices: null,
     ),
   };
@@ -129,7 +131,7 @@ List<String> planHighlights(Plan plan) => switch (plan) {
     'Fiados sin límite y apartados',
     'Pacas y lotes con barra de recuperación',
     'Pedidos por tanda',
-    'Reportes de ventas en la computadora',
+    'Reportes completos en el celular y la computadora',
     'Ticket sin marca de agua y con tu logo',
   ],
   Plan.negocio => const [

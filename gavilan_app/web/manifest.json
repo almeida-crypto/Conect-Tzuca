@@ -1,12 +1,12 @@
 {
-    "name": "gavilan",
-    "short_name": "gavilan",
+    "name": "Gavilán",
+    "short_name": "Gavilán",
     "start_url": ".",
     "display": "standalone",
-    "background_color": "#0175C2",
-    "theme_color": "#0175C2",
-    "description": "A new Flutter project.",
-    "orientation": "portrait-primary",
+    "background_color": "#F5F4F1",
+    "theme_color": "#E2582B",
+    "description": "Caja, fiados e inventario para tu negocio.",
+    "orientation": "any",
     "prefer_related_applications": false,
     "icons": [
         {
@@ -31,5 +31,6 @@
             "type": "image/png",
             "purpose": "maskable"
         }
-    ]
+    ],
+    "lang": "es-MX"
 }

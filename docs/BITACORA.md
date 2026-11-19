@@ -1004,3 +1004,24 @@ Se tomaron capturas de Cobrar, Mesas y Caja de una tienda y de un restaurante, e
 
 ### Verificación
 - App: `flutter analyze` sin avisos y 150 pruebas pasan (nuevas en `restaurant_cobrar_test.dart`). Panel: `tsc` y `eslint` sin avisos.
+
+### El panel entra a la app: Reportes
+El usuario no quiere que sus clientes busquen otro link y vuelvan a entrar: "separar algo fuera de lo principal quitaría la forma rápida". Lo del panel web pasa a la app, que corre igual en el celular y en la computadora.
+- **Reportes** (`ui/caja/reports_screen.dart`, cálculos en `domain/reports.dart`): Hoy, Ayer, 7 días, Este mes, Mes pasado o un rango de fechas. Vendido (ventas, promedio y cambio contra el periodo anterior), ganancia (de lo que tiene costo), ventas por día o por hora, formas de pago, por persona, por caja, ganancia por producto (o por platillo en un restaurante), devoluciones y descargas para Excel (CSV con BOM y celdas seguras, como el panel).
+- Se calcula con lo guardado en el aparato (todas las cajas que ya se respaldaron), así que **funciona sin internet**.
+- Se entra desde **Caja** ("Reportes del negocio", también con la caja cerrada) y desde **Más → Módulos → Reportes**. Solo para quien ve la ganancia (dueño o encargado).
+- **Solo planes de pago:** el candado `webPanel` del plan se llama ahora `reports`. En Semilla el botón sale con candado y explica el plan Emprendedor. "Mi plan" dice "Reportes completos en el celular y la computadora".
+- **Plano de mesas en la app:** en Mesas, botón **Tarjetas / Plano**. El plano dibuja cada zona sobre piso de mosaico, con la mesa y sus sillas (ocupada en achiote con total y tiempo; libre en blanco; "listos" o "en cocina"). Un toque abre la cuenta. En la computadora empieza en Plano; en el celular, en Tarjetas.
+- El panel web (`panel-web/`) se queda en el repositorio, pero ya no es el camino: no hace falta publicarlo.
+
+### La caja de computadora abre sin internet (con permiso)
+- Los datos ya vivían en el navegador; faltaba que **la página** abriera sin conexión (por ejemplo, cuando regresa la luz y el módem todavía no).
+- **Más → Esta computadora → "Usar sin internet en esta computadora"** (solo en el navegador y para el dueño). Antes de guardar nada explica qué pasa ("no se instala ningún programa") y pide "Sí, guardar". Se puede quitar desde ahí mismo; las ventas no se borran.
+- `web/gavilan_sw.js`: guarda los archivos de la app. Con internet pide siempre lo nuevo (y lo guarda); si no contesta en 4 segundos, usa lo guardado. Solo atiende archivos del mismo sitio: Supabase va directo.
+- `web/offline.js` (puente) y `lib/core/offline/` (llamadas desde Dart). La app manda la lista de sus imágenes para guardarlas aunque no se hayan visto.
+- Ya activado, ofrece **"Poner ícono en el escritorio"**: la ventana "¿Instalar Gavilán?" es la del navegador. `manifest.json` ya dice Gavilán, con los colores de la marca.
+- `web/flutter_bootstrap.js` propio: el motor de dibujo se carga de la misma página y ya no se registra el service worker de Flutter (obsoleto). **Compilar con** `flutter build web --release --no-web-resources-cdn`.
+- Probado en el navegador: se activó (32 archivos, 0 fallas), se apagó el servidor y la app abrió igual, sin errores. Después se quitó y no quedó nada guardado.
+
+### Verificación
+- `flutter analyze` sin avisos y 157 pruebas pasan (nuevas en `reports_test.dart`, y el plano en `restaurant_cobrar_test.dart`). Capturas revisadas a ojo: Reportes en celular y computadora, y el plano con dos zonas.

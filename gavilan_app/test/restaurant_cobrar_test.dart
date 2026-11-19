@@ -9,6 +9,7 @@ import 'package:gavilan/domain/plan.dart';
 import 'package:gavilan/state/seed.dart';
 import 'package:gavilan/state/store.dart';
 import 'package:gavilan/ui/cobrar/open_bills.dart';
+import 'package:gavilan/ui/restaurant/restaurant_screen.dart';
 import 'package:google_fonts/google_fonts.dart';
 
 /// La pestaña Cobrar de un restaurante: cuentas abiertas a la mano, menú por grupos y sin lector de códigos.
@@ -79,5 +80,35 @@ void main() {
     expect(find.text('Postres'), findsOneWidget);
     expect(find.byTooltip('Escanear con la cámara'), findsNothing);
     expect(find.text('Buscar platillo o bebida'), findsOneWidget);
+  });
+
+  testWidgets('en la computadora, Mesas muestra el salón dibujado; se puede cambiar a tarjetas', (tester) async {
+    tester.view.physicalSize = const Size(1280, 800);
+    tester.view.devicePixelRatio = 1;
+    addTearDown(tester.view.reset);
+    await tester.pumpWidget(
+      ProviderScope(
+        overrides: [initialDataProvider.overrideWithValue(LoadedData(store: restaurant(), plan: Plan.negocio))],
+        child: const GavilanApp(showSplash: false),
+      ),
+    );
+    await tester.pump();
+    final app = ProviderScope.containerOf(tester.element(find.byType(GavilanApp)));
+    final n = app.read(storeProvider.notifier);
+    n.addTables(3);
+    final s = app.read(storeProvider);
+    final o = n.openOrder(tableId: s.activeTables[0].id);
+    n.addOrderItem(o.id, s.productById('t')!);
+    await tester.pumpAndSettle();
+
+    expect(find.byType(TableDrawing), findsNWidgets(3));
+    expect(find.text('1 de 3 ocupadas'), findsOneWidget);
+    expect(find.bySemanticsLabel(RegExp(r'^Mesa 1, ocupada')), findsOneWidget);
+    expect(find.bySemanticsLabel('Mesa 2, libre'), findsOneWidget);
+
+    tester.widget<SegmentedButton<bool>>(find.byType(SegmentedButton<bool>)).onSelectionChanged!({false});
+    await tester.pumpAndSettle();
+    expect(find.byType(TableDrawing), findsNothing);
+    expect(tester.takeException(), isNull);
   });
 }

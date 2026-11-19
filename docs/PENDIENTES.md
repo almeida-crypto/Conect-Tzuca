@@ -104,15 +104,16 @@ Prioridad: **Alta** = sin esto no se puede usar con un negocio real · **Media**
 
 ## Etapa 5 · Panel web (Next.js)
 - [x] **Media** · Panel web (`panel-web/`, Next.js 16) conectado al mismo Supabase, con reportes de ventas: cifras con comparación, ventas por día y por hora, formas de pago, lo más vendido, cortes, quién debe y por acabarse. Tiene datos de ejemplo. *11/11/2026*
-- [ ] **Media** · Que el usuario entre al panel con su cuenta y revise sus números reales.
-- [ ] **Media** · Publicar el panel en Vercel. Necesita que el usuario cree una cuenta gratuita.
+- [x] **Media** · Reportes dentro de la app (lo que tenía el panel, más el plano de mesas), en celular y computadora, solo en planes de pago. El panel aparte ya no se publica. *19/11/2026*
+- [ ] **Media** · Revisar Reportes con los datos reales del negocio (periodos, ganancia, por persona y caja, descargas).
 - [x] **Media** · Catálogo tipo Excel: "Editar en tabla" en Inventario (computadora). Cambia nombre, código, precio, costo, existencia y mínimo de muchos productos; da de alta renglones nuevos y se puede pegar desde Excel. *12/11/2026*
 - [x] **Baja** · Panel: descargar los reportes en Excel o PDF, elegir un rango de fechas libre y reportes por cajero o por teléfono. *18/11/2026*
-- [ ] **Media** · Revisar el panel con una cuenta real: rango de fechas, ganancia por producto, por cajero y caja, devoluciones, descargas y el mapa de mesas.
-- [ ] **Baja** · Mapa de mesas acomodado como el local (arrastrar las mesas y elegir redonda o cuadrada); hoy se acomodan solas por zona.
+- [ ] **Baja** · Plano de mesas acomodado como el local (arrastrar las mesas y elegir redonda o cuadrada); hoy se acomodan solas por zona.
 - [ ] **Baja** · Propinas en el restaurante (al cobrar y en el corte).
 - [x] **Media** · Mostrador en la computadora: la misma app abierta en el navegador cobra, fía, lleva inventario, caja, mesas y equipo. Menú a la izquierda, la cuenta siempre a la derecha y lector láser USB sin tocar nada. *11/11/2026*
-- [ ] **Media** · Publicar el mostrador web (la app compilada con `flutter build web`) junto al panel, por ejemplo en `/mostrador`.
+- [ ] **Media** · Publicar la app web (`flutter build web --release --no-web-resources-cdn`) en Vercel o similar, con su dominio. Necesita que el usuario cree la cuenta.
+- [x] **Media** · La caja de computadora abre sin internet, solo si el dueño lo activa en Más → Esta computadora; ícono en el escritorio con la ventana del navegador. *19/11/2026*
+- [ ] **Media** · Probar el modo sin internet en la computadora del negocio: activarlo, apagar el módem, reiniciar y abrir.
 - [x] **Media** · Mostrador web: atajos de teclado (F2, Esc, + y −, F3, F1, escribir sin dar clic) y cobrar escribiendo el monto con Enter. *12/11/2026*
 - [x] **Media** · Imprimir el ticket desde el navegador (botón, P o Ctrl+P), con la impresora de tickets o cualquiera instalada. *12/11/2026*
 - [ ] **Media** · Probar la impresión con una impresora térmica real (58 y 80 mm) y ajustar márgenes si hace falta.
