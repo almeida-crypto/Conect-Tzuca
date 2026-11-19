@@ -745,6 +745,23 @@ void main() {
     expect((b.shape, b.seats, b.placed), (TableShape.redonda, 6, false));
     expect(other.state.tableById(t[2].id)!.seats, 4);
 
+    // Paredes, barra...: también llegan, y lo quitado se quita en el otro celular.
+    final bar = owner.store.addFloorItem(null, FloorItemKind.barra);
+    owner.store.renameFloorItem(bar.id, 'Barra de bebidas');
+    owner.store.moveFloorItem(bar.id, 500, 300);
+    final wall = owner.store.addFloorItem(null, FloorItemKind.pared);
+    owner.store.rotateFloorItem(wall.id);
+    await owner.settle();
+    await other.settle();
+    final seenBar = other.state.floorItemsIn(null).firstWhere((f) => f.id == bar.id);
+    expect((seenBar.title, seenBar.x, seenBar.y, seenBar.kind), ('Barra de bebidas', 500, 300, FloorItemKind.barra));
+    final seenWall = other.state.floorItemById(wall.id)!;
+    expect((seenWall.width, seenWall.height), (FloorItemKind.pared.height, FloorItemKind.pared.width));
+    owner.store.removeFloorItem(wall.id);
+    await owner.settle();
+    await other.settle();
+    expect(other.state.floorItemsIn(null).map((f) => f.id), [bar.id]);
+
     // Se guarda en el teléfono: al volver a abrir sigue igual.
     await owner.store.flush();
     final reloaded = await owner.repo.load();

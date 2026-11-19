@@ -130,6 +130,7 @@ class _ReportsScreenState extends ConsumerState<ReportsScreen> {
     final clerks = byClerk(sales);
     final registers = byRegister(sales, registerOf);
     final returns = returnsIn(store.saleReturns, _period);
+    final tips = tipsOf(sales);
     final folios = {for (final s in store.sales) s.id: s.folio};
     final wide = MediaQuery.sizeOf(context).width >= 900;
     final stamp = '${_period.from.year}-${_two(_period.from.month)}-${_two(_period.from.day)}';
@@ -250,6 +251,24 @@ class _ReportsScreenState extends ConsumerState<ReportsScreen> {
                           ],
                         ),
                 ),
+                if (tips.cents > 0)
+                  _Card(
+                    title: 'Propinas · ${money(tips.cents)}',
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.stretch,
+                      children: [
+                        Text(
+                          'En ${tips.count == 1 ? '1 cuenta' : '${tips.count} cuentas'}. Son del equipo: no cuentan '
+                          'como venta ni como ganancia.',
+                          style: GText.muted(size: 12.5),
+                        ),
+                        if (tips.byPerson.isNotEmpty) ...[
+                          const SizedBox(height: 4),
+                          _Shares(rows: tips.byPerson, color: GColors.cenote, ventas: true),
+                        ],
+                      ],
+                    ),
+                  ),
                 if (returns.isNotEmpty)
                   _Card(
                     title: 'Devoluciones · ${money(returns.fold(0, (a, r) => a + r.amountCents))}',

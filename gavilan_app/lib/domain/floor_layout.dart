@@ -32,11 +32,17 @@ class PlacedTable {
   final Rect rect;
 }
 
+/// Rectángulo de una pared, barra... en el plano.
+Rect itemRect(FloorItem f) => Rect.fromLTWH(f.x.toDouble(), f.y.toDouble(), f.width.toDouble(), f.height.toDouble());
+
 /// Acomoda las mesas de una zona: las que tienen lugar van donde las pusieron; las demás, en filas.
-/// Si ya hay mesas puestas, las que faltan van en una fila abajo de ellas.
-List<PlacedTable> layoutZone(List<DiningTable> tables, {double width = kFloorWidth}) {
+/// Si ya hay mesas puestas (o paredes, barra...), las que faltan van en una fila abajo de ellas.
+List<PlacedTable> layoutZone(List<DiningTable> tables, {double width = kFloorWidth, List<FloorItem> items = const []}) {
   final placed = <PlacedTable>[];
   var bottom = 0.0;
+  for (final f in items) {
+    bottom = math.max(bottom, itemRect(f).bottom + _gap);
+  }
   for (final t in tables.where((t) => t.placed)) {
     final s = tableSize(t.shape, t.seats);
     final r = Rect.fromLTWH(t.x!.toDouble(), t.y!.toDouble(), s.width, s.height);
@@ -58,12 +64,12 @@ List<PlacedTable> layoutZone(List<DiningTable> tables, {double width = kFloorWid
   return placed;
 }
 
-/// Lo que ocupa todo el plano de la zona.
-Size floorBounds(List<PlacedTable> tables) {
+/// Lo que ocupa todo el plano de la zona (mesas y lo dibujado).
+Size floorBounds(List<PlacedTable> tables, {List<FloorItem> items = const []}) {
   var w = 0.0, h = 0.0;
-  for (final p in tables) {
-    w = math.max(w, p.rect.right);
-    h = math.max(h, p.rect.bottom);
+  for (final r in [for (final p in tables) p.rect, for (final f in items) itemRect(f)]) {
+    w = math.max(w, r.right);
+    h = math.max(h, r.bottom);
   }
   return Size(w, h);
 }

@@ -159,8 +159,13 @@ List<Share> byMethod(List<Sale> sales) {
     if (s.kind == SaleKind.fiada) {
       add('Fiado', s.totalCents);
     } else {
-      for (final p in s.paymentParts) {
-        add(p.method.label, p.amountCents);
+      // La propina no es venta: se descuenta de lo pagado (primero del efectivo, como en el corte).
+      var tip = s.tipCents;
+      final parts = [...s.paymentParts]..sort((a, b) => a.method == PayMethod.efectivo ? -1 : 1);
+      for (final p in parts) {
+        final off = tip.clamp(0, p.amountCents);
+        tip -= off;
+        if (p.amountCents - off > 0) add(p.method.label, p.amountCents - off);
       }
     }
   }
@@ -184,6 +189,22 @@ List<Share> byClerk(List<Sale> sales) =>
 
 /// Por caja (cada celular o computadora). [registerOf] dice el nombre de la caja del turno de la venta.
 List<Share> byRegister(List<Sale> sales, String Function(Sale) registerOf) => byGroup(sales, registerOf);
+
+/// Propinas del periodo: total, en cuántas cuentas y por quien cobró (si se usan PIN).
+({int cents, int count, List<Share> byPerson}) tipsOf(List<Sale> sales) {
+  final withTip = sales.where((s) => s.tipCents > 0).toList();
+  final map = <String, (int, int)>{};
+  for (final s in withTip) {
+    final k = s.clerk ?? 'Sin PIN';
+    final (c, n) = map[k] ?? (0, 0);
+    map[k] = (c + s.tipCents, n + 1);
+  }
+  return (
+    cents: withTip.fold(0, (a, s) => a + s.tipCents),
+    count: withTip.length,
+    byPerson: withTip.any((s) => s.clerk != null) ? _shares(map) : const [],
+  );
+}
 
 /// Ganancia de lo vendido en el periodo, por producto.
 ProfitReport profitIn(List<Sale> sales) => profitOf(sales);
@@ -210,13 +231,14 @@ String _two(int n) => n.toString().padLeft(2, '0');
 String csvDate(DateTime d) => '${d.year}-${_two(d.month)}-${_two(d.day)} ${_two(d.hour)}:${_two(d.minute)}';
 
 String salesCsv(List<Sale> sales, String Function(Sale) registerOf) => toCsv(
-  ['Fecha', 'Folio', 'Total', 'Forma de pago', 'Atendió', 'Caja'],
+  ['Fecha', 'Folio', 'Total', 'Propina', 'Forma de pago', 'Atendió', 'Caja'],
   [
     for (final s in sales)
       [
         csvDate(s.createdAt),
         s.folio,
         _pesos(s.totalCents),
+        _pesos(s.tipCents),
         s.kind == SaleKind.fiada
             ? 'Fiado'
             : s.paymentParts.length == 1

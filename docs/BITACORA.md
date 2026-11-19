@@ -1034,3 +1034,19 @@ El usuario no quiere que sus clientes busquen otro link y vuelvan a entrar: "sep
 - Cálculos en `domain/floor_layout.dart` (tamaño según forma y sillas, acomodo, dónde van las sillas) y pantalla en `ui/restaurant/floor_plan.dart` (salió de `restaurant_screen`, que ya era muy grande).
 - En el celular las mesas no se encogen de más: si el plano no cabe, se desliza de lado. Acomodar en el celular se puede, pero se ve chico: el aviso sugiere la computadora o el celular de lado.
 - Verificación: `flutter analyze` sin avisos y 164 pruebas pasan (nuevas: `floor_layout_test.dart`, arrastrar una mesa en `restaurant_cobrar_test.dart` y el plano entre dos celulares en `sync_test.dart`). Capturas revisadas a ojo en computadora y celular. Avisos de Supabase: solo los de siempre.
+
+### Propinas en el restaurante
+- Al cobrar una mesa o un para llevar: **Sin, 10%, 15% u Otra** (monto libre). El total grande ya la incluye y abajo dice "Cuenta $180 + propina $18"; los billetes sugeridos, el cambio y dividir la cuenta usan cuenta + propina. Por porcentaje se recalcula si se pone descuento. En el mostrador de una tienda no sale. Lo fiado no lleva propina.
+- **No es venta:** va en `sales.tip` (migración `0029_sale_tips`, base local v18), aparte de `total`; no entra en lo vendido ni en la ganancia. Los pagos suman cuenta + propina.
+- **Ticket:** "Propina" y "Total pagado" (en pantalla, impreso y por WhatsApp).
+- **Corte:** "Propinas en efectivo" dentro de "Debe haber en caja" (el dinero sí está en el cajón) y "Propinas para el equipo" abajo; las de tarjeta van en "Tarjeta y transferencia". Si se pagó en partes, la propina sale primero del efectivo. También en "Todas las cajas".
+- **Reportes:** tarjeta "Propinas" (total, en cuántas cuentas y por persona si usan PIN); las formas de pago ya no la cuentan como venta; la descarga de ventas trae la columna "Propina".
+
+### Plano: paredes, puerta, barra y cocina
+- Al acomodar, **Agregar** pone pared, puerta, ventana, barra, cocina, baños o caja en la zona. Se arrastran como las mesas; un toque cambia el largo (pared y ventana: corta, media, larga, todo el ancho) o el tamaño (chica a muy grande), el nombre ("Barra de bebidas"), **Girar** 90° o **Quitar**.
+- Dibujos: pared gris oscuro, ventana azul clara, puerta con su arco, barra de madera, cocina rayada, baños y caja con su icono. En una barra parada el nombre va de lado. Van debajo de las mesas; fuera de "Acomodar" no se tocan.
+- Servidor: tabla `floor_items` (migración `0030_floor_items`, con RLS como las mesas). Probado en el servidor con roles simulados: el dueño agrega y ve; alguien de fuera no ve ni agrega; un tipo raro se rechaza.
+- Las mesas sin lugar se acomodan abajo de las paredes y la barra.
+
+### Verificación
+- `flutter analyze` sin avisos y 169 pruebas pasan (nuevas en `tips_test.dart`, `floor_layout_test.dart` y el plano con barra y pared entre dos celulares en `sync_test.dart`). Capturas revisadas a ojo: plano de computadora y celular con paredes, puerta, barra y cocina, y el cobro con propina. Avisos de Supabase: solo los de siempre.

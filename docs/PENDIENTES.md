@@ -109,8 +109,10 @@ Prioridad: **Alta** = sin esto no se puede usar con un negocio real · **Media**
 - [x] **Media** · Catálogo tipo Excel: "Editar en tabla" en Inventario (computadora). Cambia nombre, código, precio, costo, existencia y mínimo de muchos productos; da de alta renglones nuevos y se puede pegar desde Excel. *12/11/2026*
 - [x] **Baja** · Panel: descargar los reportes en Excel o PDF, elegir un rango de fechas libre y reportes por cajero o por teléfono. *18/11/2026*
 - [x] **Baja** · Plano de mesas acomodado como el local: arrastrar las mesas, cuadrada o redonda y cuántas sillas. *19/11/2026*
-- [ ] **Baja** · Plano: paredes, barra y puerta dibujadas, y girar mesas largas.
-- [ ] **Baja** · Propinas en el restaurante (al cobrar y en el corte).
+- [x] **Baja** · Plano: paredes, puerta, ventana, barra, cocina, baños y caja. *19/11/2026*
+- [ ] **Baja** · Plano: girar las mesas largas.
+- [x] **Baja** · Propinas en el restaurante: al cobrar, en el ticket, en el corte y en Reportes. *19/11/2026*
+- [ ] **Baja** · Propinas: repartirlas entre el equipo al cerrar caja (hoy solo se ve cuánto juntaron).
 - [x] **Media** · Mostrador en la computadora: la misma app abierta en el navegador cobra, fía, lleva inventario, caja, mesas y equipo. Menú a la izquierda, la cuenta siempre a la derecha y lector láser USB sin tocar nada. *11/11/2026*
 - [ ] **Media** · Publicar la app web (`flutter build web --release --no-web-resources-cdn`) en Vercel o similar, con su dominio. Necesita que el usuario cree la cuenta.
 - [x] **Media** · La caja de computadora abre sin internet, solo si el dueño lo activa en Más → Esta computadora; ícono en el escritorio con la ventana del navegador. *19/11/2026*

@@ -106,6 +106,7 @@ class _AllCutsScreenState extends ConsumerState<AllCutsScreen> {
                         _Row('Debe haber en efectivo', total.expectedCashCents, strong: true),
                         _Row('Tarjeta y transferencia', total.otherInCents),
                         _Row('Vendido fiado', total.creditSalesCents),
+                        if (total.tipsCents > 0) _Row('Propinas para el equipo', total.tipsCents),
                         if (total.gastosCents > 0) _Row('Gastos', -total.gastosCents, color: GColors.rojo),
                         if (closed)
                           _Row(

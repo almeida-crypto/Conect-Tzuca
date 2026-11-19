@@ -32,6 +32,10 @@ String ticketHtml({
     row('Descuento', '-${money(sale.discountCents)}');
   }
   row('TOTAL', money(sale.totalCents), strong: true);
+  if (sale.tipCents > 0) {
+    row('Propina', money(sale.tipCents));
+    row('Total pagado', money(sale.paidCents), strong: true);
+  }
   rows.writeln('<tr class="sep"><td colspan="2"></td></tr>');
   if (paid && sale.split) {
     for (final p in sale.payments) {
@@ -44,7 +48,7 @@ String ticketHtml({
   } else if (paid) {
     row('Pago', sale.method!.label);
     if (sale.method == PayMethod.efectivo) {
-      row('Recibió', money(sale.receivedCents ?? sale.totalCents));
+      row('Recibió', money(sale.receivedCents ?? sale.paidCents));
       row('Cambio', money(sale.changeCents));
     }
   } else {

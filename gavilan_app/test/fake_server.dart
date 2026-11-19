@@ -206,6 +206,10 @@ class FakeRemote implements SyncRemote {
     if (table == 'products' && !{MemberRole.owner, MemberRole.admin}.contains(role)) {
       throw const SyncException(SyncFailure.rejected, 'RLS: products');
     }
+    // Como 0030: lo dibujado en el plano solo lo cambian dueño y administrador.
+    if (table == 'floor_items' && !{MemberRole.owner, MemberRole.admin}.contains(role)) {
+      throw const SyncException(SyncFailure.rejected, 'RLS: floor_items');
+    }
     // Como 0027: las devoluciones de otro día solo el dueño y el administrador.
     if (table == 'sale_returns' && !{MemberRole.owner, MemberRole.admin}.contains(role)) {
       throw const SyncException(SyncFailure.rejected, 'RLS: sale_returns');

@@ -19,6 +19,77 @@ enum KitchenStatus {
 /// Forma de la mesa en el plano.
 enum TableShape { cuadrada, redonda }
 
+/// Lo que se dibuja en el plano además de las mesas. [remote] es como se guarda en Supabase.
+enum FloorItemKind {
+  pared('Pared', 'wall', 300, 12),
+  puerta('Puerta', 'door', 80, 80),
+  ventana('Ventana', 'window', 160, 12),
+  barra('Barra', 'bar', 260, 56),
+  cocina('Cocina', 'kitchen', 220, 140),
+  bano('Baños', 'restroom', 110, 90),
+  caja('Caja', 'register', 100, 60);
+
+  const FloorItemKind(this.label, this.remote, this.width, this.height);
+
+  final String label;
+  final String remote;
+
+  /// Tamaño con el que se agrega (puntos del plano).
+  final int width;
+  final int height;
+
+  /// Paredes y ventanas son una línea: se alargan o se giran; lo demás se agranda.
+  bool get isLine => this == pared || this == ventana;
+
+  /// Lleva su nombre escrito encima.
+  bool get named => this == barra || this == cocina || this == bano || this == caja;
+
+  static FloorItemKind fromRemote(String? v) =>
+      FloorItemKind.values.firstWhere((k) => k.remote == v, orElse: () => FloorItemKind.pared);
+}
+
+/// Una pared, puerta, barra... en el plano de una zona.
+class FloorItem {
+  const FloorItem({
+    required this.id,
+    required this.kind,
+    required this.x,
+    required this.y,
+    required this.width,
+    required this.height,
+    this.zone,
+    this.label,
+    this.active = true,
+  });
+
+  final String id;
+  final String? zone;
+  final FloorItemKind kind;
+
+  /// Nombre propio ("Barra de bebidas"); null = el del tipo.
+  final String? label;
+  final int x;
+  final int y;
+  final int width;
+  final int height;
+  final bool active;
+
+  String get title => (label == null || label!.trim().isEmpty) ? kind.label : label!;
+
+  FloorItem copyWith({int? x, int? y, int? width, int? height, String? label, bool clearLabel = false, bool? active}) =>
+      FloorItem(
+        id: id,
+        kind: kind,
+        zone: zone,
+        x: x ?? this.x,
+        y: y ?? this.y,
+        width: width ?? this.width,
+        height: height ?? this.height,
+        label: clearLabel ? null : (label ?? this.label),
+        active: active ?? this.active,
+      );
+}
+
 class DiningTable {
   const DiningTable({
     required this.id,

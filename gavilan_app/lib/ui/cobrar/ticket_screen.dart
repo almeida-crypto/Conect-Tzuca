@@ -242,6 +242,10 @@ class _TicketScreenState extends ConsumerState<TicketScreen> {
                                   _row('Descuento', '-${money(sale.discountCents)}'),
                                 ],
                                 _row('TOTAL', money(sale.totalCents), bold: true),
+                                if (sale.tipCents > 0) ...[
+                                  _row('Propina', money(sale.tipCents)),
+                                  _row('Total pagado', money(sale.paidCents), bold: true),
+                                ],
                                 const _Dashed(),
                                 if (paid && sale.split) ...[
                                   // Pagada en partes: cada pago con su método.
@@ -253,7 +257,7 @@ class _TicketScreenState extends ConsumerState<TicketScreen> {
                                 ] else if (paid) ...[
                                   _row('Pago', sale.method!.label),
                                   if (sale.method == PayMethod.efectivo) ...[
-                                    _row('Recibió', money(sale.receivedCents ?? sale.totalCents)),
+                                    _row('Recibió', money(sale.receivedCents ?? sale.paidCents)),
                                     _row('Cambio', money(sale.changeCents)),
                                   ],
                                 ] else ...[

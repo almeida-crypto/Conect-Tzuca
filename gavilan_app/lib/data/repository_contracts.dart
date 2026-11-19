@@ -78,6 +78,7 @@ abstract class StoreRepository {
   Future<void> upsertBatchOrder(BatchOrder order);
 
   Future<void> upsertTable(DiningTable table);
+  Future<void> upsertFloorItem(FloorItem item);
   Future<void> upsertExtra(Extra extra);
   Future<void> upsertOrder(RestaurantOrder order);
   Future<void> upsertOrderItems(List<OrderItem> items);
@@ -207,6 +208,8 @@ class MemoryRepository implements StoreRepository {
   Future<void> upsertBatchOrder(BatchOrder order) async {}
   @override
   Future<void> upsertTable(DiningTable table) async {}
+  @override
+  Future<void> upsertFloorItem(FloorItem item) async {}
   @override
   Future<void> upsertExtra(Extra extra) async {}
   @override

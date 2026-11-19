@@ -189,7 +189,15 @@ class Sale {
     this.clerk,
     this.payments = const [],
     this.cancelledInSession,
+    this.tipCents = 0,
   });
+
+  /// Propina para el equipo (restaurante). No es venta: no entra en [totalCents] ni en la ganancia, pero el
+  /// dinero sí entra al cajón, por eso los pagos suman [paidCents].
+  final int tipCents;
+
+  /// Lo que pagó el cliente: la venta más la propina.
+  int get paidCents => totalCents + tipCents;
 
   /// Turno donde se canceló, si fue en otro (un corte ya cerrado): esa venta sigue contando en el corte de
   /// su día y el dinero que se regresó se anota como gasto en el turno de la cancelación.
@@ -210,7 +218,7 @@ class Sale {
       ? const []
       : payments.isNotEmpty
       ? payments
-      : [SalePayment(method: method ?? PayMethod.efectivo, amountCents: totalCents)];
+      : [SalePayment(method: method ?? PayMethod.efectivo, amountCents: paidCents)];
 
   /// Lo que entró en efectivo.
   int get cashCents => paymentParts.where((p) => p.method == PayMethod.efectivo).fold(0, (a, p) => a + p.amountCents);
@@ -262,6 +270,7 @@ class Sale {
     clerk: clerk,
     payments: payments,
     cancelledInSession: inSession,
+    tipCents: tipCents,
   );
 
   /// "K7-0043": cada teléfono lleva su propia numeración.
@@ -461,7 +470,15 @@ class CashSummary {
     this.lotSalesCents = 0,
     this.cashLayawayCents = 0,
     this.otherLayawayCents = 0,
+    this.cashTipsCents = 0,
+    this.otherTipsCents = 0,
   });
+
+  /// Propinas para el equipo: no son venta, pero las de efectivo están en el cajón.
+  final int cashTipsCents;
+  final int otherTipsCents;
+
+  int get tipsCents => cashTipsCents + otherTipsCents;
 
   final int openingCents;
   final int cashSalesCents;
@@ -481,11 +498,18 @@ class CashSummary {
   final int otherLayawayCents;
 
   int get expectedCashCents =>
-      openingCents + cashSalesCents + cashAbonosCents + lotSalesCents + cashLayawayCents + entradasCents - gastosCents;
+      openingCents +
+      cashSalesCents +
+      cashAbonosCents +
+      lotSalesCents +
+      cashLayawayCents +
+      cashTipsCents +
+      entradasCents -
+      gastosCents;
   int get totalSoldCents => cashSalesCents + otherSalesCents + creditSalesCents + lotSalesCents;
 
-  /// Lo que entró por tarjeta y transferencia (ventas, abonos y apartados).
-  int get otherInCents => otherSalesCents + otherAbonosCents + otherLayawayCents;
+  /// Lo que entró por tarjeta y transferencia (ventas, abonos, apartados y propinas).
+  int get otherInCents => otherSalesCents + otherAbonosCents + otherLayawayCents + otherTipsCents;
 
   /// Suma de dos cortes (para juntar las cajas de varios celulares).
   CashSummary operator +(CashSummary o) => CashSummary(
@@ -501,6 +525,8 @@ class CashSummary {
     lotSalesCents: lotSalesCents + o.lotSalesCents,
     cashLayawayCents: cashLayawayCents + o.cashLayawayCents,
     otherLayawayCents: otherLayawayCents + o.otherLayawayCents,
+    cashTipsCents: cashTipsCents + o.cashTipsCents,
+    otherTipsCents: otherTipsCents + o.otherTipsCents,
   );
 
   static const zero = CashSummary(

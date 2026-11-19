@@ -190,6 +190,7 @@ List<RemoteChange> saleToRemote(Sale s, {Set<String> stockTracked = const {}}) {
     'subtotal': _pesos(s.subtotalCents),
     'discount': _pesos(s.discountCents),
     'total': _pesos(s.totalCents),
+    'tip': _pesos(s.tipCents),
     // Pagada en partes: cada pago va en sale_payments y aquí queda vacío.
     'pay_method': s.split ? null : _methodOut[s.method],
     'received_amount': s.receivedCents == null ? null : _pesos(s.receivedCents!),
@@ -298,6 +299,7 @@ SaleRow saleFromRemote(RemoteRow r) => SaleRow(
   cancelledInSession: r['cancelled_session_id'] as String?,
   discountCents: _cents(r['discount']),
   clerkName: r['clerk_name'] as String?,
+  tipCents: _cents(r['tip']),
   sessionId: r['cash_session_id'] as String?,
   method: _method(r['pay_method']),
   receivedCents: _centsOrNull(r['received_amount']),
@@ -521,6 +523,30 @@ RemoteRow tableToRemote(DiningTable t) => {
   'shape': t.shape == TableShape.redonda ? 'round' : 'square',
   'seats': t.seats,
 };
+
+RemoteRow floorItemToRemote(FloorItem f) => {
+  'id': f.id,
+  'zone': f.zone,
+  'kind': f.kind.remote,
+  'label': f.label,
+  'pos_x': f.x,
+  'pos_y': f.y,
+  'width': f.width,
+  'height': f.height,
+  'is_active': f.active,
+};
+
+FloorItemRow floorItemFromRemote(RemoteRow r) => FloorItemRow(
+  id: r['id']! as String,
+  zone: r['zone'] as String?,
+  kind: FloorItemKind.fromRemote(r['kind'] as String?).remote,
+  label: r['label'] as String?,
+  posX: (r['pos_x'] as num?)?.toInt() ?? 0,
+  posY: (r['pos_y'] as num?)?.toInt() ?? 0,
+  width: (r['width'] as num?)?.toInt() ?? 100,
+  height: (r['height'] as num?)?.toInt() ?? 12,
+  active: (r['is_active'] as bool?) ?? true,
+);
 
 RemoteRow orderToRemote(RestaurantOrder o) => {
   'id': o.id,

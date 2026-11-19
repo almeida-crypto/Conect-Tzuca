@@ -332,7 +332,8 @@ class _TablesViewState extends ConsumerState<_TablesView> {
                 Expanded(
                   child: Text(
                     'Arrastra cada mesa a donde está en tu local. Toca una para elegir si es cuadrada o redonda '
-                    'y cuántas sillas tiene. Se guarda solo y lo ven todos los celulares.'
+                    'y cuántas sillas tiene. Con "Agregar" pones paredes, puerta, barra o cocina. '
+                    'Se guarda solo y lo ven todos los celulares.'
                     '${narrow ? ' En la computadora o con el celular de lado hay más espacio.' : ''}',
                     style: GText.sans(size: 13, color: GColors.cenoteOscuro),
                   ),

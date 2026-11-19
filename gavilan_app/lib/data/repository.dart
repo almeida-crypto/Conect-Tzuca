@@ -64,6 +64,7 @@ const pullTables = [
   'batches',
   'batch_orders',
   'restaurant_tables',
+  'floor_items',
   'extras',
   'orders',
   'order_items',
@@ -196,6 +197,7 @@ class DriftRepository implements StoreRepository, SyncStore {
             discountCents: s.discountCents,
             clerk: s.clerkName,
             payments: List.unmodifiable(paysBySale[s.id] ?? const <SalePayment>[]),
+            tipCents: s.tipCents,
           ),
       ],
       credit: [
@@ -241,6 +243,7 @@ class DriftRepository implements StoreRepository, SyncStore {
       batches: [for (final r in await db.select(db.batchesTable).get()) _batch(r)],
       batchOrders: [for (final r in await db.select(db.batchOrdersTable).get()) _batchOrder(r)],
       tables: [for (final r in await db.select(db.diningTablesTable).get()) _table(r)],
+      floorItems: [for (final r in await db.select(db.floorItemsTable).get()) _floorItem(r)],
       extras: [
         for (final r in await (db.select(db.extrasTable)..orderBy([(t) => OrderingTerm.asc(t.position)])).get())
           Extra(id: r.id, name: r.name, priceCents: r.priceCents, active: r.active, position: r.position),
@@ -277,6 +280,7 @@ class DriftRepository implements StoreRepository, SyncStore {
             cancelledInSession: s.cancelledInSession,
             discountCents: s.discountCents,
             clerkName: s.clerk,
+            tipCents: s.tipCents,
           ),
         );
     for (final (i, p) in s.payments.indexed) {
@@ -691,6 +695,14 @@ class DriftRepository implements StoreRepository, SyncStore {
   });
 
   @override
+  Future<void> upsertFloorItem(FloorItem item) => db.transaction(() async {
+    await db.into(db.floorItemsTable).put(_floorItemRow(item));
+    await _enqueue([
+      (table: 'floor_items', rows: [floorItemToRemote(item)]),
+    ]);
+  });
+
+  @override
   Future<void> upsertOrder(RestaurantOrder order) => db.transaction(() async {
     await db.into(db.ordersTable).put(_orderRow(order));
     await _enqueue([
@@ -759,6 +771,7 @@ class DriftRepository implements StoreRepository, SyncStore {
       if (s.batches.isNotEmpty) (table: 'batches', rows: s.batches.map(batchToRemote).toList()),
       if (s.batchOrders.isNotEmpty) (table: 'batch_orders', rows: s.batchOrders.map(batchOrderToRemote).toList()),
       if (s.tables.isNotEmpty) (table: 'restaurant_tables', rows: s.tables.map(tableToRemote).toList()),
+      if (s.floorItems.isNotEmpty) (table: 'floor_items', rows: s.floorItems.map(floorItemToRemote).toList()),
       if (s.extras.isNotEmpty) (table: 'extras', rows: s.extras.map(extraToRemote).toList()),
       if (s.orders.isNotEmpty) (table: 'orders', rows: s.orders.map(orderToRemote).toList()),
       if (s.orderItems.isNotEmpty) (table: 'order_items', rows: s.orderItems.map(orderItemToRemote).toList()),
@@ -914,6 +927,8 @@ class DriftRepository implements StoreRepository, SyncStore {
           await db.into(db.batchOrdersTable).put(batchOrderFromRemote(r));
         case 'restaurant_tables':
           await db.into(db.diningTablesTable).put(tableFromRemote(r));
+        case 'floor_items':
+          await db.into(db.floorItemsTable).put(floorItemFromRemote(r));
         case 'extras':
           await db.into(db.extrasTable).put(extraFromRemote(r));
         case 'orders':

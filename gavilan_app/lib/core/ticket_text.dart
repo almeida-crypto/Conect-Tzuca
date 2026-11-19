@@ -30,6 +30,7 @@ String ticketText({
     b.writeln('Subtotal ${money(sale.subtotalCents)} · Descuento -${money(sale.discountCents)}');
   }
   b.writeln('*TOTAL ${money(sale.totalCents)}*');
+  if (sale.tipCents > 0) b.writeln('Propina ${money(sale.tipCents)} · Total pagado ${money(sale.paidCents)}');
   if (sale.kind == SaleKind.pagada && sale.split) {
     b.writeln('Pagado: ${[for (final p in sale.payments) '${p.method.label} ${money(p.amountCents)}'].join(' · ')}');
     if (sale.receivedCents != null && sale.cashCents > 0) {

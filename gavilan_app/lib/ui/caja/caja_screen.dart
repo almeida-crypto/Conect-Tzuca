@@ -135,6 +135,7 @@ class _CajaScreenState extends ConsumerState<CajaScreen> {
             if (!restaurant || s.cashAbonosCents > 0) _Ledger('Abonos de fiados', s.cashAbonosCents),
             if (s.lotSalesCents > 0) _Ledger('Pacas y lotes', s.lotSalesCents),
             if (s.cashLayawayCents > 0) _Ledger('Apartados', s.cashLayawayCents),
+            if (s.cashTipsCents > 0) _Ledger('Propinas en efectivo', s.cashTipsCents),
             if (s.entradasCents > 0) _Ledger('Entradas', s.entradasCents),
             _Ledger('Gastos', -s.gastosCents, color: s.gastosCents > 0 ? GColors.rojo : null),
             _Ledger('Debe haber en caja', s.expectedCashCents, total: true),
@@ -146,14 +147,12 @@ class _CajaScreenState extends ConsumerState<CajaScreen> {
         padding: const EdgeInsets.fromLTRB(16, 10, 16, 12),
         child: Column(
           children: [
-            _Ledger(
-              'Tarjeta y transferencia',
-              s.otherSalesCents + s.otherAbonosCents + s.otherLayawayCents,
-              muted: true,
-            ),
+            _Ledger('Tarjeta y transferencia', s.otherInCents, muted: true),
             if (!restaurant || s.creditSalesCents > 0)
               _Ledger('Vendido fiado (no entra a caja)', s.creditSalesCents, muted: true),
             _Ledger('Total vendido hoy', s.totalSoldCents, muted: true),
+            // Las propinas no son venta: son del equipo (las de efectivo ya están en "Debe haber en caja").
+            if (s.tipsCents > 0) _Ledger('Propinas para el equipo', s.tipsCents, muted: true),
             if (bills.isNotEmpty) _Ledger('En mesas, sin cobrar todavía', billsDue, muted: true),
           ],
         ),

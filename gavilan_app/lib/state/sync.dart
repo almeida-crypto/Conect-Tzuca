@@ -109,6 +109,7 @@ const _tableLabels = {
   'batches': 'Tanda',
   'batch_orders': 'Pedido de tanda',
   'restaurant_tables': 'Mesa',
+  'floor_items': 'Pared, puerta o barra del plano',
   'extras': 'Extra',
   'orders': 'Cuenta de mesa',
   'order_items': 'Platillo',

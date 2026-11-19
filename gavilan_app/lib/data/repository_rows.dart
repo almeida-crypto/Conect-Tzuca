@@ -171,6 +171,30 @@ DiningTableRow _tableRow(DiningTable t) => DiningTableRow(
   seats: t.seats,
 );
 
+FloorItem _floorItem(FloorItemRow r) => FloorItem(
+  id: r.id,
+  zone: r.zone,
+  kind: FloorItemKind.fromRemote(r.kind),
+  label: r.label,
+  x: r.posX,
+  y: r.posY,
+  width: r.width,
+  height: r.height,
+  active: r.active,
+);
+
+FloorItemRow _floorItemRow(FloorItem f) => FloorItemRow(
+  id: f.id,
+  zone: f.zone,
+  kind: f.kind.remote,
+  label: f.label,
+  posX: f.x,
+  posY: f.y,
+  width: f.width,
+  height: f.height,
+  active: f.active,
+);
+
 RestaurantOrder _order(OrderRow r) => RestaurantOrder(
   id: r.id,
   tableId: r.tableId,

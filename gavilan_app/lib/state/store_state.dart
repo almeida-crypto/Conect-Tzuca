@@ -33,6 +33,7 @@ class StoreState {
     this.batches = const [],
     this.batchOrders = const [],
     this.tables = const [],
+    this.floorItems = const [],
     this.extras = const [],
     this.orders = const [],
     this.orderItems = const [],
@@ -57,6 +58,9 @@ class StoreState {
   final List<Tanda> batches;
   final List<BatchOrder> batchOrders;
   final List<DiningTable> tables;
+
+  /// Paredes, puertas, barra... del plano de mesas.
+  final List<FloorItem> floorItems;
 
   /// Fotos de producto que ya están en este celular (por su ruta en la nube).
   final Map<String, Uint8List> photos;
@@ -305,6 +309,16 @@ class StoreState {
 
   List<DiningTable> tablesIn(String? zone) => activeTables.where((t) => t.zone == zone).toList();
 
+  /// Lo dibujado en el plano de una zona (sin lo que se quitó).
+  List<FloorItem> floorItemsIn(String? zone) => floorItems.where((f) => f.active && f.zone == zone).toList();
+
+  FloorItem? floorItemById(String id) {
+    for (final f in floorItems) {
+      if (f.id == id) return f;
+    }
+    return null;
+  }
+
   DiningTable? tableById(String id) => tables.where((t) => t.id == id).firstOrNull;
 
   RestaurantOrder? orderById(String id) => orders.where((o) => o.id == id).firstOrNull;
@@ -416,17 +430,22 @@ class StoreState {
     // Una venta cancelada en su mismo turno no cuenta (se le regresó el dinero ahí). Si se canceló después,
     // en otro turno, el corte de su día no cambia: la devolución quedó como gasto en el turno nuevo.
     final sessionSales = sales.where((s) => s.sessionId == session.id && s.countsInItsCut);
-    var cash = 0, other = 0, onCredit = 0, count = 0;
+    var cash = 0, other = 0, onCredit = 0, count = 0, cashTips = 0, otherTips = 0;
     for (final s in sessionSales) {
       count++;
       if (s.kind == SaleKind.fiada) {
         onCredit += s.totalCents;
         continue;
       }
-      // Pagada: cada parte cuenta según cómo se pagó (pago mixto o cuenta en partes).
+      // Pagada: cada parte cuenta según cómo se pagó (pago mixto o cuenta en partes). La propina sale
+      // primero del efectivo (es lo común: el cliente deja el cambio) y lo demás de lo otro.
       final inCash = s.cashCents;
-      cash += inCash;
-      other += s.totalCents - inCash;
+      final tipCash = s.tipCents.clamp(0, inCash);
+      final tipOther = s.tipCents - tipCash;
+      cashTips += tipCash;
+      otherTips += tipOther;
+      cash += inCash - tipCash;
+      other += s.paidCents - inCash - tipOther;
     }
     var cashAbonos = 0, otherAbonos = 0;
     for (final e in credit.where((e) => e.sessionId == session.id && e.type == CreditType.abono)) {
@@ -472,6 +491,8 @@ class StoreState {
       entradasCents: entradas,
       gastosCents: gastos,
       salesCount: count,
+      cashTipsCents: cashTips,
+      otherTipsCents: otherTips,
     );
   }
 
@@ -508,6 +529,7 @@ class StoreState {
     List<Tanda>? batches,
     List<BatchOrder>? batchOrders,
     List<DiningTable>? tables,
+    List<FloorItem>? floorItems,
     List<Extra>? extras,
     List<RestaurantOrder>? orders,
     List<OrderItem>? orderItems,
@@ -541,6 +563,7 @@ class StoreState {
     batches: batches ?? this.batches,
     batchOrders: batchOrders ?? this.batchOrders,
     tables: tables ?? this.tables,
+    floorItems: floorItems ?? this.floorItems,
     extras: extras ?? this.extras,
     orders: orders ?? this.orders,
     orderItems: orderItems ?? this.orderItems,

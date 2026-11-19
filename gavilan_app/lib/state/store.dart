@@ -13,6 +13,7 @@ import '../data/repository.dart';
 import '../domain/models.dart';
 import '../domain/plan.dart';
 import '../domain/profit.dart';
+import '../domain/floor_layout.dart';
 import '../domain/restaurant.dart';
 import 'app_state.dart';
 import 'seed.dart';
@@ -245,6 +246,7 @@ abstract class _StoreCore extends Notifier<StoreState> {
     String? orderId,
     int discountCents = 0,
     List<SalePayment> payments = const [],
+    int tipCents = 0,
   }) {
     assert(lines.isNotEmpty);
     // Un solo pago es lo mismo que pagar con ese método.
@@ -256,7 +258,9 @@ abstract class _StoreCore extends Notifier<StoreState> {
     final now = _clock();
     final subtotal = lines.fold(0, (a, l) => a + l.totalCents);
     // Los pagos en partes siempre suman el total: si no cuadran, el último absorbe la diferencia.
-    final total = (subtotal - discountCents.clamp(0, subtotal)).clamp(0, subtotal);
+    // La propina solo va en lo pagado (lo fiado no deja propina).
+    final tip = kind == SaleKind.pagada ? tipCents.clamp(0, 10000000) : 0;
+    final total = (subtotal - discountCents.clamp(0, subtotal)).clamp(0, subtotal) + tip;
     final paidSum = payments.fold(0, (a, p) => a + p.amountCents);
     if (payments.isNotEmpty && paidSum != total) {
       final last = payments.last;
@@ -281,6 +285,7 @@ abstract class _StoreCore extends Notifier<StoreState> {
       orderId: orderId,
       discountCents: discountCents.clamp(0, subtotal),
       clerk: _clerkName,
+      tipCents: tip,
     );
     final sold = <String, double>{};
     for (final l in lines) {

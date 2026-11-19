@@ -42,6 +42,55 @@ mixin _RestaurantOps on _StoreCore {
   void shapeTable(String id, {TableShape? shape, int? seats}) =>
       _setTable(state.tableById(id)?.copyWith(shape: shape, seats: seats?.clamp(1, 20)));
 
+  // ---------- Lo dibujado en el plano ----------
+
+  /// Agrega una pared, puerta, barra... a la zona, abajo de lo que ya hay (de ahí se arrastra).
+  FloorItem addFloorItem(String? zone, FloorItemKind kind) {
+    final bounds = floorBounds(
+      layoutZone(state.tablesIn(zone), items: state.floorItemsIn(zone)),
+      items: state.floorItemsIn(zone),
+    );
+    final item = FloorItem(
+      id: newId(),
+      zone: zone,
+      kind: kind,
+      x: 0,
+      y: ((bounds.height + 20) / kFloorSnap).round() * kFloorSnap,
+      width: kind.width,
+      height: kind.height,
+    );
+    _setFloorItem(item);
+    return item;
+  }
+
+  void moveFloorItem(String id, int x, int y) =>
+      _setFloorItem(state.floorItemById(id)?.copyWith(x: x.clamp(0, 4000), y: y.clamp(0, 4000)));
+
+  void resizeFloorItem(String id, int width, int height) =>
+      _setFloorItem(state.floorItemById(id)?.copyWith(width: width.clamp(8, 2000), height: height.clamp(8, 2000)));
+
+  /// Gira 90°: lo ancho queda alto (una pared horizontal pasa a vertical).
+  void rotateFloorItem(String id) {
+    final f = state.floorItemById(id);
+    if (f != null) _setFloorItem(f.copyWith(width: f.height, height: f.width));
+  }
+
+  void renameFloorItem(String id, String label) {
+    final t = label.trim();
+    _setFloorItem(state.floorItemById(id)?.copyWith(label: t.isEmpty ? null : t, clearLabel: t.isEmpty));
+  }
+
+  void removeFloorItem(String id) => _setFloorItem(state.floorItemById(id)?.copyWith(active: false));
+
+  void _setFloorItem(FloorItem? item) {
+    if (item == null) return;
+    final exists = state.floorItems.any((f) => f.id == item.id);
+    state = state.copyWith(
+      floorItems: exists ? [for (final f in state.floorItems) f.id == item.id ? item : f] : [...state.floorItems, item],
+    );
+    _save((r) => r.upsertFloorItem(item));
+  }
+
   /// Las mesas de la zona vuelven a acomodarse solas.
   void resetLayout(String? zone) {
     for (final t in state.tablesIn(zone)) {
@@ -241,6 +290,7 @@ mixin _RestaurantOps on _StoreCore {
     String? customerId,
     int discountCents = 0,
     List<SalePayment> payments = const [],
+    int tipCents = 0,
   }) {
     final order = state.orderById(orderId)!;
     // Lo que falta por cobrar (si ya se pagó una parte por platillos, solo lo demás).
@@ -257,6 +307,7 @@ mixin _RestaurantOps on _StoreCore {
       orderId: orderId,
       discountCents: discountCents,
       payments: payments,
+      tipCents: tipCents,
     );
     _closeOrder(order.close(OrderStatus.cerrada, _now()));
     return sale;
@@ -284,6 +335,7 @@ mixin _RestaurantOps on _StoreCore {
     String? customerId,
     int discountCents = 0,
     List<SalePayment> payments = const [],
+    int tipCents = 0,
   }) {
     final order = state.orderById(orderId);
     if (order == null || !order.isOpen) return null;
@@ -305,6 +357,7 @@ mixin _RestaurantOps on _StoreCore {
       orderId: orderId,
       discountCents: discountCents,
       payments: payments,
+      tipCents: tipCents,
     );
     _setItems(paid);
     final left = state.itemsOfOrder(orderId).where((i) => !i.cancelled && !i.fullyPaid);

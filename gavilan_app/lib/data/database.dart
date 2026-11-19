@@ -65,6 +65,9 @@ class SalesTable extends Table {
   IntColumn get discountCents => integer().withDefault(const Constant(0))();
   TextColumn get clerkName => text().nullable()();
 
+  /// Propina (v18), aparte del total.
+  IntColumn get tipCents => integer().withDefault(const Constant(0))();
+
   @override
   Set<Column> get primaryKey => {id};
 }
@@ -345,6 +348,26 @@ class DiningTablesTable extends Table {
   Set<Column> get primaryKey => {id};
 }
 
+/// Paredes, puertas, barra... del plano (v18).
+@DataClassName('FloorItemRow')
+class FloorItemsTable extends Table {
+  @override
+  String get tableName => 'floor_items';
+
+  TextColumn get id => text()();
+  TextColumn get zone => text().nullable()();
+  TextColumn get kind => text()();
+  TextColumn get label => text().nullable()();
+  IntColumn get posX => integer()();
+  IntColumn get posY => integer()();
+  IntColumn get width => integer()();
+  IntColumn get height => integer()();
+  BoolColumn get active => boolean().withDefault(const Constant(true))();
+
+  @override
+  Set<Column> get primaryKey => {id};
+}
+
 @DataClassName('OrderRow')
 class OrdersTable extends Table {
   @override
@@ -410,6 +433,7 @@ class ExtrasTable extends Table {
     ExtrasTable,
     OutboxTable,
     DiningTablesTable,
+    FloorItemsTable,
     OrdersTable,
     OrderItemsTable,
     LotsTable,
@@ -445,7 +469,7 @@ class GavilanDb extends _$GavilanDb {
   );
 
   @override
-  int get schemaVersion => 17;
+  int get schemaVersion => 18;
 
   @override
   MigrationStrategy get migration => MigrationStrategy(
@@ -515,6 +539,11 @@ class GavilanDb extends _$GavilanDb {
         await m.addColumn(diningTablesTable, diningTablesTable.posY);
         await m.addColumn(diningTablesTable, diningTablesTable.shape);
         await m.addColumn(diningTablesTable, diningTablesTable.seats);
+      }
+      // v18: propinas.
+      if (from < 18) {
+        await m.addColumn(salesTable, salesTable.tipCents);
+        await m.createTable(floorItemsTable);
       }
     },
   );

@@ -32,6 +32,13 @@ void main() {
     expect(p.firstWhere((x) => x.table.id == 'b').rect.top, 40 + 112 + 18);
   });
 
+  test('con paredes o barra puestas, las mesas sin lugar van abajo de ellas', () {
+    const bar = FloorItem(id: 'b', kind: FloorItemKind.barra, x: 0, y: 0, width: 260, height: 56);
+    final p = layoutZone([t('a')], items: [bar]);
+    expect(p.single.rect.top, 56 + 18);
+    expect(floorBounds(p, items: [bar]), const Size(260, 56 + 18 + 112));
+  });
+
   test('al soltar: pegada a la cuadrícula de 10 y sin salirse del plano', () {
     expect(snapTable(const Offset(123, 47), const Size(132, 112)), (x: 120, y: 50));
     expect(snapTable(const Offset(-30, -9), const Size(132, 112)), (x: 0, y: 0));

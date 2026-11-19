@@ -50,6 +50,50 @@ class _PaySheetState extends ConsumerState<_PaySheet> {
   /// Descuento a toda la cuenta, en centavos.
   int _discount = 0;
 
+  /// Propina (solo en una mesa o para llevar del restaurante), en centavos; [_tipPct] si fue por porcentaje.
+  int _tip = 0;
+  int? _tipPct;
+
+  /// La propina que va: por porcentaje se recalcula si cambia el descuento.
+  int _tipFor(int total) => _tipPct == null ? _tip : (total * _tipPct! / 100).round();
+
+  void _setTip(int? pct, [int cents = 0]) => setState(() {
+    _tipPct = pct;
+    _tip = cents;
+    _received = null;
+    _error = null;
+  });
+
+  Future<void> _askTip() async {
+    final field = TextEditingController(text: _tipPct == null && _tip > 0 ? centsInput(_tip) : '');
+    final cents = await showDialog<int>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: Text('Propina', style: GText.sans(size: 18, weight: FontWeight.w800)),
+        content: TextField(
+          controller: field,
+          autofocus: true,
+          keyboardType: const TextInputType.numberWithOptions(decimal: true),
+          inputFormatters: const [MoneyInputFormatter()],
+          decoration: const InputDecoration(prefixText: '\$ ', hintText: '30', labelText: '¿Cuánto deja de propina?'),
+          onSubmitted: (_) => Navigator.of(ctx).pop(parseMoney(field.text) ?? 0),
+        ),
+        actions: [
+          TextButton(onPressed: () => Navigator.of(ctx).pop(), child: const Text('Cancelar')),
+          TextButton(
+            onPressed: () => Navigator.of(ctx).pop(parseMoney(field.text) ?? 0),
+            child: Text(
+              'Aplicar',
+              style: GText.sans(size: 14, weight: FontWeight.w800, color: GColors.cenote),
+            ),
+          ),
+        ],
+      ),
+    );
+    disposeAfterClose(field);
+    if (cents != null && mounted) _setTip(null, cents.clamp(0, 10000000));
+  }
+
   int _subtotal() => _subtotalOf(ref.read(storeProvider), ref.read(cartTotalProvider));
 
   /// Lo que se cobra: el carrito, lo que falta de la mesa o solo los platillos elegidos.
@@ -84,7 +128,10 @@ class _PaySheetState extends ConsumerState<_PaySheet> {
 
   void _finish({required SaleKind kind, String? customerId, List<SalePayment> payments = const [], int? cashReceived}) {
     final orderId = widget.orderId;
-    final total = (_subtotal() - _discount).clamp(0, _subtotal());
+    final bill = (_subtotal() - _discount).clamp(0, _subtotal());
+    // Lo fiado no lleva propina.
+    final tip = kind == SaleKind.pagada && orderId != null ? _tipFor(bill) : 0;
+    final total = bill + tip;
     int? received = cashReceived;
     if (kind == SaleKind.pagada && payments.isEmpty && _method == PayMethod.efectivo) {
       received = _otherMode ? parseMoney(_other.text) : _received;
@@ -121,6 +168,7 @@ class _PaySheetState extends ConsumerState<_PaySheet> {
         customerId: customerId,
         discountCents: _discount,
         payments: payments,
+        tipCents: tip,
       );
       if (charged == null) {
         setState(() => _error = 'Esos platillos ya se cobraron');
@@ -136,6 +184,7 @@ class _PaySheetState extends ConsumerState<_PaySheet> {
         customerId: customerId,
         discountCents: _discount,
         payments: payments,
+        tipCents: tip,
       );
     }
     final navigator = Navigator.of(context);
@@ -259,7 +308,11 @@ class _PaySheetState extends ConsumerState<_PaySheet> {
   @override
   Widget build(BuildContext context) {
     final subtotal = _subtotalOf(ref.watch(storeProvider), ref.watch(cartTotalProvider));
-    final total = (subtotal - _discount).clamp(0, subtotal);
+    final bill = (subtotal - _discount).clamp(0, subtotal);
+    final tips = widget.orderId != null;
+    final tip = tips ? _tipFor(bill) : 0;
+    // Lo que paga el cliente: la cuenta más la propina (los billetes y el cambio se calculan con esto).
+    final total = bill + tip;
     final received = _otherMode ? parseMoney(_other.text) : _received;
     final change = (_method == PayMethod.efectivo && received != null) ? received - total : 0;
 
@@ -290,6 +343,42 @@ class _PaySheetState extends ConsumerState<_PaySheet> {
               ),
             ],
           ),
+          if (tips) ...[
+            const SizedBox(height: 10),
+            Row(
+              children: [
+                Text('Propina', style: GText.sans(size: 12)),
+                const Spacer(),
+                if (tip > 0)
+                  Text(
+                    'Cuenta ${money(bill)} + propina ${money(tip)}',
+                    style: GText.sans(size: 12.5, weight: FontWeight.w700, color: GColors.cenote),
+                  ),
+              ],
+            ),
+            const SizedBox(height: 6),
+            Row(
+              children: [
+                Expanded(
+                  child: GChip(label: 'Sin', selected: _tipPct == null && _tip == 0, onTap: () => _setTip(null)),
+                ),
+                for (final p in const [10, 15]) ...[
+                  const SizedBox(width: 6),
+                  Expanded(
+                    child: GChip(label: '$p%', selected: _tipPct == p, onTap: () => _setTip(p)),
+                  ),
+                ],
+                const SizedBox(width: 6),
+                Expanded(
+                  child: GChip(
+                    label: _tipPct == null && _tip > 0 ? money(_tip, hideZeroCents: true) : 'Otra',
+                    selected: _tipPct == null && _tip > 0,
+                    onTap: _askTip,
+                  ),
+                ),
+              ],
+            ),
+          ],
           if (_discount > 0)
             Padding(
               padding: const EdgeInsets.only(top: 2),

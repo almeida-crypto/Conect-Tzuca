@@ -1067,6 +1067,469 @@ class DiningTablesTableCompanion extends UpdateCompanion<DiningTableRow> {
   }
 }
 
+class $FloorItemsTableTable extends FloorItemsTable with TableInfo<$FloorItemsTableTable, FloorItemRow> {
+  @override
+  final GeneratedDatabase attachedDatabase;
+  final String? _alias;
+  $FloorItemsTableTable(this.attachedDatabase, [this._alias]);
+  static const VerificationMeta _idMeta = const VerificationMeta('id');
+  @override
+  late final GeneratedColumn<String> id = GeneratedColumn<String>(
+    'id',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _zoneMeta = const VerificationMeta('zone');
+  @override
+  late final GeneratedColumn<String> zone = GeneratedColumn<String>(
+    'zone',
+    aliasedName,
+    true,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+  );
+  static const VerificationMeta _kindMeta = const VerificationMeta('kind');
+  @override
+  late final GeneratedColumn<String> kind = GeneratedColumn<String>(
+    'kind',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _labelMeta = const VerificationMeta('label');
+  @override
+  late final GeneratedColumn<String> label = GeneratedColumn<String>(
+    'label',
+    aliasedName,
+    true,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+  );
+  static const VerificationMeta _posXMeta = const VerificationMeta('posX');
+  @override
+  late final GeneratedColumn<int> posX = GeneratedColumn<int>(
+    'pos_x',
+    aliasedName,
+    false,
+    type: DriftSqlType.int,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _posYMeta = const VerificationMeta('posY');
+  @override
+  late final GeneratedColumn<int> posY = GeneratedColumn<int>(
+    'pos_y',
+    aliasedName,
+    false,
+    type: DriftSqlType.int,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _widthMeta = const VerificationMeta('width');
+  @override
+  late final GeneratedColumn<int> width = GeneratedColumn<int>(
+    'width',
+    aliasedName,
+    false,
+    type: DriftSqlType.int,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _heightMeta = const VerificationMeta('height');
+  @override
+  late final GeneratedColumn<int> height = GeneratedColumn<int>(
+    'height',
+    aliasedName,
+    false,
+    type: DriftSqlType.int,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _activeMeta = const VerificationMeta('active');
+  @override
+  late final GeneratedColumn<bool> active = GeneratedColumn<bool>(
+    'active',
+    aliasedName,
+    false,
+    type: DriftSqlType.bool,
+    requiredDuringInsert: false,
+    defaultConstraints: GeneratedColumn.constraintIsAlways('CHECK ("active" IN (0, 1))'),
+    defaultValue: const Constant(true),
+  );
+  @override
+  List<GeneratedColumn> get $columns => [id, zone, kind, label, posX, posY, width, height, active];
+  @override
+  String get aliasedName => _alias ?? actualTableName;
+  @override
+  String get actualTableName => $name;
+  static const String $name = 'floor_items';
+  @override
+  VerificationContext validateIntegrity(Insertable<FloorItemRow> instance, {bool isInserting = false}) {
+    final context = VerificationContext();
+    final data = instance.toColumns(true);
+    if (data.containsKey('id')) {
+      context.handle(_idMeta, id.isAcceptableOrUnknown(data['id']!, _idMeta));
+    } else if (isInserting) {
+      context.missing(_idMeta);
+    }
+    if (data.containsKey('zone')) {
+      context.handle(_zoneMeta, zone.isAcceptableOrUnknown(data['zone']!, _zoneMeta));
+    }
+    if (data.containsKey('kind')) {
+      context.handle(_kindMeta, kind.isAcceptableOrUnknown(data['kind']!, _kindMeta));
+    } else if (isInserting) {
+      context.missing(_kindMeta);
+    }
+    if (data.containsKey('label')) {
+      context.handle(_labelMeta, label.isAcceptableOrUnknown(data['label']!, _labelMeta));
+    }
+    if (data.containsKey('pos_x')) {
+      context.handle(_posXMeta, posX.isAcceptableOrUnknown(data['pos_x']!, _posXMeta));
+    } else if (isInserting) {
+      context.missing(_posXMeta);
+    }
+    if (data.containsKey('pos_y')) {
+      context.handle(_posYMeta, posY.isAcceptableOrUnknown(data['pos_y']!, _posYMeta));
+    } else if (isInserting) {
+      context.missing(_posYMeta);
+    }
+    if (data.containsKey('width')) {
+      context.handle(_widthMeta, width.isAcceptableOrUnknown(data['width']!, _widthMeta));
+    } else if (isInserting) {
+      context.missing(_widthMeta);
+    }
+    if (data.containsKey('height')) {
+      context.handle(_heightMeta, height.isAcceptableOrUnknown(data['height']!, _heightMeta));
+    } else if (isInserting) {
+      context.missing(_heightMeta);
+    }
+    if (data.containsKey('active')) {
+      context.handle(_activeMeta, active.isAcceptableOrUnknown(data['active']!, _activeMeta));
+    }
+    return context;
+  }
+
+  @override
+  Set<GeneratedColumn> get $primaryKey => {id};
+  @override
+  FloorItemRow map(Map<String, dynamic> data, {String? tablePrefix}) {
+    final effectivePrefix = tablePrefix != null ? '$tablePrefix.' : '';
+    return FloorItemRow(
+      id: attachedDatabase.typeMapping.read(DriftSqlType.string, data['${effectivePrefix}id'])!,
+      zone: attachedDatabase.typeMapping.read(DriftSqlType.string, data['${effectivePrefix}zone']),
+      kind: attachedDatabase.typeMapping.read(DriftSqlType.string, data['${effectivePrefix}kind'])!,
+      label: attachedDatabase.typeMapping.read(DriftSqlType.string, data['${effectivePrefix}label']),
+      posX: attachedDatabase.typeMapping.read(DriftSqlType.int, data['${effectivePrefix}pos_x'])!,
+      posY: attachedDatabase.typeMapping.read(DriftSqlType.int, data['${effectivePrefix}pos_y'])!,
+      width: attachedDatabase.typeMapping.read(DriftSqlType.int, data['${effectivePrefix}width'])!,
+      height: attachedDatabase.typeMapping.read(DriftSqlType.int, data['${effectivePrefix}height'])!,
+      active: attachedDatabase.typeMapping.read(DriftSqlType.bool, data['${effectivePrefix}active'])!,
+    );
+  }
+
+  @override
+  $FloorItemsTableTable createAlias(String alias) {
+    return $FloorItemsTableTable(attachedDatabase, alias);
+  }
+}
+
+class FloorItemRow extends DataClass implements Insertable<FloorItemRow> {
+  final String id;
+  final String? zone;
+  final String kind;
+  final String? label;
+  final int posX;
+  final int posY;
+  final int width;
+  final int height;
+  final bool active;
+  const FloorItemRow({
+    required this.id,
+    this.zone,
+    required this.kind,
+    this.label,
+    required this.posX,
+    required this.posY,
+    required this.width,
+    required this.height,
+    required this.active,
+  });
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    map['id'] = Variable<String>(id);
+    if (!nullToAbsent || zone != null) {
+      map['zone'] = Variable<String>(zone);
+    }
+    map['kind'] = Variable<String>(kind);
+    if (!nullToAbsent || label != null) {
+      map['label'] = Variable<String>(label);
+    }
+    map['pos_x'] = Variable<int>(posX);
+    map['pos_y'] = Variable<int>(posY);
+    map['width'] = Variable<int>(width);
+    map['height'] = Variable<int>(height);
+    map['active'] = Variable<bool>(active);
+    return map;
+  }
+
+  FloorItemsTableCompanion toCompanion(bool nullToAbsent) {
+    return FloorItemsTableCompanion(
+      id: Value(id),
+      zone: zone == null && nullToAbsent ? const Value.absent() : Value(zone),
+      kind: Value(kind),
+      label: label == null && nullToAbsent ? const Value.absent() : Value(label),
+      posX: Value(posX),
+      posY: Value(posY),
+      width: Value(width),
+      height: Value(height),
+      active: Value(active),
+    );
+  }
+
+  factory FloorItemRow.fromJson(Map<String, dynamic> json, {ValueSerializer? serializer}) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return FloorItemRow(
+      id: serializer.fromJson<String>(json['id']),
+      zone: serializer.fromJson<String?>(json['zone']),
+      kind: serializer.fromJson<String>(json['kind']),
+      label: serializer.fromJson<String?>(json['label']),
+      posX: serializer.fromJson<int>(json['posX']),
+      posY: serializer.fromJson<int>(json['posY']),
+      width: serializer.fromJson<int>(json['width']),
+      height: serializer.fromJson<int>(json['height']),
+      active: serializer.fromJson<bool>(json['active']),
+    );
+  }
+  @override
+  Map<String, dynamic> toJson({ValueSerializer? serializer}) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return <String, dynamic>{
+      'id': serializer.toJson<String>(id),
+      'zone': serializer.toJson<String?>(zone),
+      'kind': serializer.toJson<String>(kind),
+      'label': serializer.toJson<String?>(label),
+      'posX': serializer.toJson<int>(posX),
+      'posY': serializer.toJson<int>(posY),
+      'width': serializer.toJson<int>(width),
+      'height': serializer.toJson<int>(height),
+      'active': serializer.toJson<bool>(active),
+    };
+  }
+
+  FloorItemRow copyWith({
+    String? id,
+    Value<String?> zone = const Value.absent(),
+    String? kind,
+    Value<String?> label = const Value.absent(),
+    int? posX,
+    int? posY,
+    int? width,
+    int? height,
+    bool? active,
+  }) => FloorItemRow(
+    id: id ?? this.id,
+    zone: zone.present ? zone.value : this.zone,
+    kind: kind ?? this.kind,
+    label: label.present ? label.value : this.label,
+    posX: posX ?? this.posX,
+    posY: posY ?? this.posY,
+    width: width ?? this.width,
+    height: height ?? this.height,
+    active: active ?? this.active,
+  );
+  FloorItemRow copyWithCompanion(FloorItemsTableCompanion data) {
+    return FloorItemRow(
+      id: data.id.present ? data.id.value : this.id,
+      zone: data.zone.present ? data.zone.value : this.zone,
+      kind: data.kind.present ? data.kind.value : this.kind,
+      label: data.label.present ? data.label.value : this.label,
+      posX: data.posX.present ? data.posX.value : this.posX,
+      posY: data.posY.present ? data.posY.value : this.posY,
+      width: data.width.present ? data.width.value : this.width,
+      height: data.height.present ? data.height.value : this.height,
+      active: data.active.present ? data.active.value : this.active,
+    );
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('FloorItemRow(')
+          ..write('id: $id, ')
+          ..write('zone: $zone, ')
+          ..write('kind: $kind, ')
+          ..write('label: $label, ')
+          ..write('posX: $posX, ')
+          ..write('posY: $posY, ')
+          ..write('width: $width, ')
+          ..write('height: $height, ')
+          ..write('active: $active')
+          ..write(')'))
+        .toString();
+  }
+
+  @override
+  int get hashCode => Object.hash(id, zone, kind, label, posX, posY, width, height, active);
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      (other is FloorItemRow &&
+          other.id == this.id &&
+          other.zone == this.zone &&
+          other.kind == this.kind &&
+          other.label == this.label &&
+          other.posX == this.posX &&
+          other.posY == this.posY &&
+          other.width == this.width &&
+          other.height == this.height &&
+          other.active == this.active);
+}
+
+class FloorItemsTableCompanion extends UpdateCompanion<FloorItemRow> {
+  final Value<String> id;
+  final Value<String?> zone;
+  final Value<String> kind;
+  final Value<String?> label;
+  final Value<int> posX;
+  final Value<int> posY;
+  final Value<int> width;
+  final Value<int> height;
+  final Value<bool> active;
+  final Value<int> rowid;
+  const FloorItemsTableCompanion({
+    this.id = const Value.absent(),
+    this.zone = const Value.absent(),
+    this.kind = const Value.absent(),
+    this.label = const Value.absent(),
+    this.posX = const Value.absent(),
+    this.posY = const Value.absent(),
+    this.width = const Value.absent(),
+    this.height = const Value.absent(),
+    this.active = const Value.absent(),
+    this.rowid = const Value.absent(),
+  });
+  FloorItemsTableCompanion.insert({
+    required String id,
+    this.zone = const Value.absent(),
+    required String kind,
+    this.label = const Value.absent(),
+    required int posX,
+    required int posY,
+    required int width,
+    required int height,
+    this.active = const Value.absent(),
+    this.rowid = const Value.absent(),
+  }) : id = Value(id),
+       kind = Value(kind),
+       posX = Value(posX),
+       posY = Value(posY),
+       width = Value(width),
+       height = Value(height);
+  static Insertable<FloorItemRow> custom({
+    Expression<String>? id,
+    Expression<String>? zone,
+    Expression<String>? kind,
+    Expression<String>? label,
+    Expression<int>? posX,
+    Expression<int>? posY,
+    Expression<int>? width,
+    Expression<int>? height,
+    Expression<bool>? active,
+    Expression<int>? rowid,
+  }) {
+    return RawValuesInsertable({
+      if (id != null) 'id': id,
+      if (zone != null) 'zone': zone,
+      if (kind != null) 'kind': kind,
+      if (label != null) 'label': label,
+      if (posX != null) 'pos_x': posX,
+      if (posY != null) 'pos_y': posY,
+      if (width != null) 'width': width,
+      if (height != null) 'height': height,
+      if (active != null) 'active': active,
+      if (rowid != null) 'rowid': rowid,
+    });
+  }
+
+  FloorItemsTableCompanion copyWith({
+    Value<String>? id,
+    Value<String?>? zone,
+    Value<String>? kind,
+    Value<String?>? label,
+    Value<int>? posX,
+    Value<int>? posY,
+    Value<int>? width,
+    Value<int>? height,
+    Value<bool>? active,
+    Value<int>? rowid,
+  }) {
+    return FloorItemsTableCompanion(
+      id: id ?? this.id,
+      zone: zone ?? this.zone,
+      kind: kind ?? this.kind,
+      label: label ?? this.label,
+      posX: posX ?? this.posX,
+      posY: posY ?? this.posY,
+      width: width ?? this.width,
+      height: height ?? this.height,
+      active: active ?? this.active,
+      rowid: rowid ?? this.rowid,
+    );
+  }
+
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    if (id.present) {
+      map['id'] = Variable<String>(id.value);
+    }
+    if (zone.present) {
+      map['zone'] = Variable<String>(zone.value);
+    }
+    if (kind.present) {
+      map['kind'] = Variable<String>(kind.value);
+    }
+    if (label.present) {
+      map['label'] = Variable<String>(label.value);
+    }
+    if (posX.present) {
+      map['pos_x'] = Variable<int>(posX.value);
+    }
+    if (posY.present) {
+      map['pos_y'] = Variable<int>(posY.value);
+    }
+    if (width.present) {
+      map['width'] = Variable<int>(width.value);
+    }
+    if (height.present) {
+      map['height'] = Variable<int>(height.value);
+    }
+    if (active.present) {
+      map['active'] = Variable<bool>(active.value);
+    }
+    if (rowid.present) {
+      map['rowid'] = Variable<int>(rowid.value);
+    }
+    return map;
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('FloorItemsTableCompanion(')
+          ..write('id: $id, ')
+          ..write('zone: $zone, ')
+          ..write('kind: $kind, ')
+          ..write('label: $label, ')
+          ..write('posX: $posX, ')
+          ..write('posY: $posY, ')
+          ..write('width: $width, ')
+          ..write('height: $height, ')
+          ..write('active: $active, ')
+          ..write('rowid: $rowid')
+          ..write(')'))
+        .toString();
+  }
+}
+
 class $OrdersTableTable extends OrdersTable with TableInfo<$OrdersTableTable, OrderRow> {
   @override
   final GeneratedDatabase attachedDatabase;
@@ -5300,6 +5763,16 @@ class $SalesTableTable extends SalesTable with TableInfo<$SalesTableTable, SaleR
     type: DriftSqlType.string,
     requiredDuringInsert: false,
   );
+  static const VerificationMeta _tipCentsMeta = const VerificationMeta('tipCents');
+  @override
+  late final GeneratedColumn<int> tipCents = GeneratedColumn<int>(
+    'tip_cents',
+    aliasedName,
+    false,
+    type: DriftSqlType.int,
+    requiredDuringInsert: false,
+    defaultValue: const Constant(0),
+  );
   @override
   List<GeneratedColumn> get $columns => [
     id,
@@ -5317,6 +5790,7 @@ class $SalesTableTable extends SalesTable with TableInfo<$SalesTableTable, SaleR
     cancelledInSession,
     discountCents,
     clerkName,
+    tipCents,
   ];
   @override
   String get aliasedName => _alias ?? actualTableName;
@@ -5381,6 +5855,9 @@ class $SalesTableTable extends SalesTable with TableInfo<$SalesTableTable, SaleR
     if (data.containsKey('clerk_name')) {
       context.handle(_clerkNameMeta, clerkName.isAcceptableOrUnknown(data['clerk_name']!, _clerkNameMeta));
     }
+    if (data.containsKey('tip_cents')) {
+      context.handle(_tipCentsMeta, tipCents.isAcceptableOrUnknown(data['tip_cents']!, _tipCentsMeta));
+    }
     return context;
   }
 
@@ -5412,6 +5889,7 @@ class $SalesTableTable extends SalesTable with TableInfo<$SalesTableTable, SaleR
       ),
       discountCents: attachedDatabase.typeMapping.read(DriftSqlType.int, data['${effectivePrefix}discount_cents'])!,
       clerkName: attachedDatabase.typeMapping.read(DriftSqlType.string, data['${effectivePrefix}clerk_name']),
+      tipCents: attachedDatabase.typeMapping.read(DriftSqlType.int, data['${effectivePrefix}tip_cents'])!,
     );
   }
 
@@ -5447,6 +5925,9 @@ class SaleRow extends DataClass implements Insertable<SaleRow> {
   final String? cancelledInSession;
   final int discountCents;
   final String? clerkName;
+
+  /// Propina (v18), aparte del total.
+  final int tipCents;
   const SaleRow({
     required this.id,
     required this.folio,
@@ -5463,6 +5944,7 @@ class SaleRow extends DataClass implements Insertable<SaleRow> {
     this.cancelledInSession,
     required this.discountCents,
     this.clerkName,
+    required this.tipCents,
   });
   @override
   Map<String, Expression> toColumns(bool nullToAbsent) {
@@ -5504,6 +5986,7 @@ class SaleRow extends DataClass implements Insertable<SaleRow> {
     if (!nullToAbsent || clerkName != null) {
       map['clerk_name'] = Variable<String>(clerkName);
     }
+    map['tip_cents'] = Variable<int>(tipCents);
     return map;
   }
 
@@ -5524,6 +6007,7 @@ class SaleRow extends DataClass implements Insertable<SaleRow> {
       cancelledInSession: cancelledInSession == null && nullToAbsent ? const Value.absent() : Value(cancelledInSession),
       discountCents: Value(discountCents),
       clerkName: clerkName == null && nullToAbsent ? const Value.absent() : Value(clerkName),
+      tipCents: Value(tipCents),
     );
   }
 
@@ -5545,6 +6029,7 @@ class SaleRow extends DataClass implements Insertable<SaleRow> {
       cancelledInSession: serializer.fromJson<String?>(json['cancelledInSession']),
       discountCents: serializer.fromJson<int>(json['discountCents']),
       clerkName: serializer.fromJson<String?>(json['clerkName']),
+      tipCents: serializer.fromJson<int>(json['tipCents']),
     );
   }
   @override
@@ -5566,6 +6051,7 @@ class SaleRow extends DataClass implements Insertable<SaleRow> {
       'cancelledInSession': serializer.toJson<String?>(cancelledInSession),
       'discountCents': serializer.toJson<int>(discountCents),
       'clerkName': serializer.toJson<String?>(clerkName),
+      'tipCents': serializer.toJson<int>(tipCents),
     };
   }
 
@@ -5585,6 +6071,7 @@ class SaleRow extends DataClass implements Insertable<SaleRow> {
     Value<String?> cancelledInSession = const Value.absent(),
     int? discountCents,
     Value<String?> clerkName = const Value.absent(),
+    int? tipCents,
   }) => SaleRow(
     id: id ?? this.id,
     folio: folio ?? this.folio,
@@ -5601,6 +6088,7 @@ class SaleRow extends DataClass implements Insertable<SaleRow> {
     cancelledInSession: cancelledInSession.present ? cancelledInSession.value : this.cancelledInSession,
     discountCents: discountCents ?? this.discountCents,
     clerkName: clerkName.present ? clerkName.value : this.clerkName,
+    tipCents: tipCents ?? this.tipCents,
   );
   SaleRow copyWithCompanion(SalesTableCompanion data) {
     return SaleRow(
@@ -5619,6 +6107,7 @@ class SaleRow extends DataClass implements Insertable<SaleRow> {
       cancelledInSession: data.cancelledInSession.present ? data.cancelledInSession.value : this.cancelledInSession,
       discountCents: data.discountCents.present ? data.discountCents.value : this.discountCents,
       clerkName: data.clerkName.present ? data.clerkName.value : this.clerkName,
+      tipCents: data.tipCents.present ? data.tipCents.value : this.tipCents,
     );
   }
 
@@ -5639,7 +6128,8 @@ class SaleRow extends DataClass implements Insertable<SaleRow> {
           ..write('cancelReason: $cancelReason, ')
           ..write('cancelledInSession: $cancelledInSession, ')
           ..write('discountCents: $discountCents, ')
-          ..write('clerkName: $clerkName')
+          ..write('clerkName: $clerkName, ')
+          ..write('tipCents: $tipCents')
           ..write(')'))
         .toString();
   }
@@ -5661,6 +6151,7 @@ class SaleRow extends DataClass implements Insertable<SaleRow> {
     cancelledInSession,
     discountCents,
     clerkName,
+    tipCents,
   );
   @override
   bool operator ==(Object other) =>
@@ -5680,7 +6171,8 @@ class SaleRow extends DataClass implements Insertable<SaleRow> {
           other.cancelReason == this.cancelReason &&
           other.cancelledInSession == this.cancelledInSession &&
           other.discountCents == this.discountCents &&
-          other.clerkName == this.clerkName);
+          other.clerkName == this.clerkName &&
+          other.tipCents == this.tipCents);
 }
 
 class SalesTableCompanion extends UpdateCompanion<SaleRow> {
@@ -5699,6 +6191,7 @@ class SalesTableCompanion extends UpdateCompanion<SaleRow> {
   final Value<String?> cancelledInSession;
   final Value<int> discountCents;
   final Value<String?> clerkName;
+  final Value<int> tipCents;
   final Value<int> rowid;
   const SalesTableCompanion({
     this.id = const Value.absent(),
@@ -5716,6 +6209,7 @@ class SalesTableCompanion extends UpdateCompanion<SaleRow> {
     this.cancelledInSession = const Value.absent(),
     this.discountCents = const Value.absent(),
     this.clerkName = const Value.absent(),
+    this.tipCents = const Value.absent(),
     this.rowid = const Value.absent(),
   });
   SalesTableCompanion.insert({
@@ -5734,6 +6228,7 @@ class SalesTableCompanion extends UpdateCompanion<SaleRow> {
     this.cancelledInSession = const Value.absent(),
     this.discountCents = const Value.absent(),
     this.clerkName = const Value.absent(),
+    this.tipCents = const Value.absent(),
     this.rowid = const Value.absent(),
   }) : id = Value(id),
        folio = Value(folio),
@@ -5755,6 +6250,7 @@ class SalesTableCompanion extends UpdateCompanion<SaleRow> {
     Expression<String>? cancelledInSession,
     Expression<int>? discountCents,
     Expression<String>? clerkName,
+    Expression<int>? tipCents,
     Expression<int>? rowid,
   }) {
     return RawValuesInsertable({
@@ -5773,6 +6269,7 @@ class SalesTableCompanion extends UpdateCompanion<SaleRow> {
       if (cancelledInSession != null) 'cancelled_in_session': cancelledInSession,
       if (discountCents != null) 'discount_cents': discountCents,
       if (clerkName != null) 'clerk_name': clerkName,
+      if (tipCents != null) 'tip_cents': tipCents,
       if (rowid != null) 'rowid': rowid,
     });
   }
@@ -5793,6 +6290,7 @@ class SalesTableCompanion extends UpdateCompanion<SaleRow> {
     Value<String?>? cancelledInSession,
     Value<int>? discountCents,
     Value<String?>? clerkName,
+    Value<int>? tipCents,
     Value<int>? rowid,
   }) {
     return SalesTableCompanion(
@@ -5811,6 +6309,7 @@ class SalesTableCompanion extends UpdateCompanion<SaleRow> {
       cancelledInSession: cancelledInSession ?? this.cancelledInSession,
       discountCents: discountCents ?? this.discountCents,
       clerkName: clerkName ?? this.clerkName,
+      tipCents: tipCents ?? this.tipCents,
       rowid: rowid ?? this.rowid,
     );
   }
@@ -5863,6 +6362,9 @@ class SalesTableCompanion extends UpdateCompanion<SaleRow> {
     if (clerkName.present) {
       map['clerk_name'] = Variable<String>(clerkName.value);
     }
+    if (tipCents.present) {
+      map['tip_cents'] = Variable<int>(tipCents.value);
+    }
     if (rowid.present) {
       map['rowid'] = Variable<int>(rowid.value);
     }
@@ -5887,6 +6389,7 @@ class SalesTableCompanion extends UpdateCompanion<SaleRow> {
           ..write('cancelledInSession: $cancelledInSession, ')
           ..write('discountCents: $discountCents, ')
           ..write('clerkName: $clerkName, ')
+          ..write('tipCents: $tipCents, ')
           ..write('rowid: $rowid')
           ..write(')'))
         .toString();
@@ -8841,6 +9344,7 @@ abstract class _$GavilanDb extends GeneratedDatabase {
   late final $ExtrasTableTable extrasTable = $ExtrasTableTable(this);
   late final $OutboxTableTable outboxTable = $OutboxTableTable(this);
   late final $DiningTablesTableTable diningTablesTable = $DiningTablesTableTable(this);
+  late final $FloorItemsTableTable floorItemsTable = $FloorItemsTableTable(this);
   late final $OrdersTableTable ordersTable = $OrdersTableTable(this);
   late final $OrderItemsTableTable orderItemsTable = $OrderItemsTableTable(this);
   late final $LotsTableTable lotsTable = $LotsTableTable(this);
@@ -8867,6 +9371,7 @@ abstract class _$GavilanDb extends GeneratedDatabase {
     extrasTable,
     outboxTable,
     diningTablesTable,
+    floorItemsTable,
     ordersTable,
     orderItemsTable,
     lotsTable,
@@ -9425,6 +9930,221 @@ typedef $$DiningTablesTableTableProcessedTableManager =
       $$DiningTablesTableTableUpdateCompanionBuilder,
       (DiningTableRow, BaseReferences<_$GavilanDb, $DiningTablesTableTable, DiningTableRow>),
       DiningTableRow,
+      PrefetchHooks Function()
+    >;
+typedef $$FloorItemsTableTableCreateCompanionBuilder = FloorItemsTableCompanion Function({
+  required String id,
+  Value<String?> zone,
+  required String kind,
+  Value<String?> label,
+  required int posX,
+  required int posY,
+  required int width,
+  required int height,
+  Value<bool> active,
+  Value<int> rowid,
+});
+typedef $$FloorItemsTableTableUpdateCompanionBuilder = FloorItemsTableCompanion Function({
+  Value<String> id,
+  Value<String?> zone,
+  Value<String> kind,
+  Value<String?> label,
+  Value<int> posX,
+  Value<int> posY,
+  Value<int> width,
+  Value<int> height,
+  Value<bool> active,
+  Value<int> rowid,
+});
+
+class $$FloorItemsTableTableFilterComposer extends Composer<_$GavilanDb, $FloorItemsTableTable> {
+  $$FloorItemsTableTableFilterComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnFilters<String> get id => $composableBuilder(column: $table.id, builder: (column) => ColumnFilters(column));
+
+  ColumnFilters<String> get zone => $composableBuilder(column: $table.zone, builder: (column) => ColumnFilters(column));
+
+  ColumnFilters<String> get kind => $composableBuilder(column: $table.kind, builder: (column) => ColumnFilters(column));
+
+  ColumnFilters<String> get label =>
+      $composableBuilder(column: $table.label, builder: (column) => ColumnFilters(column));
+
+  ColumnFilters<int> get posX => $composableBuilder(column: $table.posX, builder: (column) => ColumnFilters(column));
+
+  ColumnFilters<int> get posY => $composableBuilder(column: $table.posY, builder: (column) => ColumnFilters(column));
+
+  ColumnFilters<int> get width => $composableBuilder(column: $table.width, builder: (column) => ColumnFilters(column));
+
+  ColumnFilters<int> get height =>
+      $composableBuilder(column: $table.height, builder: (column) => ColumnFilters(column));
+
+  ColumnFilters<bool> get active =>
+      $composableBuilder(column: $table.active, builder: (column) => ColumnFilters(column));
+}
+
+class $$FloorItemsTableTableOrderingComposer extends Composer<_$GavilanDb, $FloorItemsTableTable> {
+  $$FloorItemsTableTableOrderingComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnOrderings<String> get id => $composableBuilder(column: $table.id, builder: (column) => ColumnOrderings(column));
+
+  ColumnOrderings<String> get zone =>
+      $composableBuilder(column: $table.zone, builder: (column) => ColumnOrderings(column));
+
+  ColumnOrderings<String> get kind =>
+      $composableBuilder(column: $table.kind, builder: (column) => ColumnOrderings(column));
+
+  ColumnOrderings<String> get label =>
+      $composableBuilder(column: $table.label, builder: (column) => ColumnOrderings(column));
+
+  ColumnOrderings<int> get posX =>
+      $composableBuilder(column: $table.posX, builder: (column) => ColumnOrderings(column));
+
+  ColumnOrderings<int> get posY =>
+      $composableBuilder(column: $table.posY, builder: (column) => ColumnOrderings(column));
+
+  ColumnOrderings<int> get width =>
+      $composableBuilder(column: $table.width, builder: (column) => ColumnOrderings(column));
+
+  ColumnOrderings<int> get height =>
+      $composableBuilder(column: $table.height, builder: (column) => ColumnOrderings(column));
+
+  ColumnOrderings<bool> get active =>
+      $composableBuilder(column: $table.active, builder: (column) => ColumnOrderings(column));
+}
+
+class $$FloorItemsTableTableAnnotationComposer extends Composer<_$GavilanDb, $FloorItemsTableTable> {
+  $$FloorItemsTableTableAnnotationComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  GeneratedColumn<String> get id => $composableBuilder(column: $table.id, builder: (column) => column);
+
+  GeneratedColumn<String> get zone => $composableBuilder(column: $table.zone, builder: (column) => column);
+
+  GeneratedColumn<String> get kind => $composableBuilder(column: $table.kind, builder: (column) => column);
+
+  GeneratedColumn<String> get label => $composableBuilder(column: $table.label, builder: (column) => column);
+
+  GeneratedColumn<int> get posX => $composableBuilder(column: $table.posX, builder: (column) => column);
+
+  GeneratedColumn<int> get posY => $composableBuilder(column: $table.posY, builder: (column) => column);
+
+  GeneratedColumn<int> get width => $composableBuilder(column: $table.width, builder: (column) => column);
+
+  GeneratedColumn<int> get height => $composableBuilder(column: $table.height, builder: (column) => column);
+
+  GeneratedColumn<bool> get active => $composableBuilder(column: $table.active, builder: (column) => column);
+}
+
+class $$FloorItemsTableTableTableManager
+    extends
+        RootTableManager<
+          _$GavilanDb,
+          $FloorItemsTableTable,
+          FloorItemRow,
+          $$FloorItemsTableTableFilterComposer,
+          $$FloorItemsTableTableOrderingComposer,
+          $$FloorItemsTableTableAnnotationComposer,
+          $$FloorItemsTableTableCreateCompanionBuilder,
+          $$FloorItemsTableTableUpdateCompanionBuilder,
+          (FloorItemRow, BaseReferences<_$GavilanDb, $FloorItemsTableTable, FloorItemRow>),
+          FloorItemRow,
+          PrefetchHooks Function()
+        > {
+  $$FloorItemsTableTableTableManager(_$GavilanDb db, $FloorItemsTableTable table)
+    : super(
+        TableManagerState(
+          db: db,
+          table: table,
+          createFilteringComposer: () => $$FloorItemsTableTableFilterComposer($db: db, $table: table),
+          createOrderingComposer: () => $$FloorItemsTableTableOrderingComposer($db: db, $table: table),
+          createComputedFieldComposer: () => $$FloorItemsTableTableAnnotationComposer($db: db, $table: table),
+          updateCompanionCallback:
+              ({
+                Value<String> id = const Value.absent(),
+                Value<String?> zone = const Value.absent(),
+                Value<String> kind = const Value.absent(),
+                Value<String?> label = const Value.absent(),
+                Value<int> posX = const Value.absent(),
+                Value<int> posY = const Value.absent(),
+                Value<int> width = const Value.absent(),
+                Value<int> height = const Value.absent(),
+                Value<bool> active = const Value.absent(),
+                Value<int> rowid = const Value.absent(),
+              }) => FloorItemsTableCompanion(
+                id: id,
+                zone: zone,
+                kind: kind,
+                label: label,
+                posX: posX,
+                posY: posY,
+                width: width,
+                height: height,
+                active: active,
+                rowid: rowid,
+              ),
+          createCompanionCallback:
+              ({
+                required String id,
+                Value<String?> zone = const Value.absent(),
+                required String kind,
+                Value<String?> label = const Value.absent(),
+                required int posX,
+                required int posY,
+                required int width,
+                required int height,
+                Value<bool> active = const Value.absent(),
+                Value<int> rowid = const Value.absent(),
+              }) => FloorItemsTableCompanion.insert(
+                id: id,
+                zone: zone,
+                kind: kind,
+                label: label,
+                posX: posX,
+                posY: posY,
+                width: width,
+                height: height,
+                active: active,
+                rowid: rowid,
+              ),
+          withReferenceMapper: (p0) => p0
+              .map(
+                (e) => (
+                  e.readTable<$FloorItemsTableTable, FloorItemRow>(table),
+                  BaseReferences<_$GavilanDb, $FloorItemsTableTable, FloorItemRow>(db, table, e),
+                ),
+              )
+              .toList(),
+          prefetchHooksCallback: null,
+        ),
+      );
+}
+
+typedef $$FloorItemsTableTableProcessedTableManager =
+    ProcessedTableManager<
+      _$GavilanDb,
+      $FloorItemsTableTable,
+      FloorItemRow,
+      $$FloorItemsTableTableFilterComposer,
+      $$FloorItemsTableTableOrderingComposer,
+      $$FloorItemsTableTableAnnotationComposer,
+      $$FloorItemsTableTableCreateCompanionBuilder,
+      $$FloorItemsTableTableUpdateCompanionBuilder,
+      (FloorItemRow, BaseReferences<_$GavilanDb, $FloorItemsTableTable, FloorItemRow>),
+      FloorItemRow,
       PrefetchHooks Function()
     >;
 typedef $$OrdersTableTableCreateCompanionBuilder = OrdersTableCompanion Function({
@@ -11421,6 +12141,7 @@ typedef $$SalesTableTableCreateCompanionBuilder = SalesTableCompanion Function({
   Value<String?> cancelledInSession,
   Value<int> discountCents,
   Value<String?> clerkName,
+  Value<int> tipCents,
   Value<int> rowid,
 });
 typedef $$SalesTableTableUpdateCompanionBuilder = SalesTableCompanion Function({
@@ -11439,6 +12160,7 @@ typedef $$SalesTableTableUpdateCompanionBuilder = SalesTableCompanion Function({
   Value<String?> cancelledInSession,
   Value<int> discountCents,
   Value<String?> clerkName,
+  Value<int> tipCents,
   Value<int> rowid,
 });
 
@@ -11492,6 +12214,9 @@ class $$SalesTableTableFilterComposer extends Composer<_$GavilanDb, $SalesTableT
 
   ColumnFilters<String> get clerkName =>
       $composableBuilder(column: $table.clerkName, builder: (column) => ColumnFilters(column));
+
+  ColumnFilters<int> get tipCents =>
+      $composableBuilder(column: $table.tipCents, builder: (column) => ColumnFilters(column));
 }
 
 class $$SalesTableTableOrderingComposer extends Composer<_$GavilanDb, $SalesTableTable> {
@@ -11545,6 +12270,9 @@ class $$SalesTableTableOrderingComposer extends Composer<_$GavilanDb, $SalesTabl
 
   ColumnOrderings<String> get clerkName =>
       $composableBuilder(column: $table.clerkName, builder: (column) => ColumnOrderings(column));
+
+  ColumnOrderings<int> get tipCents =>
+      $composableBuilder(column: $table.tipCents, builder: (column) => ColumnOrderings(column));
 }
 
 class $$SalesTableTableAnnotationComposer extends Composer<_$GavilanDb, $SalesTableTable> {
@@ -11591,6 +12319,8 @@ class $$SalesTableTableAnnotationComposer extends Composer<_$GavilanDb, $SalesTa
       $composableBuilder(column: $table.discountCents, builder: (column) => column);
 
   GeneratedColumn<String> get clerkName => $composableBuilder(column: $table.clerkName, builder: (column) => column);
+
+  GeneratedColumn<int> get tipCents => $composableBuilder(column: $table.tipCents, builder: (column) => column);
 }
 
 class $$SalesTableTableTableManager
@@ -11633,6 +12363,7 @@ class $$SalesTableTableTableManager
                 Value<String?> cancelledInSession = const Value.absent(),
                 Value<int> discountCents = const Value.absent(),
                 Value<String?> clerkName = const Value.absent(),
+                Value<int> tipCents = const Value.absent(),
                 Value<int> rowid = const Value.absent(),
               }) => SalesTableCompanion(
                 id: id,
@@ -11650,6 +12381,7 @@ class $$SalesTableTableTableManager
                 cancelledInSession: cancelledInSession,
                 discountCents: discountCents,
                 clerkName: clerkName,
+                tipCents: tipCents,
                 rowid: rowid,
               ),
           createCompanionCallback:
@@ -11669,6 +12401,7 @@ class $$SalesTableTableTableManager
                 Value<String?> cancelledInSession = const Value.absent(),
                 Value<int> discountCents = const Value.absent(),
                 Value<String?> clerkName = const Value.absent(),
+                Value<int> tipCents = const Value.absent(),
                 Value<int> rowid = const Value.absent(),
               }) => SalesTableCompanion.insert(
                 id: id,
@@ -11686,6 +12419,7 @@ class $$SalesTableTableTableManager
                 cancelledInSession: cancelledInSession,
                 discountCents: discountCents,
                 clerkName: clerkName,
+                tipCents: tipCents,
                 rowid: rowid,
               ),
           withReferenceMapper: (p0) => p0
@@ -13200,6 +13934,8 @@ class $GavilanDbManager {
   $$OutboxTableTableTableManager get outboxTable => $$OutboxTableTableTableManager(_db, _db.outboxTable);
   $$DiningTablesTableTableTableManager get diningTablesTable =>
       $$DiningTablesTableTableTableManager(_db, _db.diningTablesTable);
+  $$FloorItemsTableTableTableManager get floorItemsTable =>
+      $$FloorItemsTableTableTableManager(_db, _db.floorItemsTable);
   $$OrdersTableTableTableManager get ordersTable => $$OrdersTableTableTableManager(_db, _db.ordersTable);
   $$OrderItemsTableTableTableManager get orderItemsTable =>
       $$OrderItemsTableTableTableManager(_db, _db.orderItemsTable);

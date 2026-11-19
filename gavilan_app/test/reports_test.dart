@@ -125,7 +125,7 @@ void main() {
     ];
     final csv = salesCsv(s, (_) => 'Caja, la de "arriba"');
     expect(csv.startsWith('﻿Fecha,Folio,Total'), isTrue);
-    expect(csv, contains('2026-11-18 09:05,1,40.00,Efectivo 10.00 + Tarjeta 30.00,\'=HACK(),"Caja, la de ""arriba"""'));
+    expect(csv, contains('2026-11-18 09:05,1,40.00,0.00,Efectivo 10.00 + Tarjeta 30.00,\'=HACK(),"Caja, la de ""arriba"""'));
 
     final products = productsCsv(profitIn([sale('s2', now, 1000, cost: 1200), sale('s3', now, 500)]));
     expect(products, contains('Producto 1000,1,10.00,12.00,-2.00,-20'));
