@@ -1061,3 +1061,26 @@ El usuario pidió que fueran opcionales: no todos reparten propinas, no todos qu
 **Dónde se vende cada producto.** En el formulario del producto, solo si el negocio tiene mesas: "En mesas y mostrador" (como siempre), "Solo en mesas" (no sale en Cobrar) o "Solo en mostrador" (no sale en el menú de las mesas). `products.sold_at` (migración 0031, base local v19).
 
 **Verificación:** `flutter analyze` sin avisos y 173 pruebas pasan (nuevas en `tips_test.dart`, en `restaurant_cobrar_test.dart` lo marcado "solo en mesas" no sale en Cobrar, y en `sync_test.dart` el interruptor de imprimir se recuerda). Capturas revisadas a ojo: Caja con la tarjeta de propinas, la hoja de repartir y "Dónde se vende". Avisos de Supabase: solo los de siempre.
+
+### Candado del plan en el servidor
+Hasta hoy los límites de cada plan solo los cuidaba la app (decisión 65: se dejaba para cuando hubiera cobro, porque la vista previa trabaría el respaldo). El usuario pidió ponerlo ya.
+- **En la base** (migración `0032_plan_limits`): lo mismo que `PlanLimits` en la app.
+  - Semilla: hasta 30 productos y 1 paca o lote abierto; sin fotos, logo, apartados, tandas, mesas ni equipo.
+  - Emprendedor: hasta 300 productos; fotos, logo, apartados y tandas; sin mesas ni equipo.
+  - Negocio: todo.
+- **Solo se revisa lo nuevo.** Si un negocio baja de plan, lo que ya tenía se queda y se sigue usando (cerrar cuentas, cobrar apartados); lo que no se puede es agregar más. Volver a subir algo que ya existe (la app reintenta) siempre pasa.
+- El rechazo dice "Tu plan Semilla no incluye mesas y cocina"; la app lo muestra así en "Cambios que no se pudieron subir".
+- **Con cuenta, el plan es el de la nube**: llega con la fila del negocio y la app lo toma (también si cambia después). "Probar este plan" (vista previa) solo sale sin cuenta; con cuenta, "Mi plan" dice que el plan está en la cuenta.
+- El plan lo cambia solo el sistema de cobro o el dueño del proyecto desde Supabase (Table editor → `businesses` → `plan`: `free`, `entrepreneur` o `business`); el candado de 0003 no deja cambiarlo desde la app.
+- El negocio de prueba del usuario (el único en la nube) quedó en `business` para que siga probando todo.
+- No se revisan en la base: cuántos clientes con fiado (depende de saldos) ni cuántos aparatos; los cuida la app. Los reportes se calculan en el teléfono.
+- Probado en el servidor con el dueño simulado: Semilla no agrega mesa, el producto 31, foto ni invitación; Emprendedor sí apartados pero no mesas; Negocio todo; volver a subir un producto que ya existe pasa. Todo se deshizo al terminar.
+- `0033_plan_functions_private`: las funciones del candado no se pueden llamar desde fuera (Supabase las marcaba). Los triggers siguen funcionando (probado).
+
+### Prueba de actualizar una base vieja
+- `drift_schemas/` guarda el esquema de la base de cada versión que salió en APK (7, 10, 14, 15 y 16, sacados del historial de git) y el de hoy (19). `test/generated_migrations/` se genera de ahí.
+- `test/migration_test.dart`: para cada versión vieja, (1) la base sube a la de hoy y queda igual que una nueva, y (2) con datos de un negocio (producto, cliente, venta pagada y fiada, abono, gasto, mesa con cuenta abierta y un pendiente por subir) no se pierde nada: corte, saldo del fiado, mesa y lo pendiente quedan igual.
+- Al cambiar la base de ahora en adelante: subir `schemaVersion`, agregar el paso en `onUpgrade`, guardar el esquema (`dart run drift_dev schema dump lib/data/database.dart drift_schemas/drift_schema_vN.json`), regenerar (`dart run drift_dev schema generate --data-classes --companions drift_schemas/ test/generated_migrations/`) y poner N en la prueba.
+
+### Verificación
+- `flutter analyze` sin avisos y 185 pruebas pasan (11 nuevas de migración; el plan que llega de la nube y el mensaje de rechazo en `sync_test.dart`). Avisos de Supabase: solo los de siempre.

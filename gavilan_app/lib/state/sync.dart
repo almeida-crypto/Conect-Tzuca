@@ -129,6 +129,9 @@ String friendlyRejection(String error) {
   if (e.contains('row-level security') || e.contains('permission denied') || e.contains('rls')) {
     return 'Tu cuenta no tiene permiso para este cambio';
   }
+  // El candado del plan en la base: "Tu plan Semilla no incluye mesas y cocina".
+  final plan = RegExp(r'Tu plan [^,."\n]+').firstMatch(error);
+  if (plan != null) return plan.group(0)!;
   if (e.contains('foreign key')) return 'Depende de otro cambio que tampoco se subió';
   if (e.contains('violates check') || e.contains('out of range')) return 'Algún dato está fuera de lo permitido';
   if (e.contains('duplicate key')) return 'Ya existe en la nube con otros datos';

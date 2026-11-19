@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../domain/plan.dart';
 import '../../state/app_state.dart';
+import '../../state/sync.dart';
 import '../../theme/colors.dart';
 import '../../theme/theme.dart';
 import '../widgets/buttons.dart';
@@ -15,6 +16,8 @@ class PlanScreen extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final current = ref.watch(planProvider);
+    // Con cuenta, el plan es el de la nube: no hay vista previa (la base no dejaría subir lo de otro plan).
+    final linked = ref.watch(syncProvider.select((s) => s.linked));
     return Scaffold(
       appBar: AppBar(
         backgroundColor: GColors.fondo,
@@ -33,6 +36,21 @@ class PlanScreen extends ConsumerWidget {
                   'Sin anuncios en ningún plan. La app se ve igual en todos; cambian los límites y lo que incluye.',
                   style: GText.sans(size: 13.5, weight: FontWeight.w400, color: GColors.tintaSuave),
                 ),
+                if (linked) ...[
+                  const SizedBox(height: 10),
+                  Container(
+                    padding: const EdgeInsets.all(12),
+                    decoration: BoxDecoration(
+                      color: GColors.cenoteSuave,
+                      borderRadius: BorderRadius.circular(GShape.radius),
+                    ),
+                    child: Text(
+                      'Tu plan ${current.label} está guardado en tu cuenta y vale en todos tus aparatos. '
+                      'Para cambiarlo, escríbenos.',
+                      style: GText.sans(size: 13.5, weight: FontWeight.w600, color: GColors.cenoteOscuro),
+                    ),
+                  ),
+                ],
                 const SizedBox(height: 14),
                 for (final (i, p) in Plan.values.indexed)
                   EnterAnimation(
@@ -42,6 +60,7 @@ class PlanScreen extends ConsumerWidget {
                       child: _PlanCard(
                         plan: p,
                         current: p == current,
+                        canTry: !linked,
                         onTry: () {
                           ref.read(planProvider.notifier).set(p);
                           ScaffoldMessenger.of(context).showSnackBar(
@@ -61,10 +80,13 @@ class PlanScreen extends ConsumerWidget {
 }
 
 class _PlanCard extends StatelessWidget {
-  const _PlanCard({required this.plan, required this.current, required this.onTry});
+  const _PlanCard({required this.plan, required this.current, required this.onTry, this.canTry = true});
 
   final Plan plan;
   final bool current;
+
+  /// Sin cuenta se puede ver la app como otro plan (vista previa); con cuenta, no.
+  final bool canTry;
   final VoidCallback onTry;
 
   Color get _accent => switch (plan) {
@@ -134,7 +156,7 @@ class _PlanCard extends StatelessWidget {
           const SizedBox(height: 10),
           for (final h in planHighlights(plan)) _Feature(text: h, color: _accent),
           for (final h in soon) _Feature(text: h, color: GColors.tintaTenue, soon: true),
-          if (!current) ...[
+          if (!current && canTry) ...[
             const SizedBox(height: 14),
             GButton(label: 'Probar este plan', kind: GButtonKind.outline, expand: true, onPressed: onTry),
           ],

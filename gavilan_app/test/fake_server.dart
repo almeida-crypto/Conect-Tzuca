@@ -29,6 +29,9 @@ class FakeServer {
 
   List<Map<String, Object?>> rows(String name) => table(name).values.toList();
 
+  /// Como el sistema de cobro: cambia el plan del negocio ('free', 'entrepreneur', 'business').
+  void setPlan(String businessId, String plan) => _write('businesses', {'id': businessId, 'plan': plan});
+
   void _write(String name, Map<String, Object?> row) {
     writes++;
     final t = table(name);

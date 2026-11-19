@@ -11,9 +11,15 @@ class PlanNotifier extends Notifier<Plan> {
   @override
   Plan build() => ref.read(initialDataProvider)?.plan ?? Plan.semilla;
 
+  /// Vista previa de un plan (solo sin cuenta: con cuenta manda el plan de la nube).
   void set(Plan plan) {
     state = plan;
     ref.read(storeProvider.notifier).savePlan(plan);
+  }
+
+  /// El plan que llegó de la nube.
+  void follow(Plan plan) {
+    if (state != plan) state = plan;
   }
 }
 

@@ -28,6 +28,20 @@ extension PlanInfo on Plan {
   };
 
   PlanLimits get limits => PlanLimits.of(this);
+
+  /// Como se guarda en Supabase (`businesses.plan`).
+  String get remote => switch (this) {
+    Plan.semilla => 'free',
+    Plan.emprendedor => 'entrepreneur',
+    Plan.negocio => 'business',
+  };
+
+  static Plan? fromRemote(Object? v) => switch (v) {
+    'free' => Plan.semilla,
+    'entrepreneur' => Plan.emprendedor,
+    'business' => Plan.negocio,
+    _ => null,
+  };
 }
 
 /// Límites por plan. null significa "sin límite".

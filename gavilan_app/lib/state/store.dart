@@ -94,6 +94,8 @@ abstract class _StoreCore extends Notifier<StoreState> {
       final loaded = await ref.read(repositoryProvider).load();
       if (version == _version) {
         state = loaded?.store ?? StoreState.blank;
+        // Con cuenta, el plan puede venir cambiado de la nube.
+        if (loaded != null) ref.read(planProvider.notifier).follow(loaded.plan);
         return;
       }
     }

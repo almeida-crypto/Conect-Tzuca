@@ -884,6 +884,9 @@ class DriftRepository implements StoreRepository, SyncStore {
           if (r.containsKey('credit_limit')) {
             await _setMeta(_kCreditLimit, _centsText(r['credit_limit']));
           }
+          // Con cuenta, el plan es el de la nube (lo cambia solo el cobro): la vista previa ya no aplica.
+          final plan = PlanInfo.fromRemote(r['plan']);
+          if (plan != null) await _setMeta(_kPlan, plan.name);
           if (r.containsKey('logo_path')) {
             final logo = (r['logo_path'] as String?) ?? '';
             await _setMeta(_kLogo, logo);

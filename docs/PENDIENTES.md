@@ -98,7 +98,8 @@ Prioridad: **Alta** = sin esto no se puede usar con un negocio real · **Media**
 
 ## Etapa 4 · Planes y cobro
 - [ ] **Media** · Confirmar los límites exactos de cada plan contra el PDF (la tabla salió desordenada al leerla).
-- [ ] **Media** · Validar los límites también en la base de datos (triggers), no solo en la app. Se hace junto con el cobro real: hoy la vista previa deja probar Negocio y en la base todos son plan gratis, así que los triggers trabarían el respaldo de quien prueba.
+- [x] **Media** · Límites del plan también en la base (triggers): productos, pacas, mesas, apartados, tandas, fotos, logo y equipo. Con cuenta, el plan es el de la nube. *19/11/2026*
+- [ ] **Baja** · Contar en la base los clientes con fiado y los aparatos por plan (hoy solo la app).
 - [ ] **Media** · Cobro real de suscripciones y quitar el selector de "vista previa" de planes.
 - [ ] **Alta** · Pasar proyecto-Gavilan a plan Pro de Supabase antes de tener clientes: el gratis se pausa tras 7 días sin actividad. Ya pasó una vez (09/11/2026) y se reactivó a mano; mientras está pausado, ningún teléfono respalda.
 
@@ -137,7 +138,7 @@ Prioridad: **Alta** = sin esto no se puede usar con un negocio real · **Media**
 - [x] **Media** · Si el servidor rechaza un cambio, se aparta y lo demás sigue subiendo; en Respaldo se puede reintentar o descartar. *18/11/2026*
 - [x] **Media** · Pruebas automáticas en GitHub (app y panel). *18/11/2026*
 - [ ] **Baja** · Partir las pantallas grandes (`restaurant_screen`, `catalog_table_screen`, `cobrar_screen`).
-- [ ] **Media** · Prueba de migración de la base local: abrir una base vieja y subirla a la versión actual sin perder datos.
+- [x] **Media** · Prueba de migración de la base local desde cada versión que salió en APK (7, 10, 14, 15, 16). *19/11/2026*
 - [ ] **Baja** · Revisar los 3 avisos "WARN" de Supabase cuando cambie el esquema. Hoy son intencionales; ver [BASE_DE_DATOS.md](BASE_DE_DATOS.md).
 
 ## Diseño

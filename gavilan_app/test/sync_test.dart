@@ -7,6 +7,8 @@ import 'package:gavilan/data/database.dart';
 import 'package:gavilan/data/repository.dart';
 import 'package:gavilan/data/sync_remote.dart';
 import 'package:gavilan/domain/models.dart';
+import 'package:gavilan/state/app_state.dart';
+import 'package:gavilan/domain/plan.dart';
 import 'package:gavilan/domain/restaurant.dart';
 import 'package:gavilan/domain/team.dart';
 import 'package:gavilan/state/store.dart';
@@ -314,6 +316,29 @@ void main() {
     );
     expect(friendlyRejection('insert violates foreign key constraint'), 'Depende de otro cambio que tampoco se subió');
     expect(friendlyRejection('Solo el dueño puede'), 'Solo el dueño puede');
+    expect(
+      friendlyRejection('PostgrestException(message: Tu plan Semilla no incluye mesas y cocina, code: P0001)'),
+      'Tu plan Semilla no incluye mesas y cocina',
+    );
+  });
+
+  test('con cuenta, el plan es el de la nube (y si cambia, cambia en el celular)', () async {
+    final a = await phone();
+    await _setUpShop(a);
+    a.app.read(planProvider.notifier).set(Plan.negocio); // vista previa antes de tener cuenta
+    await a.login('mary@correo.mx');
+    await a.settle();
+    final id = a.repo.linkedBusinessId!;
+
+    server.setPlan(id, 'free');
+    await a.settle();
+    expect(a.app.read(planProvider), Plan.semilla);
+
+    server.setPlan(id, 'entrepreneur');
+    await a.settle();
+    expect(a.app.read(planProvider), Plan.emprendedor);
+    // Y se queda guardado en el teléfono.
+    expect((await a.repo.load())!.plan, Plan.emprendedor);
   });
 
   test('descartar un cambio apartado deja el teléfono como la nube', () async {
