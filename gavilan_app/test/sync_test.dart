@@ -777,6 +777,15 @@ void main() {
     await owner.settle();
   });
 
+  test('"imprimir el ticket al cobrar" se recuerda en este aparato y viene apagado', () async {
+    final p = await phone(device: 'K7');
+    await _setUpShop(p);
+    expect(p.state.ticketPrint, isFalse);
+    p.store.setTicketPrint(true);
+    await p.store.flush();
+    expect((await p.repo.load())!.store.ticketPrint, isTrue);
+  });
+
   test('el mesero manda la comanda y la cocina la recibe sola', () async {
     final waiter = await phone(device: 'K7');
     await _setUpShop(waiter);

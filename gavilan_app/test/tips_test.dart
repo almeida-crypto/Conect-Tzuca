@@ -8,6 +8,7 @@ import 'package:gavilan/domain/plan.dart';
 import 'package:gavilan/domain/reports.dart';
 import 'package:gavilan/state/seed.dart';
 import 'package:gavilan/state/store.dart';
+import 'package:gavilan/ui/caja/tips_sheet.dart';
 
 /// Propinas: van aparte de la venta, entran al cajón si son en efectivo y salen en el corte y en Reportes.
 void main() {
@@ -94,5 +95,41 @@ void main() {
     final row = saleToRemote(sale).firstWhere((c) => c.table == 'sales').rows.single;
     expect(row['tip'], 12.34);
     expect(saleFromRemote({...row, 'status': 'paid'}).tipCents, 1234);
+  });
+
+  test('repartir: sale del cajón, no es gasto y se ve cuánto falta', () {
+    final session = s().openSession!;
+    n.chargeOrder(bill(0), kind: SaleKind.pagada, method: PayMethod.efectivo, tipCents: 3001);
+    final before = s().summaryFor(session);
+    expect(before.tipsPendingCents, 3001);
+    final parts = splitEvenly(3001, 2);
+    expect(parts, [1501, 1500]);
+    n.addMovement(CashKind.propina, parts[0], 'Propina para Ana');
+    final after = s().summaryFor(session);
+    expect(after.tipsPaidCents, 1501);
+    expect(after.tipsPendingCents, 1500);
+    expect(after.gastosCents, before.gastosCents);
+    expect(before.expectedCashCents - after.expectedCashCents, 1501);
+  });
+
+  test('una propina entregada viaja como "tip"; una app vieja la lee como gasto y el efectivo cuadra igual', () {
+    n.addMovement(CashKind.propina, 1000, 'Propina para Ana');
+    final m = s().movements.last;
+    final row = movementToRemote(m);
+    expect(row['kind'], 'tip');
+    expect(movementFromRemote(row).kind, CashKind.propina);
+    expect(movementFromRemote({...row, 'kind': 'out'}).kind, CashKind.gasto);
+  });
+
+  test('dónde se vende un producto: viaja al servidor y regresa igual', () {
+    const p = Product(id: 'x', name: 'Pozole', priceCents: 9000, place: ProductPlace.mesas);
+    final row = productToRemote(p, withStock: false);
+    expect(row['sold_at'], 'tables');
+    expect(productFromRemote(row).soldAt, 'tables');
+    expect(
+      productToRemote(const Product(id: 'y', name: 'Chicle', priceCents: 500), withStock: false)['sold_at'],
+      isNull,
+    );
+    expect((p.atTables, p.atCounter), (true, false));
   });
 }

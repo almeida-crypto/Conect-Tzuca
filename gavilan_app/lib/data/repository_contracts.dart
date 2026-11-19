@@ -49,6 +49,9 @@ abstract class StoreRepository {
 
   /// En la cocina de este aparato, imprimir sola cada comanda nueva.
   Future<void> setKitchenPrint(bool on);
+
+  /// Imprimir solo el ticket al cobrar (en este aparato).
+  Future<void> setTicketPrint(bool on);
   Future<void> insertCredit(CreditEntry entry);
   Future<void> upsertSession(CashSession session);
   Future<void> insertMovement(CashMovement movement);
@@ -176,6 +179,8 @@ class MemoryRepository implements StoreRepository {
   Future<void> setRegisterName(String? name) async {}
   @override
   Future<void> setKitchenPrint(bool on) async {}
+  @override
+  Future<void> setTicketPrint(bool on) async {}
   @override
   Future<void> insertCredit(CreditEntry entry) async {}
   @override

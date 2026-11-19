@@ -80,6 +80,13 @@ void main() {
     expect(find.text('Postres'), findsOneWidget);
     expect(find.byTooltip('Escanear con la cámara'), findsNothing);
     expect(find.text('Buscar platillo o bebida'), findsOneWidget);
+
+    // Lo marcado "solo en mesas" no sale en Cobrar.
+    expect(find.text('Marquesita'), findsOneWidget);
+    n.saveProduct(s.productById('m')!.copyWith(place: ProductPlace.mesas));
+    await tester.pumpAndSettle();
+    expect(find.text('Marquesita'), findsNothing);
+    expect(find.text('Horchata'), findsOneWidget);
   });
 
   testWidgets('en la computadora, Mesas muestra el salón dibujado; se puede cambiar a tarjetas', (tester) async {

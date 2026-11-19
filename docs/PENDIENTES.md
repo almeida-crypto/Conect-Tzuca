@@ -85,7 +85,7 @@ Prioridad: **Alta** = sin esto no se puede usar con un negocio real · **Media**
 - [x] **Baja** · Restaurante: imprimir la comanda en cocina (en la computadora). *18/11/2026*
 - [ ] **Media** · Probar la comanda con una impresora térmica real y explicar al usuario cómo abrir Chrome con `--kiosk-printing` para que no pregunte cada vez.
 - [x] **Media** · Extras con precio (extra queso +\$10): el dueño los da de alta, el mesero los elige en cada platillo, salen en cocina y se cobran. *13/11/2026*
-- [ ] **Baja** · Platillos que no se venden en mostrador (que solo salgan en el restaurante).
+- [x] **Baja** · Productos solo en mesas o solo en mostrador (marcado en el producto; si no, en todos lados). *19/11/2026*
 - [x] **Media** · Equipo y roles: el dueño invita cajeros y administradores con un código; el cajero no cambia el catálogo. *09/11/2026*
 - [ ] **Media** · Probar el equipo con dos cuentas reales: el dueño invita desde su celular y alguien se une desde otro.
 - [x] **Media** · Invitar meseros y cocina. *09/11/2026*
@@ -112,7 +112,7 @@ Prioridad: **Alta** = sin esto no se puede usar con un negocio real · **Media**
 - [x] **Baja** · Plano: paredes, puerta, ventana, barra, cocina, baños y caja. *19/11/2026*
 - [ ] **Baja** · Plano: girar las mesas largas.
 - [x] **Baja** · Propinas en el restaurante: al cobrar, en el ticket, en el corte y en Reportes. *19/11/2026*
-- [ ] **Baja** · Propinas: repartirlas entre el equipo al cerrar caja (hoy solo se ve cuánto juntaron).
+- [x] **Baja** · Repartir propinas (opcional): a quién, partes iguales o a mano; sale del efectivo. *19/11/2026*
 - [x] **Media** · Mostrador en la computadora: la misma app abierta en el navegador cobra, fía, lleva inventario, caja, mesas y equipo. Menú a la izquierda, la cuenta siempre a la derecha y lector láser USB sin tocar nada. *11/11/2026*
 - [ ] **Media** · Publicar la app web (`flutter build web --release --no-web-resources-cdn`) en Vercel o similar, con su dominio. Necesita que el usuario cree la cuenta.
 - [x] **Media** · La caja de computadora abre sin internet, solo si el dueño lo activa en Más → Esta computadora; ícono en el escritorio con la ventana del navegador. *19/11/2026*
@@ -120,7 +120,8 @@ Prioridad: **Alta** = sin esto no se puede usar con un negocio real · **Media**
 - [x] **Media** · Mostrador web: atajos de teclado (F2, Esc, + y −, F3, F1, escribir sin dar clic) y cobrar escribiendo el monto con Enter. *12/11/2026*
 - [x] **Media** · Imprimir el ticket desde el navegador (botón, P o Ctrl+P), con la impresora de tickets o cualquiera instalada. *12/11/2026*
 - [ ] **Media** · Probar la impresión con una impresora térmica real (58 y 80 mm) y ajustar márgenes si hace falta.
-- [ ] **Baja** · Opción "imprimir siempre al cobrar" en la computadora.
+- [x] **Baja** · Opción "imprimir el ticket al cobrar" en la computadora, apagada de fábrica. *19/11/2026*
+- [ ] **Media** · Probar "imprimir al cobrar" con una impresora térmica real (Chrome con `--kiosk-printing` para que no pregunte).
 - [ ] **Baja** · Tabla del catálogo: elegir el icono y ocultar productos desde la tabla.
 
 ## Seguridad y ajustes de base de datos

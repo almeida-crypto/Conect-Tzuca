@@ -454,7 +454,12 @@ class _ProductPickerState extends ConsumerState<_ProductPicker> {
   Widget build(BuildContext context) {
     final q = _q.trim().toLowerCase();
     final products =
-        ref.watch(storeProvider).activeProducts.where((p) => q.isEmpty || p.name.toLowerCase().contains(q)).toList()
+        // Lo marcado "solo en mostrador" no sale en el menú de las mesas.
+        ref
+            .watch(storeProvider)
+            .activeProducts
+            .where((p) => p.atTables && (q.isEmpty || p.name.toLowerCase().contains(q)))
+            .toList()
           ..sort((a, b) => a.name.compareTo(b.name));
     final count = _picked.values.fold(0, (a, n) => a + n);
     return Column(

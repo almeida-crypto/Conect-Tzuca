@@ -26,6 +26,9 @@ class ProductsTable extends Table {
   BoolColumn get active => boolean().withDefault(const Constant(true))();
   TextColumn get photoPath => text().nullable()();
 
+  /// Dónde se vende (v19): null en todos lados, 'tables' o 'counter'.
+  TextColumn get soldAt => text().nullable()();
+
   @override
   Set<Column> get primaryKey => {id};
 }
@@ -469,7 +472,7 @@ class GavilanDb extends _$GavilanDb {
   );
 
   @override
-  int get schemaVersion => 18;
+  int get schemaVersion => 19;
 
   @override
   MigrationStrategy get migration => MigrationStrategy(
@@ -545,6 +548,8 @@ class GavilanDb extends _$GavilanDb {
         await m.addColumn(salesTable, salesTable.tipCents);
         await m.createTable(floorItemsTable);
       }
+      // v19: dónde se vende cada producto.
+      if (from < 19) await m.addColumn(productsTable, productsTable.soldAt);
     },
   );
 }

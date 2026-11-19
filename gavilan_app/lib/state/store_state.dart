@@ -10,6 +10,7 @@ class StoreState {
     this.device,
     this.registerName,
     this.kitchenPrint = false,
+    this.ticketPrint = false,
     this.defaultCreditLimitCents,
     this.clerks = const [],
     this.lockMinutes,
@@ -104,6 +105,10 @@ class StoreState {
 
   /// En la cocina de este aparato se imprime sola cada comanda nueva (solo en la computadora).
   final bool kitchenPrint;
+
+  /// En este aparato el ticket se imprime solo al cobrar (solo en la computadora). Apagado: se imprime
+  /// cuando el cliente lo pide.
+  final bool ticketPrint;
 
   /// Cómo se llama una caja: su nombre o la clave del celular.
   static String registerLabel(String? name, String? device) =>
@@ -455,13 +460,15 @@ class StoreState {
         otherAbonos += e.amountCents;
       }
     }
-    var entradas = 0, gastos = 0;
+    var entradas = 0, gastos = 0, tipsPaid = 0;
     for (final m in movements.where((m) => m.sessionId == session.id)) {
       switch (m.kind) {
         case CashKind.entrada:
           entradas += m.amountCents;
         case CashKind.gasto:
           gastos += m.amountCents;
+        case CashKind.propina:
+          tipsPaid += m.amountCents;
         case CashKind.arqueo:
           break; // "Entregar caja" solo cuenta; no mete ni saca dinero
       }
@@ -493,6 +500,7 @@ class StoreState {
       salesCount: count,
       cashTipsCents: cashTips,
       otherTipsCents: otherTips,
+      tipsPaidCents: tipsPaid,
     );
   }
 
@@ -505,6 +513,7 @@ class StoreState {
     String? registerName,
     bool clearRegisterName = false,
     bool? kitchenPrint,
+    bool? ticketPrint,
     int? defaultCreditLimitCents,
     bool clearCreditLimit = false,
     List<Clerk>? clerks,
@@ -541,6 +550,7 @@ class StoreState {
     device: device ?? this.device,
     registerName: clearRegisterName ? null : (registerName ?? this.registerName),
     kitchenPrint: kitchenPrint ?? this.kitchenPrint,
+    ticketPrint: ticketPrint ?? this.ticketPrint,
     defaultCreditLimitCents: clearCreditLimit ? null : (defaultCreditLimitCents ?? this.defaultCreditLimitCents),
     clerks: clerks ?? this.clerks,
     lockMinutes: clearLock ? null : (lockMinutes ?? this.lockMinutes),

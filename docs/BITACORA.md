@@ -1050,3 +1050,14 @@ El usuario no quiere que sus clientes busquen otro link y vuelvan a entrar: "sep
 
 ### Verificación
 - `flutter analyze` sin avisos y 169 pruebas pasan (nuevas en `tips_test.dart`, `floor_layout_test.dart` y el plano con barra y pared entre dos celulares en `sync_test.dart`). Capturas revisadas a ojo: plano de computadora y celular con paredes, puerta, barra y cocina, y el cobro con propina. Avisos de Supabase: solo los de siempre.
+
+### Tres opciones del restaurante (todas apagadas hasta que alguien las use)
+El usuario pidió que fueran opcionales: no todos reparten propinas, no todos quieren ticket y casi todo se vende en los dos lados.
+
+**Repartir propinas.** Si el turno tuvo propinas, en Caja sale "Propinas del turno $X" con **Repartir**. Si nadie lo toca no pasa nada (por ejemplo, donde el mesero se queda con la suya). Al repartir: a quién (quien cobró, los del PIN o un nombre nuevo), **partes iguales** (los centavos que sobran van a los primeros) o **a mano**, y "Entregar". Cada entrega queda en la caja como movimiento `propina` ("Propina para Ana"): sale del efectivo ("Propinas entregadas" en el corte) pero no es gasto del negocio. La tarjeta dice cuánto falta entregar. En el servidor es `kind = 'tip'` (migración 0031); una app vieja lo lee como gasto y el efectivo cuadra igual.
+
+**Imprimir el ticket al cobrar.** En la computadora, Más → Esta computadora → interruptor, **apagado de fábrica**. Prendido, el ticket sale solo al terminar cada venta (una vez; no al abrirlo desde la lista de ventas). Apagado, se imprime cuando el cliente lo pide (botón Imprimir o la tecla P). Se guarda en ese aparato.
+
+**Dónde se vende cada producto.** En el formulario del producto, solo si el negocio tiene mesas: "En mesas y mostrador" (como siempre), "Solo en mesas" (no sale en Cobrar) o "Solo en mostrador" (no sale en el menú de las mesas). `products.sold_at` (migración 0031, base local v19).
+
+**Verificación:** `flutter analyze` sin avisos y 173 pruebas pasan (nuevas en `tips_test.dart`, en `restaurant_cobrar_test.dart` lo marcado "solo en mesas" no sale en Cobrar, y en `sync_test.dart` el interruptor de imprimir se recuerda). Capturas revisadas a ojo: Caja con la tarjeta de propinas, la hoja de repartir y "Dónde se vende". Avisos de Supabase: solo los de siempre.

@@ -21,6 +21,7 @@ import 'cash_dialogs.dart';
 import 'profit_card.dart';
 import 'reports_screen.dart';
 import 'sales_screen.dart';
+import 'tips_sheet.dart';
 
 /// Corte de caja: lo que debe haber en el cajón, calculado de las ventas, abonos y gastos del turno.
 class CajaScreen extends ConsumerStatefulWidget {
@@ -136,6 +137,7 @@ class _CajaScreenState extends ConsumerState<CajaScreen> {
             if (s.lotSalesCents > 0) _Ledger('Pacas y lotes', s.lotSalesCents),
             if (s.cashLayawayCents > 0) _Ledger('Apartados', s.cashLayawayCents),
             if (s.cashTipsCents > 0) _Ledger('Propinas en efectivo', s.cashTipsCents),
+            if (s.tipsPaidCents > 0) _Ledger('Propinas entregadas', -s.tipsPaidCents, color: GColors.cafe),
             if (s.entradasCents > 0) _Ledger('Entradas', s.entradasCents),
             _Ledger('Gastos', -s.gastosCents, color: s.gastosCents > 0 ? GColors.rojo : null),
             _Ledger('Debe haber en caja', s.expectedCashCents, total: true),
@@ -157,6 +159,8 @@ class _CajaScreenState extends ConsumerState<CajaScreen> {
           ],
         ),
       ),
+      // Solo si hubo propinas; repartirlas es opcional.
+      if (s.tipsCents > 0) TipsCard(summary: s),
       if (store.salesByClerk(session) case final rows when rows.isNotEmpty)
         ByClerkCard(rows: rows, margin: const EdgeInsets.fromLTRB(16, 10, 16, 0)),
       if (ref.watch(permissionsProvider).seeProfit) ProfitCard(report: store.profitFor(session)),
@@ -244,6 +248,7 @@ class _CajaScreenState extends ConsumerState<CajaScreen> {
                             CashKind.gasto => Icons.south_east_rounded,
                             CashKind.entrada => Icons.north_east_rounded,
                             CashKind.arqueo => Icons.handshake_outlined,
+                            CashKind.propina => Icons.volunteer_activism_outlined,
                           },
                           size: 17,
                           color: _moveColor(m.kind),
@@ -264,7 +269,7 @@ class _CajaScreenState extends ConsumerState<CajaScreen> {
                       ),
                       // Un conteo al entregar no mete ni saca dinero: se muestra sin signo.
                       Text(switch (m.kind) {
-                        CashKind.gasto => '-${money(m.amountCents)}',
+                        CashKind.gasto || CashKind.propina => '-${money(m.amountCents)}',
                         CashKind.entrada => '+${money(m.amountCents)}',
                         CashKind.arqueo => money(m.amountCents),
                       }, style: GText.figures(size: 14, weight: FontWeight.w700, color: _moveColor(m.kind))),
@@ -593,6 +598,7 @@ Color _moveColor(CashKind kind) => switch (kind) {
   CashKind.gasto => GColors.rojo,
   CashKind.entrada => GColors.cenote,
   CashKind.arqueo => GColors.tintaSuave,
+  CashKind.propina => GColors.cafe,
 };
 
 /// "Ventas por persona": cuánto cobró cada quien en el turno, con una barra para comparar.

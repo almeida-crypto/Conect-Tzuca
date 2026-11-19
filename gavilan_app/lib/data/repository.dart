@@ -26,6 +26,7 @@ const _kCreditLimit = 'credit_limit';
 const _kPayMethods = 'pay_methods';
 const _kRegisterName = 'register_name';
 const _kKitchenPrint = 'kitchen_print';
+const _kTicketPrint = 'ticket_print';
 const _kLogo = 'logo_path';
 const _kBusinessId = 'business_id';
 const _kDemo = 'is_demo';
@@ -169,6 +170,7 @@ class DriftRepository implements StoreRepository, SyncStore {
       payMethods: payMethodsFromText(meta[_kPayMethods]),
       registerName: (meta[_kRegisterName] ?? '').isEmpty ? null : meta[_kRegisterName],
       kitchenPrint: meta[_kKitchenPrint] == '1',
+      ticketPrint: meta[_kTicketPrint] == '1',
       logoPath: (meta[_kLogo] ?? '').isEmpty ? null : meta[_kLogo],
       nextFolio: int.tryParse(meta[_kFolio] ?? '') ?? 1,
       products: [for (final p in await db.select(db.productsTable).get()) _product(p)],
@@ -571,6 +573,9 @@ class DriftRepository implements StoreRepository, SyncStore {
 
   @override
   Future<void> setKitchenPrint(bool on) => _setMeta(_kKitchenPrint, on ? '1' : '0');
+
+  @override
+  Future<void> setTicketPrint(bool on) => _setMeta(_kTicketPrint, on ? '1' : '0');
 
   @override
   Future<void> setPayMethods(Set<PayMethod> methods) => db.transaction(() async {

@@ -153,7 +153,9 @@ class _CobrarScreenState extends ConsumerState<CobrarScreen> {
   /// Productos que coinciden con lo escrito, por nombre o código.
   List<Product> _matching(StoreState store, String text) {
     final q = text.trim().toLowerCase();
+    // Lo marcado "solo en mesas" no sale en el mostrador.
     return store.activeProducts
+        .where((p) => p.atCounter)
         .where((p) => q.isEmpty || p.name.toLowerCase().contains(q) || (p.barcode?.contains(q) ?? false))
         .toList();
   }

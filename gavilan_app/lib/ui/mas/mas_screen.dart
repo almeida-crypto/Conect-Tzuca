@@ -23,6 +23,7 @@ import '../widgets/buttons.dart';
 import '../widgets/common.dart';
 import 'logo_card.dart';
 import 'offline_card.dart';
+import '../../core/print/print.dart' show canPrintTicket;
 import 'plan_screen.dart';
 import '../account/business_switcher.dart';
 import '../../state/profiles.dart';
@@ -314,7 +315,11 @@ class MasScreen extends ConsumerWidget {
           const SectionTitle('Tu ticket'),
           const LogoCard(),
         ],
-        if (OfflineCard.applies && can.editCatalog) ...[const SectionTitle('Esta computadora'), const OfflineCard()],
+        if (OfflineCard.applies && can.editCatalog) ...[
+          const SectionTitle('Esta computadora'),
+          const OfflineCard(),
+          if (canPrintTicket) ...[const SizedBox(height: 10), const _TicketPrintCard()],
+        ],
         const SectionTitle('Respaldo en la nube'),
         Builder(
           builder: (context) {
@@ -607,6 +612,33 @@ class _PayMethodsCard extends ConsumerWidget {
               ),
             ],
           ],
+        ),
+      ),
+    );
+  }
+}
+
+/// "Imprimir el ticket al cobrar": apagado de fábrica, porque muchas veces se pregunta si quieren ticket.
+class _TicketPrintCard extends ConsumerWidget {
+  const _TicketPrintCard();
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final on = ref.watch(storeProvider.select((s) => s.ticketPrint));
+    return GCard(
+      margin: const EdgeInsets.symmetric(horizontal: 16),
+      padding: const EdgeInsets.fromLTRB(14, 8, 8, 8),
+      child: SwitchListTile(
+        contentPadding: EdgeInsets.zero,
+        value: on,
+        onChanged: (v) => ref.read(storeProvider.notifier).setTicketPrint(v),
+        secondary: _IconTile(icon: Icons.print_outlined, color: on ? GColors.cenote : GColors.tintaTenue),
+        title: Text('Imprimir el ticket al cobrar', style: GText.sans(size: 15, weight: FontWeight.w700)),
+        subtitle: Text(
+          on
+              ? 'Sale solo en cada venta, en esta computadora.'
+              : 'Apagado: se imprime solo si el cliente lo pide (botón Imprimir o la tecla P).',
+          style: GText.muted(size: 12.5),
         ),
       ),
     );

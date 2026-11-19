@@ -16,6 +16,7 @@ Product _product(ProductRow p) => Product(
   minStock: p.minStock == null || !p.minStock!.isFinite ? null : p.minStock!.clamp(0, Limits.maxQty),
   active: p.active,
   photoPath: p.photoPath,
+  place: ProductPlace.fromRemote(p.soldAt),
 );
 
 CashSession _session(SessionRow s) => CashSession(
@@ -259,6 +260,7 @@ ProductRow _productRow(Product p) => ProductRow(
   minStock: p.minStock,
   active: p.active,
   photoPath: p.photoPath,
+  soldAt: p.place.remote,
 );
 
 CreditRow _creditRow(CreditEntry e) => CreditRow(

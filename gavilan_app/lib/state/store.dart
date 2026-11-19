@@ -602,6 +602,12 @@ abstract class _StoreCore extends Notifier<StoreState> {
     _save((r) => r.setKitchenPrint(on));
   }
 
+  /// Prende o apaga imprimir solo el ticket al cobrar en este aparato.
+  void setTicketPrint(bool on) {
+    state = state.copyWith(ticketPrint: on);
+    _save((r) => r.setTicketPrint(on));
+  }
+
   /// Nombre de la caja de este celular. Si la caja está abierta, el turno también lo toma.
   void renameRegister(String? name) {
     final clean = name?.trim();

@@ -5,6 +5,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../core/money.dart';
+import '../../domain/business.dart';
 import '../../domain/models.dart';
 import '../../domain/plan.dart';
 import '../../domain/profit.dart';
@@ -73,6 +74,9 @@ class _ProductFormState extends ConsumerState<_ProductForm> {
   Uint8List? _photo;
   bool _removePhoto = false;
   late bool _track = widget.product?.trackStock ?? true;
+
+  /// En un restaurante: si sale en las mesas, en el mostrador o en los dos (lo de siempre).
+  late ProductPlace _place = widget.product?.place ?? ProductPlace.todos;
   final _errors = <String, String>{};
 
   bool get _editing => widget.product != null;
@@ -125,6 +129,7 @@ class _ProductFormState extends ConsumerState<_ProductForm> {
       stock: _editing ? null : (stock ?? 0),
       minStock: min,
       clearMinStock: min == null,
+      place: _place,
     );
     final notifier = ref.read(storeProvider.notifier);
     notifier.saveProduct(saved);
@@ -329,6 +334,26 @@ class _ProductFormState extends ConsumerState<_ProductForm> {
               ),
           ],
         ),
+        // Solo si el negocio tiene mesas: si no, todo se vende en el mostrador y no hay nada que elegir.
+        if (ref.watch(storeProvider.select((s) => s.uses(Module.restaurante)))) ...[
+          const SizedBox(height: 14),
+          Text('Dónde se vende', style: GText.label()),
+          const SizedBox(height: 6),
+          Wrap(
+            spacing: 8,
+            runSpacing: 6,
+            children: [
+              for (final p in ProductPlace.values)
+                ChoiceChip(label: Text(p.label), selected: _place == p, onSelected: (_) => setState(() => _place = p)),
+            ],
+          ),
+          const SizedBox(height: 4),
+          Text(switch (_place) {
+            ProductPlace.todos => 'Sale en el menú de las mesas y en Cobrar.',
+            ProductPlace.mesas => 'Solo en el menú de las mesas; no sale en Cobrar.',
+            ProductPlace.mostrador => 'Solo en Cobrar; no sale en el menú de las mesas.',
+          }, style: GText.muted(size: 12.5)),
+        ],
         const SizedBox(height: 10),
         SwitchListTile(
           contentPadding: EdgeInsets.zero,

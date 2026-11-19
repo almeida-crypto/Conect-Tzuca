@@ -62,6 +62,7 @@ RemoteRow productToRemote(Product p, {required bool withStock}) => {
   'min_stock': p.minStock,
   'is_active': p.active,
   'image_path': p.photoPath,
+  'sold_at': p.place.remote,
   if (withStock) 'stock_qty': p.stock,
 };
 
@@ -151,6 +152,7 @@ RemoteRow movementToRemote(CashMovement m) => {
     CashKind.entrada => 'in',
     CashKind.gasto => 'out',
     CashKind.arqueo => 'count',
+    CashKind.propina => 'tip',
   },
   'amount': _pesos(m.amountCents),
   'concept': m.concept,
@@ -266,6 +268,7 @@ ProductRow productFromRemote(RemoteRow r) => ProductRow(
   // Borrado lógico en el servidor = oculto en el teléfono.
   active: ((r['is_active'] as bool?) ?? true) && r['deleted_at'] == null,
   photoPath: r['image_path'] as String?,
+  soldAt: ProductPlace.fromRemote(r['sold_at'] as String?).remote,
 );
 
 CustomerRow customerFromRemote(RemoteRow r) => CustomerRow(
@@ -352,6 +355,7 @@ MovementRow movementFromRemote(RemoteRow r) => MovementRow(
   kind: switch (r['kind']) {
     'in' => CashKind.entrada,
     'count' => CashKind.arqueo,
+    'tip' => CashKind.propina,
     _ => CashKind.gasto,
   },
   amountCents: _cents(r['amount']),

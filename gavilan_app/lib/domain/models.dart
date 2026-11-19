@@ -14,6 +14,21 @@ extension PayMethodLabel on PayMethod {
   String get short => this == PayMethod.transferencia ? 'Transfer.' : label;
 }
 
+/// Dónde se vende un producto en un restaurante. [remote] es como se guarda en Supabase.
+enum ProductPlace {
+  todos('En mesas y mostrador', null),
+  mesas('Solo en mesas', 'tables'),
+  mostrador('Solo en mostrador', 'counter');
+
+  const ProductPlace(this.label, this.remote);
+
+  final String label;
+  final String? remote;
+
+  static ProductPlace fromRemote(String? v) =>
+      ProductPlace.values.firstWhere((p) => p.remote == v, orElse: () => ProductPlace.todos);
+}
+
 class Product {
   const Product({
     required this.id,
@@ -27,10 +42,17 @@ class Product {
     this.minStock,
     this.active = true,
     this.photoPath,
+    this.place = ProductPlace.todos,
   });
 
   final String id;
   final String name;
+
+  /// En un restaurante: si sale en el menú de las mesas, en Cobrar (mostrador) o en los dos.
+  final ProductPlace place;
+
+  bool get atCounter => place != ProductPlace.mesas;
+  bool get atTables => place != ProductPlace.mostrador;
 
   /// Foto del producto en la nube ("negocio/producto-hora.jpg"). Cambia cada vez que se toma otra, así los
   /// demás celulares saben que hay que bajarla. null = sin foto (se ve su icono).
@@ -60,8 +82,10 @@ class Product {
     double? minStock,
     bool clearMinStock = false,
     bool? active,
+    ProductPlace? place,
   }) => Product(
     id: id,
+    place: place ?? this.place,
     name: name ?? this.name,
     priceCents: priceCents ?? this.priceCents,
     costCents: costCents ?? this.costCents,
@@ -382,7 +406,8 @@ class CreditEntry {
 
 /// entrada y gasto mueven el dinero del cajón. arqueo es "Entregar caja": se contó al cambiar de persona
 /// (amountCents = lo contado) y no cambia lo que debe haber.
-enum CashKind { entrada, gasto, arqueo }
+/// [propina]: propina entregada a alguien del equipo (sale del cajón, pero no es gasto del negocio).
+enum CashKind { entrada, gasto, arqueo, propina }
 
 class CashMovement {
   const CashMovement({
@@ -472,7 +497,14 @@ class CashSummary {
     this.otherLayawayCents = 0,
     this.cashTipsCents = 0,
     this.otherTipsCents = 0,
+    this.tipsPaidCents = 0,
   });
+
+  /// Propinas que ya se entregaron al equipo (salieron del cajón).
+  final int tipsPaidCents;
+
+  /// Propinas que faltan por entregar.
+  int get tipsPendingCents => (tipsCents - tipsPaidCents).clamp(0, tipsCents);
 
   /// Propinas para el equipo: no son venta, pero las de efectivo están en el cajón.
   final int cashTipsCents;
@@ -505,7 +537,8 @@ class CashSummary {
       cashLayawayCents +
       cashTipsCents +
       entradasCents -
-      gastosCents;
+      gastosCents -
+      tipsPaidCents;
   int get totalSoldCents => cashSalesCents + otherSalesCents + creditSalesCents + lotSalesCents;
 
   /// Lo que entró por tarjeta y transferencia (ventas, abonos, apartados y propinas).
@@ -527,6 +560,7 @@ class CashSummary {
     otherLayawayCents: otherLayawayCents + o.otherLayawayCents,
     cashTipsCents: cashTipsCents + o.cashTipsCents,
     otherTipsCents: otherTipsCents + o.otherTipsCents,
+    tipsPaidCents: tipsPaidCents + o.tipsPaidCents,
   );
 
   static const zero = CashSummary(

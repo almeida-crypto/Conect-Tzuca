@@ -4916,6 +4916,15 @@ class $ProductsTableTable extends ProductsTable with TableInfo<$ProductsTableTab
     type: DriftSqlType.string,
     requiredDuringInsert: false,
   );
+  static const VerificationMeta _soldAtMeta = const VerificationMeta('soldAt');
+  @override
+  late final GeneratedColumn<String> soldAt = GeneratedColumn<String>(
+    'sold_at',
+    aliasedName,
+    true,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+  );
   @override
   List<GeneratedColumn> get $columns => [
     id,
@@ -4929,6 +4938,7 @@ class $ProductsTableTable extends ProductsTable with TableInfo<$ProductsTableTab
     minStock,
     active,
     photoPath,
+    soldAt,
   ];
   @override
   String get aliasedName => _alias ?? actualTableName;
@@ -4978,6 +4988,9 @@ class $ProductsTableTable extends ProductsTable with TableInfo<$ProductsTableTab
     if (data.containsKey('photo_path')) {
       context.handle(_photoPathMeta, photoPath.isAcceptableOrUnknown(data['photo_path']!, _photoPathMeta));
     }
+    if (data.containsKey('sold_at')) {
+      context.handle(_soldAtMeta, soldAt.isAcceptableOrUnknown(data['sold_at']!, _soldAtMeta));
+    }
     return context;
   }
 
@@ -4998,6 +5011,7 @@ class $ProductsTableTable extends ProductsTable with TableInfo<$ProductsTableTab
       minStock: attachedDatabase.typeMapping.read(DriftSqlType.double, data['${effectivePrefix}min_stock']),
       active: attachedDatabase.typeMapping.read(DriftSqlType.bool, data['${effectivePrefix}active'])!,
       photoPath: attachedDatabase.typeMapping.read(DriftSqlType.string, data['${effectivePrefix}photo_path']),
+      soldAt: attachedDatabase.typeMapping.read(DriftSqlType.string, data['${effectivePrefix}sold_at']),
     );
   }
 
@@ -5019,6 +5033,9 @@ class ProductRow extends DataClass implements Insertable<ProductRow> {
   final double? minStock;
   final bool active;
   final String? photoPath;
+
+  /// Dónde se vende (v19): null en todos lados, 'tables' o 'counter'.
+  final String? soldAt;
   const ProductRow({
     required this.id,
     required this.name,
@@ -5031,6 +5048,7 @@ class ProductRow extends DataClass implements Insertable<ProductRow> {
     this.minStock,
     required this.active,
     this.photoPath,
+    this.soldAt,
   });
   @override
   Map<String, Expression> toColumns(bool nullToAbsent) {
@@ -5052,6 +5070,9 @@ class ProductRow extends DataClass implements Insertable<ProductRow> {
     if (!nullToAbsent || photoPath != null) {
       map['photo_path'] = Variable<String>(photoPath);
     }
+    if (!nullToAbsent || soldAt != null) {
+      map['sold_at'] = Variable<String>(soldAt);
+    }
     return map;
   }
 
@@ -5068,6 +5089,7 @@ class ProductRow extends DataClass implements Insertable<ProductRow> {
       minStock: minStock == null && nullToAbsent ? const Value.absent() : Value(minStock),
       active: Value(active),
       photoPath: photoPath == null && nullToAbsent ? const Value.absent() : Value(photoPath),
+      soldAt: soldAt == null && nullToAbsent ? const Value.absent() : Value(soldAt),
     );
   }
 
@@ -5085,6 +5107,7 @@ class ProductRow extends DataClass implements Insertable<ProductRow> {
       minStock: serializer.fromJson<double?>(json['minStock']),
       active: serializer.fromJson<bool>(json['active']),
       photoPath: serializer.fromJson<String?>(json['photoPath']),
+      soldAt: serializer.fromJson<String?>(json['soldAt']),
     );
   }
   @override
@@ -5102,6 +5125,7 @@ class ProductRow extends DataClass implements Insertable<ProductRow> {
       'minStock': serializer.toJson<double?>(minStock),
       'active': serializer.toJson<bool>(active),
       'photoPath': serializer.toJson<String?>(photoPath),
+      'soldAt': serializer.toJson<String?>(soldAt),
     };
   }
 
@@ -5117,6 +5141,7 @@ class ProductRow extends DataClass implements Insertable<ProductRow> {
     Value<double?> minStock = const Value.absent(),
     bool? active,
     Value<String?> photoPath = const Value.absent(),
+    Value<String?> soldAt = const Value.absent(),
   }) => ProductRow(
     id: id ?? this.id,
     name: name ?? this.name,
@@ -5129,6 +5154,7 @@ class ProductRow extends DataClass implements Insertable<ProductRow> {
     minStock: minStock.present ? minStock.value : this.minStock,
     active: active ?? this.active,
     photoPath: photoPath.present ? photoPath.value : this.photoPath,
+    soldAt: soldAt.present ? soldAt.value : this.soldAt,
   );
   ProductRow copyWithCompanion(ProductsTableCompanion data) {
     return ProductRow(
@@ -5143,6 +5169,7 @@ class ProductRow extends DataClass implements Insertable<ProductRow> {
       minStock: data.minStock.present ? data.minStock.value : this.minStock,
       active: data.active.present ? data.active.value : this.active,
       photoPath: data.photoPath.present ? data.photoPath.value : this.photoPath,
+      soldAt: data.soldAt.present ? data.soldAt.value : this.soldAt,
     );
   }
 
@@ -5159,14 +5186,27 @@ class ProductRow extends DataClass implements Insertable<ProductRow> {
           ..write('stock: $stock, ')
           ..write('minStock: $minStock, ')
           ..write('active: $active, ')
-          ..write('photoPath: $photoPath')
+          ..write('photoPath: $photoPath, ')
+          ..write('soldAt: $soldAt')
           ..write(')'))
         .toString();
   }
 
   @override
-  int get hashCode =>
-      Object.hash(id, name, priceCents, costCents, barcode, iconId, trackStock, stock, minStock, active, photoPath);
+  int get hashCode => Object.hash(
+    id,
+    name,
+    priceCents,
+    costCents,
+    barcode,
+    iconId,
+    trackStock,
+    stock,
+    minStock,
+    active,
+    photoPath,
+    soldAt,
+  );
   @override
   bool operator ==(Object other) =>
       identical(this, other) ||
@@ -5181,7 +5221,8 @@ class ProductRow extends DataClass implements Insertable<ProductRow> {
           other.stock == this.stock &&
           other.minStock == this.minStock &&
           other.active == this.active &&
-          other.photoPath == this.photoPath);
+          other.photoPath == this.photoPath &&
+          other.soldAt == this.soldAt);
 }
 
 class ProductsTableCompanion extends UpdateCompanion<ProductRow> {
@@ -5196,6 +5237,7 @@ class ProductsTableCompanion extends UpdateCompanion<ProductRow> {
   final Value<double?> minStock;
   final Value<bool> active;
   final Value<String?> photoPath;
+  final Value<String?> soldAt;
   final Value<int> rowid;
   const ProductsTableCompanion({
     this.id = const Value.absent(),
@@ -5209,6 +5251,7 @@ class ProductsTableCompanion extends UpdateCompanion<ProductRow> {
     this.minStock = const Value.absent(),
     this.active = const Value.absent(),
     this.photoPath = const Value.absent(),
+    this.soldAt = const Value.absent(),
     this.rowid = const Value.absent(),
   });
   ProductsTableCompanion.insert({
@@ -5223,6 +5266,7 @@ class ProductsTableCompanion extends UpdateCompanion<ProductRow> {
     this.minStock = const Value.absent(),
     this.active = const Value.absent(),
     this.photoPath = const Value.absent(),
+    this.soldAt = const Value.absent(),
     this.rowid = const Value.absent(),
   }) : id = Value(id),
        name = Value(name),
@@ -5239,6 +5283,7 @@ class ProductsTableCompanion extends UpdateCompanion<ProductRow> {
     Expression<double>? minStock,
     Expression<bool>? active,
     Expression<String>? photoPath,
+    Expression<String>? soldAt,
     Expression<int>? rowid,
   }) {
     return RawValuesInsertable({
@@ -5253,6 +5298,7 @@ class ProductsTableCompanion extends UpdateCompanion<ProductRow> {
       if (minStock != null) 'min_stock': minStock,
       if (active != null) 'active': active,
       if (photoPath != null) 'photo_path': photoPath,
+      if (soldAt != null) 'sold_at': soldAt,
       if (rowid != null) 'rowid': rowid,
     });
   }
@@ -5269,6 +5315,7 @@ class ProductsTableCompanion extends UpdateCompanion<ProductRow> {
     Value<double?>? minStock,
     Value<bool>? active,
     Value<String?>? photoPath,
+    Value<String?>? soldAt,
     Value<int>? rowid,
   }) {
     return ProductsTableCompanion(
@@ -5283,6 +5330,7 @@ class ProductsTableCompanion extends UpdateCompanion<ProductRow> {
       minStock: minStock ?? this.minStock,
       active: active ?? this.active,
       photoPath: photoPath ?? this.photoPath,
+      soldAt: soldAt ?? this.soldAt,
       rowid: rowid ?? this.rowid,
     );
   }
@@ -5323,6 +5371,9 @@ class ProductsTableCompanion extends UpdateCompanion<ProductRow> {
     if (photoPath.present) {
       map['photo_path'] = Variable<String>(photoPath.value);
     }
+    if (soldAt.present) {
+      map['sold_at'] = Variable<String>(soldAt.value);
+    }
     if (rowid.present) {
       map['rowid'] = Variable<int>(rowid.value);
     }
@@ -5343,6 +5394,7 @@ class ProductsTableCompanion extends UpdateCompanion<ProductRow> {
           ..write('minStock: $minStock, ')
           ..write('active: $active, ')
           ..write('photoPath: $photoPath, ')
+          ..write('soldAt: $soldAt, ')
           ..write('rowid: $rowid')
           ..write(')'))
         .toString();
@@ -11740,6 +11792,7 @@ typedef $$ProductsTableTableCreateCompanionBuilder = ProductsTableCompanion Func
   Value<double?> minStock,
   Value<bool> active,
   Value<String?> photoPath,
+  Value<String?> soldAt,
   Value<int> rowid,
 });
 typedef $$ProductsTableTableUpdateCompanionBuilder = ProductsTableCompanion Function({
@@ -11754,6 +11807,7 @@ typedef $$ProductsTableTableUpdateCompanionBuilder = ProductsTableCompanion Func
   Value<double?> minStock,
   Value<bool> active,
   Value<String?> photoPath,
+  Value<String?> soldAt,
   Value<int> rowid,
 });
 
@@ -11795,6 +11849,9 @@ class $$ProductsTableTableFilterComposer extends Composer<_$GavilanDb, $Products
 
   ColumnFilters<String> get photoPath =>
       $composableBuilder(column: $table.photoPath, builder: (column) => ColumnFilters(column));
+
+  ColumnFilters<String> get soldAt =>
+      $composableBuilder(column: $table.soldAt, builder: (column) => ColumnFilters(column));
 }
 
 class $$ProductsTableTableOrderingComposer extends Composer<_$GavilanDb, $ProductsTableTable> {
@@ -11836,6 +11893,9 @@ class $$ProductsTableTableOrderingComposer extends Composer<_$GavilanDb, $Produc
 
   ColumnOrderings<String> get photoPath =>
       $composableBuilder(column: $table.photoPath, builder: (column) => ColumnOrderings(column));
+
+  ColumnOrderings<String> get soldAt =>
+      $composableBuilder(column: $table.soldAt, builder: (column) => ColumnOrderings(column));
 }
 
 class $$ProductsTableTableAnnotationComposer extends Composer<_$GavilanDb, $ProductsTableTable> {
@@ -11867,6 +11927,8 @@ class $$ProductsTableTableAnnotationComposer extends Composer<_$GavilanDb, $Prod
   GeneratedColumn<bool> get active => $composableBuilder(column: $table.active, builder: (column) => column);
 
   GeneratedColumn<String> get photoPath => $composableBuilder(column: $table.photoPath, builder: (column) => column);
+
+  GeneratedColumn<String> get soldAt => $composableBuilder(column: $table.soldAt, builder: (column) => column);
 }
 
 class $$ProductsTableTableTableManager
@@ -11905,6 +11967,7 @@ class $$ProductsTableTableTableManager
                 Value<double?> minStock = const Value.absent(),
                 Value<bool> active = const Value.absent(),
                 Value<String?> photoPath = const Value.absent(),
+                Value<String?> soldAt = const Value.absent(),
                 Value<int> rowid = const Value.absent(),
               }) => ProductsTableCompanion(
                 id: id,
@@ -11918,6 +11981,7 @@ class $$ProductsTableTableTableManager
                 minStock: minStock,
                 active: active,
                 photoPath: photoPath,
+                soldAt: soldAt,
                 rowid: rowid,
               ),
           createCompanionCallback:
@@ -11933,6 +11997,7 @@ class $$ProductsTableTableTableManager
                 Value<double?> minStock = const Value.absent(),
                 Value<bool> active = const Value.absent(),
                 Value<String?> photoPath = const Value.absent(),
+                Value<String?> soldAt = const Value.absent(),
                 Value<int> rowid = const Value.absent(),
               }) => ProductsTableCompanion.insert(
                 id: id,
@@ -11946,6 +12011,7 @@ class $$ProductsTableTableTableManager
                 minStock: minStock,
                 active: active,
                 photoPath: photoPath,
+                soldAt: soldAt,
                 rowid: rowid,
               ),
           withReferenceMapper: (p0) => p0

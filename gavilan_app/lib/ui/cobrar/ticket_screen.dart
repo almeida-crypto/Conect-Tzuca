@@ -32,6 +32,8 @@ class TicketScreen extends ConsumerStatefulWidget {
 }
 
 class _TicketScreenState extends ConsumerState<TicketScreen> {
+  bool _autoPrinted = false;
+
   /// Lo que queda dentro de esta llave es lo que se manda como imagen.
   final _ticketKey = GlobalKey();
 
@@ -158,6 +160,14 @@ class _TicketScreenState extends ConsumerState<TicketScreen> {
       ),
     );
     void newSale() => Navigator.of(context).maybePop();
+
+    // Recién cobrada y con "Imprimir el ticket al cobrar" prendido en esta computadora: sale sola, una vez.
+    if (!widget.fromHistory && !_autoPrinted && canPrintTicket && store.ticketPrint) {
+      _autoPrinted = true;
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (mounted) printTicket();
+      });
+    }
 
     // Con teclado: Enter o Esc para la siguiente venta, P (o Ctrl+P) para imprimir.
     return CallbackShortcuts(
