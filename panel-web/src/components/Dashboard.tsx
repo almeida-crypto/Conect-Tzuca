@@ -3,9 +3,11 @@
 import Image from "next/image";
 import { useEffect, useMemo, useState } from "react";
 import { ColumnChart } from "@/components/ColumnChart";
+import { FloorMap } from "@/components/FloorMap";
 import { BarList, Card, CardTitle, StatTile } from "@/components/Pieces";
 import { type Business, loadReport } from "@/lib/data";
 import { demoReport } from "@/lib/demo";
+import { demoFloor, type Floor, loadFloor } from "@/lib/floor";
 import {
   bestBucket,
   byClerk,
@@ -68,6 +70,7 @@ export function Dashboard({ business, onExit }: { business: Business | null; onE
     const week = periodFor("7d");
     return { from: dayValue(week.from), to: dayValue(new Date(week.to.getTime() - 86_400_000)) };
   });
+  const [floor, setFloor] = useState<Floor | null>(null);
   const period = useMemo(
     () => (key === "rango" ? (rangePeriod(range.from, range.to) ?? periodFor("7d")) : periodFor(key)),
     [key, range],
@@ -84,6 +87,21 @@ export function Dashboard({ business, onExit }: { business: Business | null; onE
       alive = false;
     };
   }, [business, period]);
+
+  // Las mesas en este momento: se vuelven a leer cada 20 segundos (no dependen del periodo).
+  useEffect(() => {
+    let alive = true;
+    const read = () =>
+      (business ? loadFloor(supabase, business.id) : Promise.resolve(demoFloor()))
+        .then((f) => alive && setFloor(f))
+        .catch(() => {}); // Si falla una vez, se queda el mapa anterior y se intenta en la siguiente vuelta.
+    read();
+    const timer = setInterval(read, 20_000);
+    return () => {
+      alive = false;
+      clearInterval(timer);
+    };
+  }, [business]);
 
   // Al cambiar de periodo se avisa que está cargando; el efecto trae los datos.
   function choose(k: PeriodKey) {
@@ -187,6 +205,12 @@ export function Dashboard({ business, onExit }: { business: Business | null; onE
 
         {error && (
           <p className="mb-5 rounded-2xl bg-rojo-suave px-4 py-3 text-[14px] font-semibold text-rojo">{error}</p>
+        )}
+
+        {floor && floor.tables.length + floor.takeouts.length > 0 && (
+          <div className="mb-5 print:hidden">
+            <FloorMap floor={floor} />
+          </div>
         )}
 
         {data && <Report data={data} period={period} key={`${period.label}-${data.sales.length}`} />}

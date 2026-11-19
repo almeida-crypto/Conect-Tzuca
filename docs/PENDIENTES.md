@@ -108,7 +108,9 @@ Prioridad: **Alta** = sin esto no se puede usar con un negocio real · **Media**
 - [ ] **Media** · Publicar el panel en Vercel. Necesita que el usuario cree una cuenta gratuita.
 - [x] **Media** · Catálogo tipo Excel: "Editar en tabla" en Inventario (computadora). Cambia nombre, código, precio, costo, existencia y mínimo de muchos productos; da de alta renglones nuevos y se puede pegar desde Excel. *12/11/2026*
 - [x] **Baja** · Panel: descargar los reportes en Excel o PDF, elegir un rango de fechas libre y reportes por cajero o por teléfono. *18/11/2026*
-- [ ] **Media** · Revisar el panel con una cuenta real: rango de fechas, ganancia por producto, por cajero y caja, devoluciones y descargas.
+- [ ] **Media** · Revisar el panel con una cuenta real: rango de fechas, ganancia por producto, por cajero y caja, devoluciones, descargas y el mapa de mesas.
+- [ ] **Baja** · Mapa de mesas acomodado como el local (arrastrar las mesas y elegir redonda o cuadrada); hoy se acomodan solas por zona.
+- [ ] **Baja** · Propinas en el restaurante (al cobrar y en el corte).
 - [x] **Media** · Mostrador en la computadora: la misma app abierta en el navegador cobra, fía, lleva inventario, caja, mesas y equipo. Menú a la izquierda, la cuenta siempre a la derecha y lector láser USB sin tocar nada. *11/11/2026*
 - [ ] **Media** · Publicar el mostrador web (la app compilada con `flutter build web`) junto al panel, por ejemplo en `/mostrador`.
 - [x] **Media** · Mostrador web: atajos de teclado (F2, Esc, + y −, F3, F1, escribir sin dar clic) y cobrar escribiendo el monto con Enter. *12/11/2026*

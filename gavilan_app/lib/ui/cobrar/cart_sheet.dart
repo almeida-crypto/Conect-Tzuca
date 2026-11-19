@@ -4,6 +4,8 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../core/money.dart';
 import '../../domain/models.dart';
 import '../../state/app_state.dart';
+import '../../state/store.dart';
+import '../mas/mas_screen.dart' show restaurantTab;
 import '../../theme/colors.dart';
 import '../../theme/theme.dart';
 import '../widgets/buttons.dart';
@@ -178,7 +180,9 @@ class CartPanel extends ConsumerWidget {
                         const Icon(Icons.qr_code_scanner_rounded, size: 40, color: GColors.tintaTenue),
                         const SizedBox(height: 10),
                         Text(
-                          'Toca un producto o pasa el lector de códigos.',
+                          restaurantTab(ref.watch(storeProvider), ref.watch(planProvider))
+                              ? 'Toca un platillo para cobrar en mostrador, o una cuenta de la izquierda.'
+                              : 'Toca un producto o pasa el lector de códigos.',
                           textAlign: TextAlign.center,
                           style: GText.muted(size: 14),
                         ),

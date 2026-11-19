@@ -28,9 +28,10 @@ import '../../state/profiles.dart';
 /// Minutos desde [since], para "hace 12 min".
 int minutesSince(DateTime since) => DateTime.now().difference(since).inMinutes;
 
-/// "12 min", "2 h 5 min", "3 días": se lee bien aunque una cuenta lleve mucho abierta.
+/// "recién", "12 min", "2 h 5 min", "3 días": se lee bien aunque una cuenta lleve mucho abierta.
 String elapsedLabel(DateTime since) {
   final m = minutesSince(since);
+  if (m < 1) return 'recién';
   if (m < 60) return '$m min';
   if (m < 24 * 60) return m % 60 == 0 ? '${m ~/ 60} h' : '${m ~/ 60} h ${m % 60} min';
   final d = m ~/ (24 * 60);
@@ -255,7 +256,8 @@ class _TablesView extends ConsumerWidget {
               padding: const EdgeInsets.fromLTRB(2, 14, 2, 8),
               child: Row(
                 children: [
-                  Text(zone ?? 'Sin zona', style: GText.sans(size: 15, weight: FontWeight.w800)),
+                  // Las mesas sin zona son las del salón.
+                  Text(zone ?? 'Salón', style: GText.sans(size: 15, weight: FontWeight.w800)),
                   const SizedBox(width: 8),
                   Text(
                     _freeLabel(store, zone),
@@ -312,7 +314,15 @@ class _TableCard extends ConsumerWidget {
     final store = ref.watch(storeProvider);
     final o = order;
     final busy = o != null;
-    final ready = busy ? store.itemsOfOrder(o.id).where((i) => i.status == KitchenStatus.listo).length : 0;
+    final items = busy
+        ? store.itemsOfOrder(o.id).where((i) => i.status != KitchenStatus.cancelado).toList()
+        : <OrderItem>[];
+    final ready = items.where((i) => i.status == KitchenStatus.listo).length;
+    final cooking = items.any(
+      (i) => i.sent && (i.status == KitchenStatus.pendiente || i.status == KitchenStatus.preparando),
+    );
+    final unsent = items.any((i) => !i.sent);
+    final dishes = items.fold(0.0, (a, i) => a + i.qty);
     return Pressable(
       onTap: () => Navigator.of(context).push(
         MaterialPageRoute<void>(
@@ -359,14 +369,64 @@ class _TableCard extends ConsumerWidget {
               )
             else ...[
               Text(money(store.totalOfOrder(o.id)), style: GText.amount(size: 17)),
-              Text(elapsedLabel(o.createdAt), style: GText.muted(size: 12)),
+              // Platillos y tiempo con iconos: caben en la mesa más chica del celular.
+              Semantics(
+                label: '${qtyLabel(dishes)} ${dishes == 1 ? 'platillo' : 'platillos'}, ${elapsedLabel(o.createdAt)}',
+                excludeSemantics: true,
+                child: Row(
+                  children: [
+                    const Icon(Icons.restaurant_menu_rounded, size: 13, color: GColors.tintaSuave),
+                    const SizedBox(width: 3),
+                    Text(qtyLabel(dishes), style: GText.muted(size: 12)),
+                    const SizedBox(width: 8),
+                    const Icon(Icons.schedule_rounded, size: 13, color: GColors.tintaSuave),
+                    const SizedBox(width: 3),
+                    Flexible(
+                      child: Text(
+                        elapsedLabel(o.createdAt),
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: GText.muted(size: 12),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
             ],
-            if (ready > 0) ...[const SizedBox(height: 5), _ReadyPill(count: ready)],
+            if (ready > 0) ...[
+              const SizedBox(height: 5),
+              _ReadyPill(count: ready),
+            ] else if (unsent) ...[
+              const SizedBox(height: 5),
+              const _StatePill('Sin mandar', GColors.izamalSuave, Color(0xFF8A5A00)),
+            ] else if (cooking) ...[
+              const SizedBox(height: 5),
+              const _StatePill('En cocina', GColors.hundido, GColors.tintaSuave),
+            ],
           ],
         ),
       ),
     );
   }
+}
+
+/// Estado de la mesa en una pastilla: "En cocina", "Sin mandar".
+class _StatePill extends StatelessWidget {
+  const _StatePill(this.label, this.background, this.ink);
+
+  final String label;
+  final Color background;
+  final Color ink;
+
+  @override
+  Widget build(BuildContext context) => Container(
+    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+    decoration: BoxDecoration(color: background, borderRadius: BorderRadius.circular(99)),
+    child: Text(
+      label,
+      style: GText.sans(size: 11.5, weight: FontWeight.w800, color: ink),
+    ),
+  );
 }
 
 /// "2 listos": late suave para que el mesero lo vea desde lejos.
@@ -432,7 +492,10 @@ class _OrderTile extends StatelessWidget {
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Text(title, style: GText.sans(size: 15, weight: FontWeight.w700)),
-              Text('hace ${elapsedLabel(order.createdAt)}', style: GText.muted(size: 12.5)),
+              Text(
+                elapsedLabel(order.createdAt) == 'recién' ? 'Recién abierta' : 'hace ${elapsedLabel(order.createdAt)}',
+                style: GText.muted(size: 12.5),
+              ),
             ],
           ),
         ),

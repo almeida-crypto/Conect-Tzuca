@@ -13,6 +13,9 @@ import '../../theme/colors.dart';
 import '../../theme/theme.dart';
 import '../widgets/buttons.dart';
 import '../widgets/common.dart';
+import '../cobrar/open_bills.dart' show billsToCharge;
+import '../mas/mas_screen.dart' show restaurantTab;
+import '../../state/app_state.dart';
 import 'all_cuts_screen.dart';
 import 'cash_dialogs.dart';
 import 'profit_card.dart';
@@ -45,16 +48,19 @@ class _CajaScreenState extends ConsumerState<CajaScreen> {
       return;
     }
     final diff = counted - summary.expectedCashCents;
+    final store = ref.read(storeProvider);
+    final open = restaurantTab(store, ref.read(planProvider)) ? billsToCharge(store) : const [];
     final confirm = await showDialog<bool>(
       context: context,
       builder: (ctx) => AlertDialog(
         title: const Text('¿Cerrar la caja?'),
         content: Text(
-          diff == 0
+          '${diff == 0
               ? 'Cuadra al peso: ${money(counted)} en el cajón.'
               : diff > 0
               ? 'Te sobran ${money(diff)}. Se guardará así en el corte.'
-              : 'Te faltan ${money(-diff)}. Se guardará así en el corte.',
+              : 'Te faltan ${money(-diff)}. Se guardará así en el corte.'}'
+          '${open.isEmpty ? '' : '\n\nOjo: ${open.length == 1 ? 'queda 1 cuenta abierta' : 'quedan ${open.length} cuentas abiertas'} sin cobrar. Se cobrarán en el siguiente turno.'}',
           style: GText.sans(size: 14, weight: FontWeight.w400),
         ),
         actions: [
@@ -102,6 +108,10 @@ class _CajaScreenState extends ConsumerState<CajaScreen> {
       ..sort((a, b) => b.createdAt.compareTo(a.createdAt));
     final counted = parseMoney(_counted.text);
     final diff = counted == null ? null : counted - s.expectedCashCents;
+    // En un restaurante no hay pestaña de fiados: sus renglones solo salen si hubo movimiento.
+    final restaurant = restaurantTab(store, ref.watch(planProvider));
+    final bills = restaurant ? billsToCharge(store) : const [];
+    final billsDue = bills.fold(0, (a, o) => a + store.totalOfOrder(o.id));
 
     return [
       const ScreenTitle('Corte de hoy'),
@@ -121,7 +131,7 @@ class _CajaScreenState extends ConsumerState<CajaScreen> {
           children: [
             _Ledger('Fondo inicial', s.openingCents),
             _Ledger('Ventas en efectivo', s.cashSalesCents),
-            _Ledger('Abonos de fiados', s.cashAbonosCents),
+            if (!restaurant || s.cashAbonosCents > 0) _Ledger('Abonos de fiados', s.cashAbonosCents),
             if (s.lotSalesCents > 0) _Ledger('Pacas y lotes', s.lotSalesCents),
             if (s.cashLayawayCents > 0) _Ledger('Apartados', s.cashLayawayCents),
             if (s.entradasCents > 0) _Ledger('Entradas', s.entradasCents),
@@ -140,8 +150,10 @@ class _CajaScreenState extends ConsumerState<CajaScreen> {
               s.otherSalesCents + s.otherAbonosCents + s.otherLayawayCents,
               muted: true,
             ),
-            _Ledger('Vendido fiado (no entra a caja)', s.creditSalesCents, muted: true),
+            if (!restaurant || s.creditSalesCents > 0)
+              _Ledger('Vendido fiado (no entra a caja)', s.creditSalesCents, muted: true),
             _Ledger('Total vendido hoy', s.totalSoldCents, muted: true),
+            if (bills.isNotEmpty) _Ledger('En mesas, sin cobrar todavía', billsDue, muted: true),
           ],
         ),
       ),
@@ -319,6 +331,28 @@ class _CajaScreenState extends ConsumerState<CajaScreen> {
           ],
         ),
       ),
+      if (bills.isNotEmpty)
+        Container(
+          margin: const EdgeInsets.fromLTRB(16, 14, 16, 0),
+          padding: const EdgeInsets.all(12),
+          decoration: BoxDecoration(
+            color: GColors.izamalSuave,
+            borderRadius: BorderRadius.circular(GShape.radiusSmall),
+          ),
+          child: Row(
+            children: [
+              const Icon(Icons.table_restaurant_rounded, size: 20, color: Color(0xFF8A5A00)),
+              const SizedBox(width: 10),
+              Expanded(
+                child: Text(
+                  '${bills.length == 1 ? 'Queda 1 cuenta abierta' : 'Quedan ${bills.length} cuentas abiertas'} '
+                  'por ${money(billsDue)}. Cóbralas antes de cerrar o se cobrarán en el siguiente turno.',
+                  style: GText.sans(size: 13, weight: FontWeight.w600),
+                ),
+              ),
+            ],
+          ),
+        ),
       Padding(
         padding: const EdgeInsets.fromLTRB(16, 14, 16, 0),
         child: GButton(

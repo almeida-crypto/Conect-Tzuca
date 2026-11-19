@@ -982,3 +982,25 @@ Se abren desde **Más → Módulos** con el plan Emprendedor o superior. Los tre
 
 ### Verificación
 - App: `flutter analyze` sin avisos y 147 pruebas pasan.
+
+### Revisión del diseño: tienda y restaurante
+Se tomaron capturas de Cobrar, Mesas y Caja de una tienda y de un restaurante, en celular y computadora. Lo que se encontró: en un restaurante "Cobrar" era igual al de la tienda (buscar "o escribir código" y lector de códigos, que ahí no sirven) y las cuentas de las mesas solo se cobraban desde Mesas; en Mesas, "Sin zona", "0 min" y nada de lo que pasa en cocina; en Caja, renglones de fiados (que el restaurante no usa) y ningún aviso de mesas sin cobrar al cerrar.
+
+**Cobrar en un restaurante** (`ui/cobrar/open_bills.dart`, decidido con el usuario):
+- Arriba, **Cuentas por cobrar**: mesas y para llevar con algo por cobrar, la más vieja primero, con platillos, tiempo, total y "listo" si la cocina ya tiene algo. Un toque abre el cobro (abre la caja si hace falta).
+- Celular: las cuentas en una fila que se desliza. Computadora: columna a la izquierda, menú en medio y la cuenta a la derecha.
+- Menú por grupos según el icono: Platillos, Bebidas, Postres y Otros. Sin botón de escanear; el buscador dice "Buscar platillo o bebida".
+- La tienda queda igual.
+
+**Mesas:** "Salón" en lugar de "Sin zona"; cada mesa ocupada muestra platillos y tiempo con iconos (cabe en el celular), y "En cocina" o "Sin mandar" (además de "listos"). "recién" en lugar de "0 min".
+
+**Caja del restaurante:** "Abonos de fiados" y "Vendido fiado" solo si hubo; renglón "En mesas, sin cobrar todavía"; aviso antes de cerrar si quedan cuentas abiertas (también en la confirmación).
+
+### Mapa de mesas en el panel web
+- Tarjeta **Mesas ahora** arriba de los reportes: cada mesa dibujada desde arriba con sus sillas, agrupadas por zona sobre un piso de mosaico. Ocupada en achiote con su total y tiempo; libre en blanco; "2 listos" (cocina) o "en cocina". Abajo, los pedidos para llevar. Resumen: "4 de 9 ocupadas · $920 por cobrar".
+- Se acomodan solas por zona (decidido con el usuario; no hace falta configurar) y se vuelven a leer cada 20 segundos. Solo sale si el negocio tiene mesas o cuentas abiertas; no se imprime.
+- `src/lib/floor.ts` (lectura de `restaurant_tables`, `orders` abiertas y sus `order_items`; lo que falta por cobrar con extras y lo ya pagado por platillos) y `src/components/FloorMap.tsx`. La tiendita de ejemplo trae un salón de ejemplo.
+- Probado en el navegador con el ejemplo (computadora y celular, sin errores). **Falta probarlo con una cuenta real de restaurante.**
+
+### Verificación
+- App: `flutter analyze` sin avisos y 150 pruebas pasan (nuevas en `restaurant_cobrar_test.dart`). Panel: `tsc` y `eslint` sin avisos.

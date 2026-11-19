@@ -5,6 +5,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../core/money.dart';
 import '../../domain/models.dart';
 import '../../state/app_state.dart';
+import '../mas/mas_screen.dart' show restaurantTab;
 import '../../state/store.dart';
 import '../../state/sync.dart';
 import '../../theme/colors.dart';
@@ -17,6 +18,7 @@ import '../inventario/first_products.dart';
 import '../inventario/product_form.dart';
 import '../widgets/product_icons.dart';
 import 'cart_sheet.dart';
+import 'open_bills.dart';
 import 'pay_sheet.dart';
 import 'quick_sale_sheet.dart';
 import 'shortcuts_help.dart';
@@ -214,6 +216,13 @@ class _CobrarScreenState extends ConsumerState<CobrarScreen> {
     final products = _matching(store, q);
 
     final wide = MediaQuery.sizeOf(context).width >= wideLayout;
+    // En un restaurante: sin lector de códigos, con las cuentas abiertas a la mano y el menú por grupos.
+    final restaurant = restaurantTab(store, ref.watch(planProvider));
+    Widget tileOf(Product p) {
+      final inCart = cart.where((l) => l.productId == p.id).fold(0.0, (a, l) => a + l.qty);
+      return _ProductTile(product: p, qty: inCart, onTap: () => ref.read(cartProvider.notifier).addProduct(p));
+    }
+
     final catalog = Column(
       children: [
         const BusinessHeader(),
@@ -231,7 +240,7 @@ class _CobrarScreenState extends ConsumerState<CobrarScreen> {
                   onSubmitted: _submitSearch,
                   textInputAction: TextInputAction.search,
                   decoration: InputDecoration(
-                    hintText: 'Buscar o escribir código',
+                    hintText: restaurant ? 'Buscar platillo o bebida' : 'Buscar o escribir código',
                     prefixIcon: const Icon(Icons.search_rounded, size: 22),
                     suffixIcon: _query.isEmpty
                         ? null
@@ -243,12 +252,14 @@ class _CobrarScreenState extends ConsumerState<CobrarScreen> {
                   ),
                 ),
               ),
-              const SizedBox(width: 8),
-              _SquareButton(
-                icon: Icons.qr_code_scanner,
-                tooltip: 'Escanear con la cámara',
-                onTap: () => Navigator.of(context).push(MaterialPageRoute(builder: (_) => const ScanScreen())),
-              ),
+              if (!restaurant) ...[
+                const SizedBox(width: 8),
+                _SquareButton(
+                  icon: Icons.qr_code_scanner,
+                  tooltip: 'Escanear con la cámara',
+                  onTap: () => Navigator.of(context).push(MaterialPageRoute(builder: (_) => const ScanScreen())),
+                ),
+              ],
               const SizedBox(width: 8),
               _SquareButton(
                 icon: Icons.dialpad,
@@ -259,6 +270,8 @@ class _CobrarScreenState extends ConsumerState<CobrarScreen> {
             ],
           ),
         ),
+        // Celular: las cuentas de las mesas, arriba del menú (en la computadora van en su columna).
+        if (restaurant && !wide && q.isEmpty) const OpenBillsStrip(),
         Expanded(
           child: products.isEmpty && q.isEmpty
               // Negocio sin productos todavía: formas fáciles de dar de alta los primeros.
@@ -268,6 +281,8 @@ class _CobrarScreenState extends ConsumerState<CobrarScreen> {
                 )
               : products.isEmpty
               ? _EmptyCatalog(searching: q.isNotEmpty)
+              : restaurant && q.isEmpty
+              ? _MenuByGroup(products: products, tileOf: tileOf, bottom: wide ? 24 : 200)
               : LayoutBuilder(
                   builder: (context, box) {
                     final cols = (box.maxWidth / 180).floor().clamp(2, 6);
@@ -280,15 +295,7 @@ class _CobrarScreenState extends ConsumerState<CobrarScreen> {
                         mainAxisExtent: 80,
                       ),
                       itemCount: products.length,
-                      itemBuilder: (context, i) {
-                        final p = products[i];
-                        final inCart = cart.where((l) => l.productId == p.id).fold(0.0, (a, l) => a + l.qty);
-                        return _ProductTile(
-                          product: p,
-                          qty: inCart,
-                          onTap: () => ref.read(cartProvider.notifier).addProduct(p),
-                        );
-                      },
+                      itemBuilder: (context, i) => tileOf(products[i]),
                     );
                   },
                 ),
@@ -300,8 +307,12 @@ class _CobrarScreenState extends ConsumerState<CobrarScreen> {
     if (wide) {
       return Row(
         children: [
+          if (restaurant) const SizedBox(width: 290, child: OpenBillsColumn()),
           Expanded(child: catalog),
-          SizedBox(width: 380, child: CartPanel(onPay: _startPayment)),
+          SizedBox(
+            width: restaurant ? 340 : 380,
+            child: CartPanel(onPay: _startPayment),
+          ),
         ],
       );
     }
@@ -612,6 +623,65 @@ class _EmptyCatalog extends StatelessWidget {
         textAlign: TextAlign.center,
         style: GText.muted(size: 14),
       ),
+    );
+  }
+}
+
+/// Menú del restaurante por grupos (Platillos, Bebidas, Postres). Con un solo grupo, sin títulos.
+class _MenuByGroup extends StatelessWidget {
+  const _MenuByGroup({required this.products, required this.tileOf, required this.bottom});
+
+  final List<Product> products;
+  final Widget Function(Product) tileOf;
+  final double bottom;
+
+  @override
+  Widget build(BuildContext context) {
+    final groups = <MenuGroup, List<Product>>{};
+    for (final p in products) {
+      groups.putIfAbsent(MenuGroup.of(p), () => []).add(p);
+    }
+    final ordered = [
+      for (final g in MenuGroup.values)
+        if (groups[g] != null) g,
+    ];
+    return LayoutBuilder(
+      builder: (context, box) {
+        final cols = (box.maxWidth / 180).floor().clamp(2, 6);
+        return ListView(
+          padding: EdgeInsets.fromLTRB(16, 0, 16, bottom),
+          children: [
+            for (final g in ordered) ...[
+              if (ordered.length > 1)
+                Padding(
+                  padding: const EdgeInsets.fromLTRB(2, 6, 2, 8),
+                  child: Row(
+                    children: [
+                      Icon(menuGroupIcon(g), size: 17, color: GColors.tintaSuave),
+                      const SizedBox(width: 6),
+                      Text(g.label, style: GText.sans(size: 14, weight: FontWeight.w800)),
+                      const SizedBox(width: 6),
+                      Text('${groups[g]!.length}', style: GText.muted(size: 12.5)),
+                    ],
+                  ),
+                ),
+              GridView.builder(
+                shrinkWrap: true,
+                physics: const NeverScrollableScrollPhysics(),
+                padding: const EdgeInsets.only(bottom: 10),
+                gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+                  crossAxisCount: cols,
+                  mainAxisSpacing: 10,
+                  crossAxisSpacing: 10,
+                  mainAxisExtent: 80,
+                ),
+                itemCount: groups[g]!.length,
+                itemBuilder: (_, i) => tileOf(groups[g]![i]),
+              ),
+            ],
+          ],
+        );
+      },
     );
   }
 }
