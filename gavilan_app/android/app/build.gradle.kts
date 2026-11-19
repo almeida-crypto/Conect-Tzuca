@@ -55,6 +55,14 @@ android {
             signingConfig = signingConfigs.getByName(if (hasReleaseKey) "release" else "debug")
         }
     }
+
+    // Las librerías nativas van comprimidas dentro del APK: la descarga pesa casi la mitad
+    // (así cabe para mandarlo al celular). Al instalar se descomprimen; ocupa un poco más en el teléfono.
+    packaging {
+        jniLibs {
+            useLegacyPackaging = true
+        }
+    }
 }
 
 kotlin {
