@@ -20,6 +20,7 @@ import '../account/account_screen.dart';
 import '../modules/module_widgets.dart' show EmptyInvite;
 import '../widgets/buttons.dart';
 import '../widgets/common.dart';
+import 'floor_plan.dart';
 import 'order_screen.dart';
 import 'extras_screen.dart';
 import '../account/business_switcher.dart';
@@ -208,6 +209,9 @@ class _TablesViewState extends ConsumerState<_TablesView> {
   /// Ver el salón dibujado (plano) o en tarjetas. null = según la pantalla: plano en la computadora.
   bool? _plan;
 
+  /// Moviendo las mesas en el plano (solo el dueño o el encargado).
+  bool _arranging = false;
+
   Future<void> _takeout(BuildContext context) async {
     final name = TextEditingController();
     final ok = await showDialog<bool>(
@@ -242,6 +246,7 @@ class _TablesViewState extends ConsumerState<_TablesView> {
     final tables = store.activeTables;
     final takeouts = store.openOrders.where((o) => o.takeout).toList();
     final plan = _plan ?? MediaQuery.sizeOf(context).width >= 900;
+    final narrow = MediaQuery.sizeOf(context).width < 600;
 
     return ListView(
       padding: const EdgeInsets.fromLTRB(16, 0, 16, 24),
@@ -266,24 +271,78 @@ class _TablesViewState extends ConsumerState<_TablesView> {
                 Expanded(
                   child: Text(
                     '${store.openOrders.where((o) => !o.takeout).length} de ${tables.length} ocupadas',
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
                     style: GText.sans(size: 13, weight: FontWeight.w600, color: GColors.tintaSuave),
                   ),
                 ),
-                SegmentedButton<bool>(
-                  showSelectedIcon: false,
-                  style: const ButtonStyle(visualDensity: VisualDensity.compact),
-                  segments: const [
-                    ButtonSegment(value: false, icon: Icon(Icons.grid_view_rounded, size: 18), label: Text('Tarjetas')),
-                    ButtonSegment(value: true, icon: Icon(Icons.chair_alt_outlined, size: 18), label: Text('Plano')),
-                  ],
-                  selected: {plan},
-                  onSelectionChanged: (v) => setState(() => _plan = v.first),
+                // En el celular, "Acomodar" va solo con su icono para que quepa todo en el renglón.
+                if (plan && can.manageTables && !_arranging)
+                  Padding(
+                    padding: const EdgeInsets.only(right: 4),
+                    child: narrow
+                        ? IconButton(
+                            tooltip: 'Acomodar las mesas',
+                            onPressed: () => setState(() => _arranging = true),
+                            icon: const Icon(Icons.open_with_rounded, color: GColors.marca),
+                          )
+                        : TextButton.icon(
+                            onPressed: () => setState(() => _arranging = true),
+                            icon: const Icon(Icons.open_with_rounded, size: 18),
+                            label: const Text('Acomodar'),
+                          ),
+                  ),
+                if (_arranging)
+                  FilledButton.icon(
+                    onPressed: () => setState(() => _arranging = false),
+                    icon: const Icon(Icons.check_rounded, size: 18),
+                    label: const Text('Listo'),
+                  )
+                else
+                  SegmentedButton<bool>(
+                    showSelectedIcon: false,
+                    style: const ButtonStyle(visualDensity: VisualDensity.compact),
+                    segments: [
+                      ButtonSegment(
+                        value: false,
+                        icon: narrow ? null : const Icon(Icons.grid_view_rounded, size: 18),
+                        label: const Text('Tarjetas'),
+                      ),
+                      ButtonSegment(
+                        value: true,
+                        icon: narrow ? null : const Icon(Icons.chair_alt_outlined, size: 18),
+                        label: const Text('Plano'),
+                      ),
+                    ],
+                    selected: {plan},
+                    onSelectionChanged: (v) => setState(() => _plan = v.first),
+                  ),
+              ],
+            ),
+          ),
+        if (_arranging)
+          Container(
+            margin: const EdgeInsets.only(top: 6),
+            padding: const EdgeInsets.fromLTRB(12, 10, 12, 10),
+            decoration: BoxDecoration(color: GColors.cenoteSuave, borderRadius: BorderRadius.circular(GShape.radius)),
+            child: Row(
+              children: [
+                const Icon(Icons.open_with_rounded, size: 20, color: GColors.cenoteOscuro),
+                const SizedBox(width: 10),
+                Expanded(
+                  child: Text(
+                    'Arrastra cada mesa a donde está en tu local. Toca una para elegir si es cuadrada o redonda '
+                    'y cuántas sillas tiene. Se guarda solo y lo ven todos los celulares.'
+                    '${narrow ? ' En la computadora o con el celular de lado hay más espacio.' : ''}',
+                    style: GText.sans(size: 13, color: GColors.cenoteOscuro),
+                  ),
                 ),
               ],
             ),
           ),
-        if (plan)
-          for (final zone in store.zones) FloorZone(zone: zone, title: store.zones.length > 1 || zone != null)
+        if (plan || _arranging)
+          for (final zone in store.zones)
+            FloorZone(zone: zone, title: store.zones.length > 1 || zone != null, arranging: _arranging)
         else
           for (final zone in store.zones) ...[
             // Con una sola zona (o ninguna) no hace falta título.
@@ -1007,215 +1066,4 @@ void printComanda(StoreState s, String orderId, {DateTime? sentAt}) {
   ];
   if (items.isEmpty) return;
   printHtml(comandaHtml(business: s.businessName, place: s.orderTitle(order), items: items));
-}
-
-/// Una zona del salón dibujada desde arriba, sobre piso de mosaico: cada mesa con sus sillas.
-class FloorZone extends ConsumerWidget {
-  const FloorZone({super.key, required this.zone, this.title = true});
-
-  final String? zone;
-  final bool title;
-
-  @override
-  Widget build(BuildContext context, WidgetRef ref) {
-    final store = ref.watch(storeProvider);
-    final tables = store.tablesIn(zone);
-    return Container(
-      margin: const EdgeInsets.only(top: 10),
-      padding: const EdgeInsets.fromLTRB(10, 10, 10, 12),
-      decoration: BoxDecoration(
-        color: GColors.fondo,
-        borderRadius: BorderRadius.circular(GShape.radius),
-        border: Border.all(color: GColors.linea),
-      ),
-      child: CustomPaint(
-        painter: const _TilesPainter(),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.stretch,
-          children: [
-            if (title)
-              Padding(
-                padding: const EdgeInsets.fromLTRB(4, 0, 4, 6),
-                child: Row(
-                  children: [
-                    Text(zone ?? 'Salón', style: GText.sans(size: 15, weight: FontWeight.w800)),
-                    const SizedBox(width: 8),
-                    Text(
-                      _freeLabel(store, zone),
-                      style: GText.sans(size: 12.5, weight: FontWeight.w600, color: GColors.tintaTenue),
-                    ),
-                  ],
-                ),
-              ),
-            GridView.extent(
-              maxCrossAxisExtent: 170,
-              shrinkWrap: true,
-              physics: const NeverScrollableScrollPhysics(),
-              mainAxisSpacing: 6,
-              crossAxisSpacing: 6,
-              childAspectRatio: 132 / 112,
-              children: [for (final t in tables) TableDrawing(table: t, order: store.openOrderOfTable(t.id))],
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-}
-
-/// Líneas finas cada 28 px, como el piso de mosaico de las fondas.
-class _TilesPainter extends CustomPainter {
-  const _TilesPainter();
-
-  @override
-  void paint(Canvas canvas, Size size) {
-    final line = Paint()
-      ..color = GColors.linea.withValues(alpha: 0.6)
-      ..strokeWidth = 1;
-    for (var x = 28.0; x < size.width; x += 28) {
-      canvas.drawLine(Offset(x, 0), Offset(x, size.height), line);
-    }
-    for (var y = 28.0; y < size.height; y += 28) {
-      canvas.drawLine(Offset(0, y), Offset(size.width, y), line);
-    }
-  }
-
-  @override
-  bool shouldRepaint(_TilesPainter old) => false;
-}
-
-/// Una mesa vista desde arriba: la mesa con seis sillas y, encima, su nombre, el total y el tiempo.
-/// Ocupada en achiote; libre en blanco. Un toque abre la cuenta (o una nueva).
-class TableDrawing extends ConsumerWidget {
-  const TableDrawing({super.key, required this.table, this.order});
-
-  final DiningTable table;
-  final RestaurantOrder? order;
-
-  @override
-  Widget build(BuildContext context, WidgetRef ref) {
-    final store = ref.watch(storeProvider);
-    final o = order;
-    final busy = o != null;
-    final items = busy
-        ? store.itemsOfOrder(o.id).where((i) => i.status != KitchenStatus.cancelado).toList()
-        : <OrderItem>[];
-    final ready = items.where((i) => i.status == KitchenStatus.listo).length;
-    final cooking = items.any(
-      (i) => i.sent && (i.status == KitchenStatus.pendiente || i.status == KitchenStatus.preparando),
-    );
-    final total = busy ? store.totalOfOrder(o.id) : 0;
-    final label = busy
-        ? '${table.name}, ocupada: ${money(total)}, desde hace ${elapsedLabel(o.createdAt)}'
-              '${ready > 0 ? ', $ready listos en cocina' : ''}'
-        : '${table.name}, libre';
-    return Semantics(
-      button: true,
-      label: label,
-      excludeSemantics: true,
-      child: Pressable(
-        onTap: () => Navigator.of(context).push(
-          MaterialPageRoute<void>(
-            builder: (_) => busy ? OrderScreen(orderId: o.id) : OrderScreen(tableId: table.id),
-          ),
-        ),
-        scale: 0.95,
-        child: Stack(
-          children: [
-            Positioned.fill(
-              child: CustomPaint(painter: _TablePainter(busy: busy)),
-            ),
-            Positioned.fill(
-              child: FractionallySizedBox(
-                widthFactor: 0.68,
-                heightFactor: 0.6,
-                child: Column(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: [
-                    Text(
-                      table.name,
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                      style: GText.sans(size: 13, weight: FontWeight.w800),
-                    ),
-                    if (busy) ...[
-                      FittedBox(
-                        fit: BoxFit.scaleDown,
-                        child: Text(
-                          money(total),
-                          style: GText.figures(size: 14, weight: FontWeight.w800, color: GColors.marcaOscura),
-                        ),
-                      ),
-                      Text(elapsedLabel(o.createdAt), maxLines: 1, style: GText.muted(size: 11)),
-                    ] else
-                      Text(
-                        'Libre',
-                        style: GText.sans(size: 12, weight: FontWeight.w600, color: GColors.tintaTenue),
-                      ),
-                  ],
-                ),
-              ),
-            ),
-            if (ready > 0 || cooking)
-              Positioned(
-                top: 6,
-                right: 2,
-                child: Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 1),
-                  decoration: BoxDecoration(
-                    color: ready > 0 ? GColors.cenote : GColors.hundido,
-                    borderRadius: BorderRadius.circular(99),
-                  ),
-                  child: Text(
-                    ready > 0 ? '$ready ${ready == 1 ? 'listo' : 'listos'}' : 'en cocina',
-                    style: GText.sans(
-                      size: 10.5,
-                      weight: FontWeight.w800,
-                      color: ready > 0 ? Colors.white : GColors.tintaSuave,
-                    ),
-                  ),
-                ),
-              ),
-          ],
-        ),
-      ),
-    );
-  }
-}
-
-/// Dibujo de la mesa en un lienzo de 132 x 112: dos sillas arriba, dos abajo y una a cada lado.
-class _TablePainter extends CustomPainter {
-  const _TablePainter({required this.busy});
-
-  final bool busy;
-
-  @override
-  void paint(Canvas canvas, Size size) {
-    final k = (size.width / 132).clamp(0.0, size.height / 112);
-    canvas.translate((size.width - 132 * k) / 2, (size.height - 112 * k) / 2);
-    canvas.scale(k);
-    final chair = Paint()..color = busy ? GColors.marca.withValues(alpha: 0.55) : GColors.linea;
-    for (final r in const [
-      Rect.fromLTWH(34, 4, 24, 12),
-      Rect.fromLTWH(74, 4, 24, 12),
-      Rect.fromLTWH(34, 96, 24, 12),
-      Rect.fromLTWH(74, 96, 24, 12),
-      Rect.fromLTWH(2, 44, 12, 24),
-      Rect.fromLTWH(118, 44, 12, 24),
-    ]) {
-      canvas.drawRRect(RRect.fromRectAndRadius(r, const Radius.circular(5)), chair);
-    }
-    final top = RRect.fromRectAndRadius(const Rect.fromLTWH(18, 20, 96, 72), const Radius.circular(12));
-    canvas.drawRRect(top, Paint()..color = busy ? GColors.marcaSuave : GColors.superficie);
-    canvas.drawRRect(
-      top,
-      Paint()
-        ..style = PaintingStyle.stroke
-        ..strokeWidth = 2
-        ..color = busy ? GColors.marca : GColors.linea,
-    );
-  }
-
-  @override
-  bool shouldRepaint(_TablePainter old) => old.busy != busy;
 }

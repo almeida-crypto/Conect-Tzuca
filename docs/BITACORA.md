@@ -1025,3 +1025,12 @@ El usuario no quiere que sus clientes busquen otro link y vuelvan a entrar: "sep
 
 ### Verificación
 - `flutter analyze` sin avisos y 157 pruebas pasan (nuevas en `reports_test.dart`, y el plano en `restaurant_cobrar_test.dart`). Capturas revisadas a ojo: Reportes en celular y computadora, y el plano con dos zonas.
+
+### Plano de mesas acomodado como el local
+- En Mesas → Plano, el dueño o el encargado tocan **Acomodar**: arrastran cada mesa a donde está en su local (se pega a una cuadrícula de 10 puntos para que queden alineadas) y con un toque eligen **cuadrada o redonda** y **cuántas sillas** (2 a 12). Una cuadrada con muchas sillas se dibuja más larga, para familias. "Acomodar solas" regresa la zona a filas.
+- Se guarda solo y llega a todos los celulares (y a la computadora). Las mesas que nadie ha movido se siguen acomodando solas; si ya hay mesas puestas, las nuevas van en una fila abajo.
+- Servidor: migración `0028_table_layout` (`pos_x`, `pos_y`, `shape`, `seats` en `restaurant_tables`, todo opcional). Celular: base local versión 17. Una app vieja que guarde una mesa no borra su lugar (solo manda las columnas que conoce).
+- Cambiar una mesa de zona la suelta del plano: en la otra zona se acomoda sola.
+- Cálculos en `domain/floor_layout.dart` (tamaño según forma y sillas, acomodo, dónde van las sillas) y pantalla en `ui/restaurant/floor_plan.dart` (salió de `restaurant_screen`, que ya era muy grande).
+- En el celular las mesas no se encogen de más: si el plano no cabe, se desliza de lado. Acomodar en el celular se puede, pero se ve chico: el aviso sugiere la computadora o el celular de lado.
+- Verificación: `flutter analyze` sin avisos y 164 pruebas pasan (nuevas: `floor_layout_test.dart`, arrastrar una mesa en `restaurant_cobrar_test.dart` y el plano entre dos celulares en `sync_test.dart`). Capturas revisadas a ojo en computadora y celular. Avisos de Supabase: solo los de siempre.

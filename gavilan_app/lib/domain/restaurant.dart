@@ -16,8 +16,21 @@ enum KitchenStatus {
   final String label;
 }
 
+/// Forma de la mesa en el plano.
+enum TableShape { cuadrada, redonda }
+
 class DiningTable {
-  const DiningTable({required this.id, required this.name, this.position = 0, this.active = true, this.zone});
+  const DiningTable({
+    required this.id,
+    required this.name,
+    this.position = 0,
+    this.active = true,
+    this.zone,
+    this.x,
+    this.y,
+    this.shape = TableShape.cuadrada,
+    this.seats = 4,
+  });
 
   final String id;
   final String name;
@@ -27,15 +40,41 @@ class DiningTable {
   /// "Planta baja", "Segunda planta", "Terraza". null = sin zona.
   final String? zone;
 
+  /// Dónde está en el plano de su zona (puntos de diseño). null = se acomoda sola.
+  final int? x;
+  final int? y;
+
+  final TableShape shape;
+
+  /// Sillas que se dibujan alrededor.
+  final int seats;
+
+  bool get placed => x != null && y != null;
+
   /// "Mesa 1 · Terraza", para la cocina y el ticket.
   String get fullName => zone == null ? name : '$name · $zone';
 
-  DiningTable copyWith({String? name, bool? active, String? zone, bool clearZone = false}) => DiningTable(
+  /// Al cambiar de zona se suelta del plano (en la otra zona se acomoda sola).
+  DiningTable copyWith({
+    String? name,
+    bool? active,
+    String? zone,
+    bool clearZone = false,
+    int? x,
+    int? y,
+    bool unplace = false,
+    TableShape? shape,
+    int? seats,
+  }) => DiningTable(
     id: id,
     name: name ?? this.name,
     position: position,
     active: active ?? this.active,
     zone: clearZone ? null : (zone ?? this.zone),
+    x: unplace ? null : (x ?? this.x),
+    y: unplace ? null : (y ?? this.y),
+    shape: shape ?? this.shape,
+    seats: seats ?? this.seats,
   );
 }
 

@@ -725,6 +725,41 @@ void main() {
     expect(b.state.logo, isNull);
   });
 
+  test('el plano acomodado como el local llega a los demás celulares y se guarda', () async {
+    final owner = await phone(device: 'K7');
+    await _setUpShop(owner);
+    owner.store.addTables(3);
+    await owner.login('mary@correo.mx');
+    await owner.settle();
+
+    final t = owner.state.activeTables;
+    owner.store.placeTable(t[0].id, 400, 120);
+    owner.store.shapeTable(t[1].id, shape: TableShape.redonda, seats: 6);
+    await owner.settle();
+
+    final other = await phone(device: 'R3');
+    await other.login('mary@correo.mx');
+    final a = other.state.tableById(t[0].id)!;
+    final b = other.state.tableById(t[1].id)!;
+    expect((a.x, a.y, a.placed), (400, 120, true));
+    expect((b.shape, b.seats, b.placed), (TableShape.redonda, 6, false));
+    expect(other.state.tableById(t[2].id)!.seats, 4);
+
+    // Se guarda en el teléfono: al volver a abrir sigue igual.
+    await owner.store.flush();
+    final reloaded = await owner.repo.load();
+    final again = reloaded!.store.tables.firstWhere((x) => x.id == t[0].id);
+    expect((again.x, again.y), (400, 120));
+
+    // Cambiar de zona la suelta del plano; "Acomodar solas" también.
+    owner.store.moveTable(t[0].id, 'Terraza');
+    expect(owner.state.tableById(t[0].id)!.placed, isFalse);
+    owner.store.placeTable(t[2].id, 10, 10);
+    owner.store.resetLayout(null);
+    expect(owner.state.tablesIn(null).any((x) => x.placed), isFalse);
+    await owner.settle();
+  });
+
   test('el mesero manda la comanda y la cocina la recibe sola', () async {
     final waiter = await phone(device: 'K7');
     await _setUpShop(waiter);

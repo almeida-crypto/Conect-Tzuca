@@ -9,7 +9,7 @@ import 'package:gavilan/domain/plan.dart';
 import 'package:gavilan/state/seed.dart';
 import 'package:gavilan/state/store.dart';
 import 'package:gavilan/ui/cobrar/open_bills.dart';
-import 'package:gavilan/ui/restaurant/restaurant_screen.dart';
+import 'package:gavilan/ui/restaurant/floor_plan.dart';
 import 'package:google_fonts/google_fonts.dart';
 
 /// La pestaña Cobrar de un restaurante: cuentas abiertas a la mano, menú por grupos y sin lector de códigos.
@@ -109,6 +109,41 @@ void main() {
     tester.widget<SegmentedButton<bool>>(find.byType(SegmentedButton<bool>)).onSelectionChanged!({false});
     await tester.pumpAndSettle();
     expect(find.byType(TableDrawing), findsNothing);
+    expect(tester.takeException(), isNull);
+  });
+
+  testWidgets('Acomodar: arrastrar una mesa la deja donde la sueltas', (tester) async {
+    tester.view.physicalSize = const Size(1280, 900);
+    tester.view.devicePixelRatio = 1;
+    addTearDown(tester.view.reset);
+    await tester.pumpWidget(
+      ProviderScope(
+        overrides: [initialDataProvider.overrideWithValue(LoadedData(store: restaurant(), plan: Plan.negocio))],
+        child: const GavilanApp(showSplash: false),
+      ),
+    );
+    await tester.pump();
+    final app = ProviderScope.containerOf(tester.element(find.byType(GavilanApp)));
+    app.read(storeProvider.notifier).addTables(2);
+    await tester.pumpAndSettle();
+
+    tester.widget<TextButton>(find.widgetWithText(TextButton, 'Acomodar')).onPressed!();
+    await tester.pumpAndSettle();
+    expect(find.textContaining('Arrastra cada mesa'), findsOneWidget);
+    expect(find.text('4 sillas'), findsNWidgets(2));
+
+    final first = app.read(storeProvider).activeTables.first;
+    await tester.drag(find.byType(TableDrawing).first, const Offset(300, 160));
+    await tester.pumpAndSettle();
+    final moved = app.read(storeProvider).tableById(first.id)!;
+    expect(moved.placed, isTrue);
+    expect(moved.x! % 10, 0);
+    expect(moved.x, greaterThan(200));
+    expect(moved.y, greaterThan(100));
+
+    tester.widget<FilledButton>(find.widgetWithText(FilledButton, 'Listo')).onPressed!();
+    await tester.pumpAndSettle();
+    expect(find.textContaining('Arrastra cada mesa'), findsNothing);
     expect(tester.takeException(), isNull);
   });
 }

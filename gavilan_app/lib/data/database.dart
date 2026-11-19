@@ -335,6 +335,12 @@ class DiningTablesTable extends Table {
   BoolColumn get active => boolean().withDefault(const Constant(true))();
   TextColumn get zone => text().nullable()();
 
+  /// Plano: posición, forma y sillas (v17). null = como antes (se acomoda sola, cuadrada, 4 sillas).
+  IntColumn get posX => integer().nullable()();
+  IntColumn get posY => integer().nullable()();
+  TextColumn get shape => text().nullable()();
+  IntColumn get seats => integer().nullable()();
+
   @override
   Set<Column> get primaryKey => {id};
 }
@@ -439,7 +445,7 @@ class GavilanDb extends _$GavilanDb {
   );
 
   @override
-  int get schemaVersion => 16;
+  int get schemaVersion => 17;
 
   @override
   MigrationStrategy get migration => MigrationStrategy(
@@ -502,6 +508,13 @@ class GavilanDb extends _$GavilanDb {
       if (from < 16) {
         await m.addColumn(layawaysTable, layawaysTable.photoPath);
         await m.createTable(saleReturnsTable);
+      }
+      // v17: plano de mesas (antes de la 5 la tabla de mesas se crea completa).
+      if (from < 17 && from >= 5) {
+        await m.addColumn(diningTablesTable, diningTablesTable.posX);
+        await m.addColumn(diningTablesTable, diningTablesTable.posY);
+        await m.addColumn(diningTablesTable, diningTablesTable.shape);
+        await m.addColumn(diningTablesTable, diningTablesTable.seats);
       }
     },
   );

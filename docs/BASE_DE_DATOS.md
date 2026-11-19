@@ -14,6 +14,7 @@ Proyecto de Supabase **proyecto-Gavilan** (`jveklinfbptnxmtavnez`, región us-ea
 | [0006_restaurant_sync.sql](../pos-backend/supabase/migrations/0006_restaurant_sync.sql) | `pos_restaurant_sync` | `synced_at` en mesas, comandas y platillos; orden de las mesas, nombre de la comanda para llevar, hora de cierre y hora en que se sirvió |
 | [0007_table_zones.sql](../pos-backend/supabase/migrations/0007_table_zones.sql) | `pos_table_zones` | Zona de cada mesa (`restaurant_tables.zone`) |
 | [0027_sale_returns.sql](../pos-backend/supabase/migrations/0027_sale_returns.sql) | `0027_sale_returns` | Devoluciones de ventas de cortes ya cerrados: tabla `sale_returns` (renglones en JSON, monto y efectivo). La suben dueño y administrador, la ve también el cajero; la venta tiene que ser del mismo negocio |
+| [0028_table_layout.sql](../pos-backend/supabase/migrations/0028_table_layout.sql) | `0028_table_layout` | Plano de mesas: `restaurant_tables.pos_x`, `pos_y` (lugar en el plano de su zona), `shape` (`square` o `round`) y `seats`. Todo opcional; las reglas de siempre (solo dueño o administrador cambian mesas) |
 | [0026_layaway_photos.sql](../pos-backend/supabase/migrations/0026_layaway_photos.sql) | `0026_layaway_photos` | El cajero puede subir fotos de apartado (`layaway-…`) al bucket `product-photos`; las de producto y el logo siguen siendo de dueño y administrador |
 | [0025_logo_png.sql](../pos-backend/supabase/migrations/0025_logo_png.sql) | `0025_logo_png` | El bucket `product-photos` acepta también PNG, para el logo del negocio (`businesses.logo_path`, que ya existía) |
 | [0024_invite_attempts.sql](../pos-backend/supabase/migrations/0024_invite_attempts.sql) | `0024_invite_attempts` | Tope de intentos: tabla `invite_attempts` (sin acceso por la API) y `accept_invite` que anota los fallos, regresa null con un código equivocado y bloquea tras 10 en 15 minutos |
@@ -131,7 +132,7 @@ La app guarda todo en SQLite dentro del teléfono (`gavilan_app/lib/data/databas
 | `lots` y `lot_sales` | Pacas y lotes, y lo cobrado de cada una (versión 3) |
 | `layaways` y `layaway_payments` | Apartados, anticipos y abonos (versión 3) |
 | `batches` y `batch_orders` | Tandas y sus pedidos (versión 3) |
-| `restaurant_tables`, `orders` y `order_items` | Mesas (con zona desde la versión 6), comandas y platillos con su estado en cocina (versión 5). `sales.order_id` dice qué comanda se cobró |
+| `restaurant_tables`, `orders` y `order_items` | Mesas (con zona desde la versión 6 y lugar, forma y sillas en el plano desde la 17), comandas y platillos con su estado en cocina (versión 5). `sales.order_id` dice qué comanda se cobró |
 | `outbox` | Fila de pendientes por subir (versión 2) |
 
 - Las fechas se guardan como texto ISO, que conserva los milisegundos.

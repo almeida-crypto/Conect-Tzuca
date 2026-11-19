@@ -516,6 +516,10 @@ RemoteRow tableToRemote(DiningTable t) => {
   'position': t.position,
   'is_active': t.active,
   'zone': t.zone,
+  'pos_x': t.x,
+  'pos_y': t.y,
+  'shape': t.shape == TableShape.redonda ? 'round' : 'square',
+  'seats': t.seats,
 };
 
 RemoteRow orderToRemote(RestaurantOrder o) => {
@@ -553,6 +557,10 @@ DiningTableRow tableFromRemote(RemoteRow r) => DiningTableRow(
   position: (r['position'] as num?)?.toInt() ?? 0,
   active: (r['is_active'] as bool?) ?? true,
   zone: r['zone'] as String?,
+  posX: (r['pos_x'] as num?)?.toInt(),
+  posY: (r['pos_y'] as num?)?.toInt(),
+  shape: r['shape'] as String?,
+  seats: (r['seats'] as num?)?.toInt(),
 );
 
 OrderRow orderFromRemote(RemoteRow r) => OrderRow(

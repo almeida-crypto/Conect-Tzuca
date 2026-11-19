@@ -147,11 +147,29 @@ BatchOrderRow _batchOrderRow(BatchOrder o) => BatchOrderRow(
   paid: o.paid,
 );
 
-DiningTable _table(DiningTableRow r) =>
-    DiningTable(id: r.id, name: r.name, position: r.position, active: r.active, zone: r.zone);
+DiningTable _table(DiningTableRow r) => DiningTable(
+  id: r.id,
+  name: r.name,
+  position: r.position,
+  active: r.active,
+  zone: r.zone,
+  x: r.posX,
+  y: r.posY,
+  shape: r.shape == 'round' ? TableShape.redonda : TableShape.cuadrada,
+  seats: r.seats ?? 4,
+);
 
-DiningTableRow _tableRow(DiningTable t) =>
-    DiningTableRow(id: t.id, name: t.name, position: t.position, active: t.active, zone: t.zone);
+DiningTableRow _tableRow(DiningTable t) => DiningTableRow(
+  id: t.id,
+  name: t.name,
+  position: t.position,
+  active: t.active,
+  zone: t.zone,
+  posX: t.x,
+  posY: t.y,
+  shape: t.shape == TableShape.redonda ? 'round' : 'square',
+  seats: t.seats,
+);
 
 RestaurantOrder _order(OrderRow r) => RestaurantOrder(
   id: r.id,

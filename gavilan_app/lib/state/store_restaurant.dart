@@ -26,10 +26,27 @@ mixin _RestaurantOps on _StoreCore {
 
   void renameTable(String id, String name) => _setTable(state.tableById(id)?.copyWith(name: name.trim()));
 
-  /// Cambia la mesa de zona (vacío = sin zona).
+  /// Cambia la mesa de zona (vacío = sin zona). En la otra zona se acomoda sola en el plano.
   void moveTable(String id, String? zone) {
     final where = zone?.trim().isEmpty ?? true ? null : zone!.trim();
-    _setTable(state.tableById(id)?.copyWith(zone: where, clearZone: where == null));
+    final t = state.tableById(id);
+    if (t == null || t.zone == where) return;
+    _setTable(t.copyWith(zone: where, clearZone: where == null, unplace: true));
+  }
+
+  /// Pone la mesa en un lugar del plano de su zona.
+  void placeTable(String id, int x, int y) =>
+      _setTable(state.tableById(id)?.copyWith(x: x.clamp(0, 4000), y: y.clamp(0, 4000)));
+
+  /// Forma y sillas de la mesa en el plano.
+  void shapeTable(String id, {TableShape? shape, int? seats}) =>
+      _setTable(state.tableById(id)?.copyWith(shape: shape, seats: seats?.clamp(1, 20)));
+
+  /// Las mesas de la zona vuelven a acomodarse solas.
+  void resetLayout(String? zone) {
+    for (final t in state.tablesIn(zone)) {
+      if (t.placed) _setTable(t.copyWith(unplace: true));
+    }
   }
 
   /// Quita la mesa de la pantalla. Las comandas que tuvo se quedan.
