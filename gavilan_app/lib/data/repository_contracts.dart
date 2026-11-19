@@ -60,6 +60,9 @@ abstract class StoreRepository {
   /// Guarda la foto de un producto (y borra las anteriores de ese producto).
   Future<void> savePhoto(String productId, String path, Uint8List bytes, {bool uploaded = false});
 
+  /// Devolución de una venta de otro día: el registro, lo que vuelve al inventario y lo que se quita de la deuda.
+  Future<void> recordReturn({required SaleReturn ret, required List<Product> restocked, CreditEntry? reversal});
+
   /// Logo del negocio: se guarda con las fotos (con [logoPhotoId]) y su ruta sube a la fila del negocio.
   /// Con null se quita.
   Future<void> setLogo(String? path, Uint8List? bytes);
@@ -186,6 +189,8 @@ class MemoryRepository implements StoreRepository {
   Future<void> savePhoto(String productId, String path, Uint8List bytes, {bool uploaded = false}) async {}
   @override
   Future<void> setLogo(String? path, Uint8List? bytes) async {}
+  @override
+  Future<void> recordReturn({required SaleReturn ret, required List<Product> restocked, CreditEntry? reversal}) async {}
   @override
   Future<void> setClerks(List<Clerk> clerks, int? lockMinutes) async {}
   @override

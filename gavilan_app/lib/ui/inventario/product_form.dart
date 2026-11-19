@@ -3,7 +3,6 @@ import '../../core/limits.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:image_picker/image_picker.dart';
 
 import '../../core/money.dart';
 import '../../domain/models.dart';
@@ -17,6 +16,7 @@ import '../../theme/theme.dart';
 import '../widgets/buttons.dart';
 import '../widgets/common.dart';
 import '../scan/scan_screen.dart';
+import '../widgets/photo_picker.dart';
 import '../widgets/product_icons.dart';
 
 /// Abre la ficha de producto. Devuelve el producto guardado (null si se canceló).
@@ -137,63 +137,12 @@ class _ProductFormState extends ConsumerState<_ProductForm> {
 
   /// Toma o elige la foto. Se reduce a 600×600 al tomarla: pesa unos 50 KB.
   Future<void> _pickPhoto(bool hasPhoto) async {
-    final choice = await showModalBottomSheet<String>(
-      context: context,
-      showDragHandle: true,
-      builder: (ctx) => SafeArea(
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            ListTile(
-              leading: const Icon(Icons.photo_camera_outlined, color: GColors.cenote),
-              title: const Text('Tomar foto'),
-              onTap: () => Navigator.of(ctx).pop('camara'),
-            ),
-            ListTile(
-              leading: const Icon(Icons.photo_library_outlined, color: GColors.cenote),
-              title: const Text('Elegir de la galería'),
-              onTap: () => Navigator.of(ctx).pop('galeria'),
-            ),
-            if (hasPhoto)
-              ListTile(
-                leading: const Icon(Icons.hide_image_outlined, color: GColors.rojo),
-                title: const Text('Quitar la foto', style: TextStyle(color: GColors.rojo)),
-                onTap: () => Navigator.of(ctx).pop('quitar'),
-              ),
-            const SizedBox(height: 8),
-          ],
-        ),
-      ),
-    );
+    final choice = await pickPhoto(context, hasPhoto: hasPhoto);
     if (choice == null || !mounted) return;
-    if (choice == 'quitar') {
-      setState(() {
-        _photo = null;
-        _removePhoto = true;
-      });
-      return;
-    }
-    try {
-      final file = await ImagePicker().pickImage(
-        source: choice == 'camara' ? ImageSource.camera : ImageSource.gallery,
-        maxWidth: 600,
-        maxHeight: 600,
-        imageQuality: 75,
-        requestFullMetadata: false,
-      );
-      if (file == null || !mounted) return;
-      final bytes = await file.readAsBytes();
-      if (!mounted) return;
-      setState(() {
-        _photo = bytes;
-        _removePhoto = false;
-      });
-    } catch (_) {
-      if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('No se pudo abrir la cámara o la galería. Revisa los permisos de la app.')),
-      );
-    }
+    setState(() {
+      _photo = choice.bytes;
+      _removePhoto = choice.bytes == null;
+    });
   }
 
   void _addStock() {

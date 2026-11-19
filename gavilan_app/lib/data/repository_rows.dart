@@ -53,6 +53,30 @@ LotSaleRow _lotSaleRow(LotSale s) => LotSaleRow(
   sessionId: s.sessionId,
 );
 
+SaleReturn _saleReturn(SaleReturnRow r) => SaleReturn(
+  id: r.id,
+  saleId: r.saleId,
+  sessionId: r.sessionId,
+  lines: [for (final l in (jsonDecode(r.lines) as List).cast<Map<String, dynamic>>()) ReturnedLine.fromJson(l)],
+  amountCents: r.amountCents,
+  cashCents: r.cashCents,
+  reason: r.reason,
+  clerk: r.clerk,
+  createdAt: r.createdAt,
+);
+
+SaleReturnRow _saleReturnRow(SaleReturn r) => SaleReturnRow(
+  id: r.id,
+  saleId: r.saleId,
+  sessionId: r.sessionId,
+  lines: jsonEncode([for (final l in r.lines) l.toJson()]),
+  amountCents: r.amountCents,
+  cashCents: r.cashCents,
+  reason: r.reason,
+  clerk: r.clerk,
+  createdAt: r.createdAt,
+);
+
 Layaway _layaway(LayawayRow r) => Layaway(
   id: r.id,
   customerId: r.customerId,
@@ -61,6 +85,7 @@ Layaway _layaway(LayawayRow r) => Layaway(
   createdAt: r.createdAt,
   dueDate: r.dueDate,
   status: r.status,
+  photoPath: r.photoPath,
 );
 
 LayawayRow _layawayRow(Layaway l) => LayawayRow(
@@ -71,6 +96,7 @@ LayawayRow _layawayRow(Layaway l) => LayawayRow(
   createdAt: l.createdAt,
   dueDate: l.dueDate,
   status: l.status,
+  photoPath: l.photoPath,
 );
 
 LayawayPayment _layawayPayment(LayawayPaymentRow r) => LayawayPayment(

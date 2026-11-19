@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
@@ -5,12 +6,15 @@ import '../../core/money.dart';
 import '../../core/share.dart';
 import '../../core/ticket_text.dart';
 import '../../domain/models.dart';
+import '../../domain/plan.dart';
+import '../../state/app_state.dart';
 import '../../state/store.dart';
 import '../../theme/colors.dart';
 import '../../theme/theme.dart';
 import '../cobrar/customer_picker.dart';
 import '../widgets/buttons.dart';
 import '../widgets/common.dart';
+import '../widgets/photo_picker.dart';
 import 'module_widgets.dart';
 
 /// Apartados: el cliente deja anticipo, abona y liquida antes de la fecha límite.
@@ -135,7 +139,25 @@ class _LayawayRow extends ConsumerWidget {
                 ),
               ],
             ),
-            Text(layaway.description, maxLines: 1, overflow: TextOverflow.ellipsis, style: GText.muted(size: 12.5)),
+            Row(
+              children: [
+                if (store.photoOfLayaway(layaway) case final photo?) ...[
+                  ClipRRect(
+                    borderRadius: BorderRadius.circular(4),
+                    child: Image.memory(photo, width: 22, height: 22, fit: BoxFit.cover, gaplessPlayback: true),
+                  ),
+                  const SizedBox(width: 6),
+                ],
+                Expanded(
+                  child: Text(
+                    layaway.description,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: GText.muted(size: 12.5),
+                  ),
+                ),
+              ],
+            ),
             const SizedBox(height: 6),
             ProgressStrip(fraction: layaway.totalCents == 0 ? 1 : paid / layaway.totalCents, height: 7),
             if (layaway.dueDate != null && layaway.status == LayawayStatus.activo) ...[
@@ -166,6 +188,7 @@ class _NewLayawaySheetState extends ConsumerState<_NewLayawaySheet> {
   Customer? _customer;
   DateTime? _due = DateTime.now().add(const Duration(days: 30));
   PayMethod _method = PayMethod.efectivo;
+  Uint8List? _photo;
   final _errors = <String, String>{};
 
   @override
@@ -199,6 +222,7 @@ class _NewLayawaySheetState extends ConsumerState<_NewLayawaySheet> {
           dueDate: _due,
           depositCents: deposit!,
           method: _method,
+          photo: _photo,
         );
     Navigator.of(context).pop();
   }
@@ -244,6 +268,16 @@ class _NewLayawaySheetState extends ConsumerState<_NewLayawaySheet> {
             errorText: _errors['description'],
           ),
         ),
+        if (ref.watch(planProvider).limits.photos) ...[
+          const SizedBox(height: 10),
+          _PhotoField(
+            photo: _photo,
+            onPick: () async {
+              final choice = await pickPhoto(context, hasPhoto: _photo != null);
+              if (choice != null && mounted) setState(() => _photo = choice.bytes);
+            },
+          ),
+        ],
         const SizedBox(height: 10),
         Row(
           children: [
@@ -346,6 +380,13 @@ class _LayawayDetailState extends ConsumerState<_LayawayDetail> {
     return b.toString().trimRight();
   }
 
+  Future<void> _changePhoto() async {
+    final l = ref.read(storeProvider).layawayById(widget.layawayId)!;
+    final choice = await pickPhoto(context, hasPhoto: l.photoPath != null);
+    if (choice == null || !mounted) return;
+    ref.read(storeProvider.notifier).setLayawayPhoto(widget.layawayId, choice.bytes);
+  }
+
   Future<void> _cancel() async {
     final ok = await showDialog<bool>(
       context: context,
@@ -379,11 +420,45 @@ class _LayawayDetailState extends ConsumerState<_LayawayDetail> {
     final paid = store.paidOfLayaway(l.id);
     final pending = store.pendingOfLayaway(l.id);
     final active = l.status == LayawayStatus.activo;
+    final photo = store.photoOfLayaway(l);
+    final canPhoto = active && ref.watch(planProvider).limits.photos;
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
         SheetHeader(l.description, caption: c?.name ?? 'Cliente'),
+        if (photo != null) ...[
+          GestureDetector(
+            onTap: () => showPhotoViewer(context, photo),
+            child: ClipRRect(
+              borderRadius: BorderRadius.circular(GShape.radiusSmall),
+              child: Image.memory(photo, height: 170, fit: BoxFit.cover, gaplessPlayback: true),
+            ),
+          ),
+          if (canPhoto)
+            Align(
+              alignment: Alignment.centerRight,
+              child: TextButton.icon(
+                onPressed: _changePhoto,
+                icon: const Icon(Icons.photo_camera_outlined, size: 16),
+                label: Text('Cambiar foto', style: GText.sans(size: 12.5, color: GColors.marca)),
+              ),
+            )
+          else
+            const SizedBox(height: 10),
+        ] else if (l.photoPath != null) ...[
+          // Otro celular la tomó y todavía no baja: llega al respaldar.
+          Text('La foto se baja al respaldar', style: GText.muted(size: 12.5)),
+          const SizedBox(height: 10),
+        ] else if (canPhoto)
+          Align(
+            alignment: Alignment.centerLeft,
+            child: TextButton.icon(
+              onPressed: _changePhoto,
+              icon: const Icon(Icons.add_a_photo_outlined, size: 18),
+              label: Text('Agregar foto del artículo', style: GText.sans(size: 13, color: GColors.marca)),
+            ),
+          ),
         Row(
           children: [
             Expanded(
@@ -450,7 +525,9 @@ class _LayawayDetailState extends ConsumerState<_LayawayDetail> {
           icon: Icons.send_outlined,
           kind: GButtonKind.outline,
           expand: true,
-          onPressed: () => shareText(context, _receipt(store, l, c)),
+          onPressed: () => photo == null
+              ? shareText(context, _receipt(store, l, c))
+              : shareTextWithImage(context, _receipt(store, l, c), photo, fileName: 'apartado.jpg'),
         ),
         if (active)
           TextButton(
@@ -463,3 +540,57 @@ class _LayawayDetailState extends ConsumerState<_LayawayDetail> {
 }
 
 String _paymentKind(Layaway l, LayawayPayment p) => p.createdAt == l.createdAt ? 'Anticipo' : 'Abono';
+
+/// Foto opcional al dar de alta el apartado: para que no haya dudas de cuál artículo es.
+class _PhotoField extends StatelessWidget {
+  const _PhotoField({required this.photo, required this.onPick});
+
+  final Uint8List? photo;
+  final VoidCallback onPick;
+
+  @override
+  Widget build(BuildContext context) {
+    return InkWell(
+      onTap: onPick,
+      borderRadius: BorderRadius.circular(GShape.radiusSmall),
+      child: Container(
+        padding: const EdgeInsets.all(8),
+        decoration: BoxDecoration(
+          border: Border.all(color: GColors.linea),
+          borderRadius: BorderRadius.circular(GShape.radiusSmall),
+        ),
+        child: Row(
+          children: [
+            ClipRRect(
+              borderRadius: BorderRadius.circular(8),
+              child: photo == null
+                  ? Container(
+                      width: 52,
+                      height: 52,
+                      color: GColors.hundido,
+                      child: const Icon(Icons.add_a_photo_outlined, color: GColors.tintaSuave),
+                    )
+                  : Image.memory(photo!, width: 52, height: 52, fit: BoxFit.cover),
+            ),
+            const SizedBox(width: 12),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    photo == null ? 'Foto del artículo' : 'Foto lista',
+                    style: GText.sans(size: 14, weight: FontWeight.w700),
+                  ),
+                  Text(
+                    photo == null ? 'Opcional: para saber cuál es cuando vengan a pagar' : 'Toca para cambiarla',
+                    style: GText.muted(size: 12),
+                  ),
+                ],
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}

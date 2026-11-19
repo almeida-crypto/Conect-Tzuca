@@ -86,6 +86,31 @@ Set<PayMethod>? payMethodsFromRemote(Object? value) {
   return {PayMethod.efectivo, for (final v in value) ?_methodIn[v]};
 }
 
+/// Devolución de una venta de otro día. Los renglones van en JSON.
+RemoteRow saleReturnToRemote(SaleReturn r) => {
+  'id': r.id,
+  'sale_id': r.saleId,
+  'cash_session_id': r.sessionId,
+  'lines': [for (final l in r.lines) l.toJson()],
+  'amount': _pesos(r.amountCents),
+  'cash_amount': _pesos(r.cashCents),
+  'reason': r.reason,
+  'clerk_name': r.clerk,
+  'created_at': _iso(r.createdAt),
+};
+
+SaleReturnRow saleReturnFromRemote(RemoteRow r) => SaleReturnRow(
+  id: r['id']! as String,
+  saleId: r['sale_id']! as String,
+  sessionId: r['cash_session_id']! as String,
+  lines: jsonEncode(r['lines']),
+  amountCents: _cents(r['amount']),
+  cashCents: _cents(r['cash_amount']),
+  reason: r['reason'] as String?,
+  clerk: r['clerk_name'] as String?,
+  createdAt: _date(r['created_at']),
+);
+
 /// Logo del negocio: su ruta en el almacenamiento (null = sin logo).
 RemoteRow logoToRemote(String? path) => {'logo_path': path};
 
@@ -377,6 +402,7 @@ RemoteRow layawayToRemote(Layaway l) => {
   'total': _pesos(l.totalCents),
   'due_date': _dayOrNull(l.dueDate),
   'status': _layawayOut[l.status],
+  'photo_path': l.photoPath,
   'created_at': _iso(l.createdAt),
 };
 
@@ -434,6 +460,7 @@ LayawayRow layawayFromRemote(RemoteRow r) => LayawayRow(
   createdAt: _date(r['created_at']),
   dueDate: _dateOrNull(r['due_date']),
   status: _layawayIn[r['status']] ?? LayawayStatus.activo,
+  photoPath: r['photo_path'] as String?,
 );
 
 LayawayPaymentRow layawayPaymentFromRemote(RemoteRow r) => LayawayPaymentRow(

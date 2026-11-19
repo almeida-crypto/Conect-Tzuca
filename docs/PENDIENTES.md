@@ -57,21 +57,23 @@ Prioridad: **Alta** = sin esto no se puede usar con un negocio real · **Media**
 - [ ] **Media** · Tarjeta para Estados de WhatsApp: foto del producto, precio y sello "Disponible".
 - [x] **Media** · Fotos de producto en planes de pago: 600×600 JPEG en el teléfono, guardadas sin internet y respaldadas en Supabase Storage. *18/11/2026*
 - [x] **Media** · Políticas de Supabase Storage para fotos de productos (migración 0023). *18/11/2026*
-- [ ] **Baja** · Fotos de apartados (mismo bucket o uno aparte).
+- [x] **Baja** · Fotos de apartados (mismo bucket). *18/11/2026*
 - [x] **Media** · Fuentes Archivo y Space Mono dentro de la app (`assets/google_fonts/`, licencia OFL): se ven bien sin internet desde el primer arranque. *01/11/2026*
 - [ ] **Baja** · Celular como escáner inalámbrico de la laptop (Supabase Realtime).
-- [ ] **Baja** · Generador de etiquetas con código de barras en PDF.
+- [x] **Baja** · Generador de etiquetas con código de barras en PDF. *18/11/2026*
+- [ ] **Media** · Probar las etiquetas impresas: que el lector del celular y uno USB lean las barras, en hoja carta y en rollo.
 - [x] **Alta** · Ventas del turno (lista con cada ticket) y cancelar una venta del turno abierto: regresa al inventario, deja de contar en la caja y la ganancia, y si fue fiada le quita la deuda al cliente. Solo dueño y administradores. *12/11/2026*
 - [x] **Media** · Devolver solo una parte de una venta: se cancela la original y queda una venta nueva con lo que se quedó el cliente. *12/11/2026*
 - [x] **Media** · Descuento a la cuenta al cobrar (porcentaje o pesos), en el ticket y repartido en la ganancia. *12/11/2026*
 - [x] **Baja** · Cancelar ventas de cortes ya cerrados: el corte no cambia y la devolución se anota en la caja de hoy. *18/11/2026*
-- [ ] **Baja** · Devolver solo una parte de una venta de un corte ya cerrado.
+- [x] **Baja** · Devolver solo una parte de una venta de un corte ya cerrado. *18/11/2026*
+- [ ] **Baja** · Panel web: mostrar las devoluciones de otro día (`sale_returns`) en los reportes.
 - [x] **Alta** · Cambio de cajero con PIN en un aparato compartido: "¿Quién atiende?", "Atiende: X" con F4, bloqueo por tiempo, ventas, gastos y abonos a nombre de quien atiende, "Ventas por persona" en el corte y "Entregar caja". *16/11/2026*
 - [ ] **Media** · Probar el cambio de cajero en un celular real y en la computadora del mostrador con dos personas.
 
 ## Etapa 3 · Módulos por giro
 - [x] **Media** · Apartados: anticipo, abonos, fecha límite con aviso de vencido, liquidación automática, cancelación y comprobante por WhatsApp. *31/10/2026*
-- [ ] **Media** · Foto del artículo apartado (cámara + Supabase Storage).
+- [x] **Media** · Foto del artículo apartado (cámara + Supabase Storage). *18/11/2026*
 - [x] **Media** · Pacas y lotes: inversión, ventas rápidas, barra de recuperación y ganancia; entra al corte. El plan gratis permite 1 paca activa. *31/10/2026*
 - [x] **Media** · Pedidos por tanda: entrega y pago en dos toques, insumos, ganancia y aviso por WhatsApp. *31/10/2026*
 - [ ] **Baja** · Decidir si lo cobrado de las tandas entra al corte de caja (hoy no entra: muchas tandas se cobran fuera del mostrador).

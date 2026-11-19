@@ -70,6 +70,26 @@ class SalesTable extends Table {
 }
 
 /// Fotos de producto: los bytes (ya chicos, 600×600) para verlas sin internet y si ya se subieron.
+/// Devoluciones de ventas de cortes ya cerrados. [lines] es JSON (lista de [ReturnedLine]).
+@DataClassName('SaleReturnRow')
+class SaleReturnsTable extends Table {
+  @override
+  String get tableName => 'sale_returns';
+
+  TextColumn get id => text()();
+  TextColumn get saleId => text()();
+  TextColumn get sessionId => text()();
+  TextColumn get lines => text()();
+  IntColumn get amountCents => integer()();
+  IntColumn get cashCents => integer().withDefault(const Constant(0))();
+  TextColumn get reason => text().nullable()();
+  TextColumn get clerk => text().nullable()();
+  DateTimeColumn get createdAt => dateTime()();
+
+  @override
+  Set<Column> get primaryKey => {id};
+}
+
 @DataClassName('PhotoRow')
 class ProductPhotosTable extends Table {
   @override
@@ -232,6 +252,7 @@ class LayawaysTable extends Table {
   DateTimeColumn get createdAt => dateTime()();
   DateTimeColumn get dueDate => dateTime().nullable()();
   TextColumn get status => textEnum<LayawayStatus>()();
+  TextColumn get photoPath => text().nullable()();
 
   @override
   Set<Column> get primaryKey => {id};
@@ -397,6 +418,7 @@ class ExtrasTable extends Table {
     SaleLinesTable,
     SalePaymentsTable,
     ProductPhotosTable,
+    SaleReturnsTable,
     CreditEntriesTable,
     CashSessionsTable,
     CashMovementsTable,
@@ -417,7 +439,7 @@ class GavilanDb extends _$GavilanDb {
   );
 
   @override
-  int get schemaVersion => 15;
+  int get schemaVersion => 16;
 
   @override
   MigrationStrategy get migration => MigrationStrategy(
@@ -476,6 +498,10 @@ class GavilanDb extends _$GavilanDb {
       if (from < 15) {
         await m.addColumn(productsTable, productsTable.photoPath);
         await m.createTable(productPhotosTable);
+      }
+      if (from < 16) {
+        await m.addColumn(layawaysTable, layawaysTable.photoPath);
+        await m.createTable(saleReturnsTable);
       }
     },
   );

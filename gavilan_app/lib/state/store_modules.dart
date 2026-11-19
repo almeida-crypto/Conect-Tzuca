@@ -45,6 +45,7 @@ mixin _ModuleOps on _StoreCore {
     DateTime? dueDate,
     int depositCents = 0,
     PayMethod method = PayMethod.efectivo,
+    Uint8List? photo,
   }) {
     final layaway = Layaway(
       id: newId(),
@@ -57,7 +58,25 @@ mixin _ModuleOps on _StoreCore {
     state = state.copyWith(layaways: [...state.layaways, layaway]);
     _save((r) => r.upsertLayaway(layaway));
     if (depositCents > 0) addLayawayPayment(layaway.id, depositCents, method, at: layaway.createdAt);
+    if (photo != null) setLayawayPhoto(layaway.id, photo);
     return state.layawayById(layaway.id)!;
+  }
+
+  /// Pone (o quita, con null) la foto del artículo apartado. Los bytes ya vienen chicos (600×600 JPEG).
+  /// La ruta empieza con "layaway-": el cajero también puede subirla (las de producto, solo el dueño).
+  void setLayawayPhoto(String layawayId, Uint8List? bytes) {
+    final l = state.layawayById(layawayId);
+    if (l == null) return;
+    final path = bytes == null ? null : '${state.businessId}/layaway-$layawayId-${_now().millisecondsSinceEpoch}.jpg';
+    final updated = l.withPhoto(path);
+    state = state.copyWith(
+      layaways: [for (final x in state.layaways) x.id == layawayId ? updated : x],
+      photos: path == null ? null : {...state.photos, path: bytes!},
+    );
+    _save((r) async {
+      if (path != null) await r.savePhoto(layawayId, path, bytes!);
+      await r.upsertLayaway(updated);
+    });
   }
 
   /// Abono a un apartado. Al cubrir el total queda liquidado.

@@ -58,6 +58,12 @@ class FakeRemote implements SyncRemote {
   @override
   Future<void> uploadPhoto(String path, Uint8List bytes) async {
     _check();
+    // Como 0023 y 0026: suben fotos el dueño y el administrador; el cajero, solo las de apartados.
+    final role = server.membership[_user]?[path.split('/').first];
+    final layaway = path.split('/').last.startsWith('layaway-');
+    if (!{MemberRole.owner, MemberRole.admin}.contains(role) && !(role == MemberRole.cashier && layaway)) {
+      throw const SyncException(SyncFailure.rejected, 'Storage: sin permiso');
+    }
     server.storage[path] = bytes;
   }
 
@@ -200,6 +206,10 @@ class FakeRemote implements SyncRemote {
     if (table == 'products' && !{MemberRole.owner, MemberRole.admin}.contains(role)) {
       throw const SyncException(SyncFailure.rejected, 'RLS: products');
     }
+    // Como 0027: las devoluciones de otro día solo el dueño y el administrador.
+    if (table == 'sale_returns' && !{MemberRole.owner, MemberRole.admin}.contains(role)) {
+      throw const SyncException(SyncFailure.rejected, 'RLS: sale_returns');
+    }
     // Como 0015: lo ya guardado de ventas, fiados y movimientos solo lo cambian dueño y administrador
     // (volver a subirlo igual sí se puede), y un corte cerrado tampoco lo cambia el cajero.
     if (role != MemberRole.owner && role != MemberRole.admin) {
@@ -253,6 +263,7 @@ const _ledgerTables = {
 };
 const _moneyTables = {
   'sales',
+  'sale_returns',
   'sale_payments',
   'cash_sessions',
   'cash_movements',

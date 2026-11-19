@@ -14,6 +14,7 @@ import '../widgets/common.dart';
 import '../widgets/product_icons.dart';
 import 'catalog_table_screen.dart';
 import 'first_products.dart';
+import 'labels_screen.dart';
 import 'product_form.dart';
 
 class InventarioScreen extends ConsumerStatefulWidget {
@@ -96,6 +97,15 @@ class _InventarioScreenState extends ConsumerState<InventarioScreen> {
                 color: _onlyLow ? GColors.tinta : const Color(0xFFB27C00),
                 onTap: () => setState(() => _onlyLow = !_onlyLow),
               ),
+              if (ref.watch(permissionsProvider).editCatalog && all.isNotEmpty) ...[
+                const SizedBox(width: 8),
+                SoftButton(
+                  label: 'Etiquetas',
+                  icon: Icons.qr_code_2_rounded,
+                  onTap: () =>
+                      Navigator.of(context).push(MaterialPageRoute<void>(builder: (_) => const LabelsScreen())),
+                ),
+              ],
             ],
           ),
         ),

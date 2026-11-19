@@ -39,6 +39,8 @@ class _TicketScreenState extends ConsumerState<TicketScreen> {
       allowOrAskPin(context, ref, allowed: (can) => can.cancelSales, action: action);
 
   Future<void> _returnItems(Sale sale) async {
+    final store = ref.read(storeProvider);
+    if (!store.sessionIsOpen(sale.sessionId)) return _returnLate(sale);
     if (!await _authorized('Devolver productos') || !mounted) return;
     final request = await showReturnSheet(context, sale);
     if (request == null || !mounted) return;
@@ -54,6 +56,33 @@ class _TicketScreenState extends ConsumerState<TicketScreen> {
     }
   }
 
+  /// Devolución de una venta de otro día: su corte no cambia y el dinero sale de la caja de hoy.
+  Future<void> _returnLate(Sale sale) async {
+    final store = ref.read(storeProvider);
+    if (store.openSession == null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Abre tu caja para devolver de otro día: el dinero sale de la caja de hoy.')),
+      );
+      return;
+    }
+    if (!await _authorized('Devolver productos') || !mounted) return;
+    final request = await showReturnSheet(context, sale, late: true, earlier: store.returnsOf(sale.id));
+    if (request == null || !mounted) return;
+    final ret = ref.read(storeProvider.notifier).returnFromPastSale(sale.id, request.back, reason: request.reason);
+    final cancelled = ref.read(storeProvider).sales.firstWhere((s) => s.id == sale.id).cancelled;
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(
+          ret != null
+              ? 'Devolución hecha: ${money(ret.amountCents)}. Lo devuelto ya está en el inventario.'
+              : cancelled
+              ? 'Regresó todo: la venta quedó cancelada'
+              : 'No se pudo hacer la devolución',
+        ),
+      ),
+    );
+  }
+
   Future<void> _confirmCancel(Sale sale, String? customerName) async {
     final store = ref.read(storeProvider);
     final late = !store.sessionIsOpen(sale.sessionId);
@@ -67,7 +96,13 @@ class _TicketScreenState extends ConsumerState<TicketScreen> {
       return;
     }
     if (!await _authorized('Cancelar la venta ${sale.folioLabel}') || !mounted) return;
-    final reason = await showCancelSaleDialog(context, sale, customerName: customerName, late: late);
+    final reason = await showCancelSaleDialog(
+      context,
+      sale,
+      customerName: customerName,
+      late: late,
+      earlier: store.returnsOf(sale.id),
+    );
     if (reason == null || !mounted) return;
     final done = ref.read(storeProvider.notifier).cancelSale(sale.id, reason: reason);
     ScaffoldMessenger.of(context)
@@ -87,11 +122,21 @@ class _TicketScreenState extends ConsumerState<TicketScreen> {
     // turno de este celular, porque la venta nueva entra a esta caja.
     // También las de días pasados: su corte no cambia y la devolución se anota en la caja de hoy.
     final canCancel = !sale.cancelled && (ref.watch(permissionsProvider).cancelSales || store.usesPins);
-    final canReturn = canCancel && open != null && sale.sessionId == open.id;
+    final late = !store.sessionIsOpen(sale.sessionId);
+    final returns = store.returnsOf(sale.id);
+    final returned = store.returnedOf(sale.id);
+    final piecesLeft = sale.lines.fold<double>(0, (a, l) => a + l.qty - (returned[l.key] ?? 0));
+    // Del mismo turno se rehace la venta; de otro día queda una devolución y la venta no cambia.
+    final canReturn =
+        canCancel &&
+        (late || (open != null && sale.sessionId == open.id)) &&
+        (sale.lines.length > 1 || piecesLeft > 1 || returns.isNotEmpty) &&
+        piecesLeft > 0.0001;
     final order = sale.orderId == null ? null : store.orderById(sale.orderId!);
     final place = order == null ? null : store.orderTitle(order);
     final logo = plan.limits.logo ? store.logo : null;
     final text = ticketText(
+      returns: returns,
       place: place,
       business: store.businessName,
       sale: sale,
@@ -102,6 +147,7 @@ class _TicketScreenState extends ConsumerState<TicketScreen> {
 
     void printTicket() => printHtml(
       ticketHtml(
+        returns: returns,
         place: place,
         business: store.businessName,
         sale: sale,
@@ -214,6 +260,13 @@ class _TicketScreenState extends ConsumerState<TicketScreen> {
                                   _row('Cliente', customer?.name ?? ''),
                                   _row('Saldo pendiente', money(balance ?? 0)),
                                 ],
+                                if (returns.isNotEmpty) ...[
+                                  const _Dashed(),
+                                  for (final r in returns) ...[
+                                    _row('DEVOLUCIÓN ${dayLabel(r.createdAt)}', '-${money(r.amountCents)}', bold: true),
+                                    Text(r.summary, style: GText.mono(size: 11.5)),
+                                  ],
+                                ],
                                 if (sale.cancelled) ...[
                                   const _Dashed(),
                                   _row('CANCELADA', timeLabel(sale.cancelledAt!), bold: true),
@@ -300,7 +353,7 @@ class _TicketScreenState extends ConsumerState<TicketScreen> {
                               type: MaterialType.transparency,
                               child: Column(
                                 children: [
-                                  if (canReturn && (sale.lines.length > 1 || sale.lines.any((l) => l.qty > 1))) ...[
+                                  if (canReturn) ...[
                                     _FixRow(
                                       icon: Icons.assignment_return_outlined,
                                       label: 'Devolver algunos productos',
@@ -416,18 +469,27 @@ class _Stamp extends StatelessWidget {
 }
 
 /// Pregunta por qué se cancela la venta y explica qué va a pasar. Devuelve el motivo, o null si no se cancela.
-Future<String?> showCancelSaleDialog(BuildContext context, Sale sale, {String? customerName, bool late = false}) {
+Future<String?> showCancelSaleDialog(
+  BuildContext context,
+  Sale sale, {
+  String? customerName,
+  bool late = false,
+  List<SaleReturn> earlier = const [],
+}) {
   const reasons = ['Se cobró mal', 'El cliente se arrepintió', 'Producto en mal estado', 'Otro'];
   var picked = reasons.first;
-  final total = money(sale.totalCents);
-  final other = sale.totalCents - sale.cashCents;
+  // Lo que ya se devolvió en otro día no se devuelve otra vez.
+  final leftCents = sale.totalCents - earlier.fold<int>(0, (a, r) => a + r.amountCents);
+  final cashCents = sale.cashCents - earlier.fold<int>(0, (a, r) => a + r.cashCents);
+  final total = money(leftCents);
+  final other = leftCents - cashCents;
   final effect = switch ((sale.kind, sale.method)) {
     _ when late && sale.kind == SaleKind.fiada =>
       'Es de un corte ya cerrado, que no cambia. Se le quitan $total de la deuda'
           '${customerName == null ? '' : ' a $customerName'}.',
     _ when late =>
       'Es de un corte ya cerrado, que no cambia.'
-          '${sale.cashCents > 0 ? ' Los ${money(sale.cashCents)} en efectivo que le devuelves se anotan hoy como gasto en tu caja.' : ''}'
+          '${cashCents > 0 ? ' Los ${money(cashCents)} en efectivo que le devuelves se anotan hoy como gasto en tu caja.' : ''}'
           '${other > 0 ? ' Devuélvele ${money(other)} por tarjeta o transferencia; la app solo lo anota.' : ''}',
     (SaleKind.fiada, _) => 'Se le quitan $total de la deuda${customerName == null ? '' : ' a $customerName'}.',
     _ when sale.split =>

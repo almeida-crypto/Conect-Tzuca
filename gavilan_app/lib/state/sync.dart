@@ -92,6 +92,7 @@ class FailedChange {
 
 const _tableLabels = {
   'businesses': 'Datos del negocio',
+  'sale_returns': 'Devolución de otro día',
   'customers': 'Cliente',
   'products': 'Producto',
   'inventory_movements': 'Movimiento de inventario',
@@ -418,7 +419,7 @@ class SyncController extends Notifier<SyncStatus> {
     }
   }
 
-  /// Fotos de producto y logo: sube las tomadas aquí y baja las que faltan (de 20 en 20 por respaldo).
+  /// Fotos de producto, de apartados y logo: sube las tomadas aquí y baja las que faltan (de 20 en 20 por respaldo).
   /// Una foto que todavía no está en la nube (otro celular no la ha subido) se intenta en el siguiente.
   Future<void> _syncPhotos(SyncRemote remote, SyncStore store) async {
     for (final p in await store.pendingPhotos()) {
@@ -435,6 +436,8 @@ class SyncController extends Notifier<SyncStatus> {
       if (local.logoPath case final logo? when !have.contains(logo)) (logoPhotoId, logo),
       for (final p in local.products)
         if (p.photoPath != null && !have.contains(p.photoPath)) (p.id, p.photoPath!),
+      for (final l in local.layaways)
+        if (l.photoPath != null && !have.contains(l.photoPath)) (l.id, l.photoPath!),
     }.take(20);
     var got = false;
     for (final (productId, path) in missing) {

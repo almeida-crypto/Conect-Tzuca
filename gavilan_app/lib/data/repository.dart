@@ -54,6 +54,7 @@ const pullTables = [
   'sales',
   'sale_items',
   'sale_payments',
+  'sale_returns',
   'credit_entries',
   'cash_movements',
   'lots',
@@ -231,6 +232,10 @@ class DriftRepository implements StoreRepository, SyncStore {
     final withModules = store.copyWith(
       lots: [for (final r in await db.select(db.lotsTable).get()) _lot(r)],
       lotSales: [for (final r in await db.select(db.lotSalesTable).get()) _lotSale(r)],
+      saleReturns: [
+        for (final r in await (db.select(db.saleReturnsTable)..orderBy([(t) => OrderingTerm.asc(t.createdAt)])).get())
+          _saleReturn(r),
+      ],
       layaways: [for (final r in await db.select(db.layawaysTable).get()) _layaway(r)],
       layawayPayments: [for (final r in await db.select(db.layawayPaymentsTable).get()) _layawayPayment(r)],
       batches: [for (final r in await db.select(db.batchesTable).get()) _batch(r)],
@@ -437,6 +442,41 @@ class DriftRepository implements StoreRepository, SyncStore {
                     reason: 'return',
                     refId: sale.id,
                     at: at,
+                  ),
+              ],
+            ),
+          if (reversal != null) (table: 'credit_entries', rows: [creditToRemote(reversal)]),
+        ]);
+      });
+
+  @override
+  Future<void> recordReturn({required SaleReturn ret, required List<Product> restocked, CreditEntry? reversal}) =>
+      db.transaction(() async {
+        await db.into(db.saleReturnsTable).put(_saleReturnRow(ret));
+        for (final p in restocked) {
+          await db.into(db.productsTable).put(_productRow(p));
+        }
+        if (reversal != null) await db.into(db.creditEntriesTable).put(_creditRow(reversal));
+        final back = <String, double>{};
+        for (final l in ret.lines) {
+          if (l.productId != null && restocked.any((p) => p.id == l.productId)) {
+            back[l.productId!] = (back[l.productId!] ?? 0) + l.qty;
+          }
+        }
+        await _enqueue([
+          (table: 'sale_returns', rows: [saleReturnToRemote(ret)]),
+          if (back.isNotEmpty)
+            (
+              table: 'inventory_movements',
+              rows: [
+                for (final e in back.entries)
+                  stockToRemote(
+                    id: stableId('${ret.id}/stock/${e.key}'),
+                    productId: e.key,
+                    change: e.value,
+                    reason: 'return',
+                    refId: ret.saleId,
+                    at: ret.createdAt,
                   ),
               ],
             ),
@@ -701,6 +741,9 @@ class DriftRepository implements StoreRepository, SyncStore {
     for (final sale in s.sales) {
       await _enqueue(saleToRemote(sale));
     }
+    if (s.saleReturns.isNotEmpty) {
+      await _enqueue([(table: 'sale_returns', rows: s.saleReturns.map(saleReturnToRemote).toList())]);
+    }
     if (s.credit.isNotEmpty) {
       await _enqueue([(table: 'credit_entries', rows: s.credit.map(creditToRemote).toList())]);
     }
@@ -851,6 +894,8 @@ class DriftRepository implements StoreRepository, SyncStore {
           final row = salePaymentFromRemote(r);
           final at = DateTime.tryParse(r['created_at'] as String? ?? '');
           await db.into(db.salePaymentsTable).put(row.copyWith(position: (at?.millisecondsSinceEpoch ?? 0) % 1000));
+        case 'sale_returns':
+          await db.into(db.saleReturnsTable).put(saleReturnFromRemote(r));
         case 'credit_entries':
           await db.into(db.creditEntriesTable).put(creditFromRemote(r));
         case 'cash_movements':

@@ -99,6 +99,75 @@ class SaleLine {
       SaleLine(key: key, productId: productId, name: name, unitCents: unitCents, unitCostCents: unitCostCents, qty: q);
 }
 
+/// Lo que el cliente regresó de una venta de un corte ya cerrado. La venta no cambia (cuenta en su día);
+/// lo devuelto vuelve al inventario y el dinero sale de la caja de hoy (o se le quita de la deuda).
+class SaleReturn {
+  const SaleReturn({
+    required this.id,
+    required this.saleId,
+    required this.sessionId,
+    required this.lines,
+    required this.amountCents,
+    required this.createdAt,
+    this.cashCents = 0,
+    this.reason,
+    this.clerk,
+  });
+
+  final String id;
+  final String saleId;
+
+  /// Turno (de hoy) en que se hizo la devolución: de esa caja salió el efectivo.
+  final String sessionId;
+  final List<ReturnedLine> lines;
+
+  /// Lo que vale lo devuelto (con el descuento de la venta repartido).
+  final int amountCents;
+
+  /// Cuánto de eso se le dio en efectivo de la caja (lo demás, por transferencia o tarjeta, o de la deuda).
+  final int cashCents;
+  final String? reason;
+  final String? clerk;
+  final DateTime createdAt;
+
+  String get summary => lines.map((l) => '${_qty(l.qty)} ${l.name}').join(', ');
+
+  static String _qty(double q) => q == q.roundToDouble() ? q.toInt().toString() : q.toStringAsFixed(3);
+}
+
+/// Un renglón devuelto: cuál de la venta (por su clave), cuánto y lo que valía.
+class ReturnedLine {
+  const ReturnedLine({
+    required this.key,
+    required this.name,
+    required this.qty,
+    required this.amountCents,
+    this.productId,
+  });
+
+  final String key;
+  final String? productId;
+  final String name;
+  final double qty;
+  final int amountCents;
+
+  Map<String, Object?> toJson() => {
+    'key': key,
+    'product_id': productId,
+    'name': name,
+    'qty': qty,
+    'amount': amountCents / 100,
+  };
+
+  static ReturnedLine fromJson(Map<String, dynamic> j) => ReturnedLine(
+    key: j['key'] as String,
+    productId: j['product_id'] as String?,
+    name: j['name'] as String? ?? '',
+    qty: (j['qty'] as num).toDouble(),
+    amountCents: ((j['amount'] as num) * 100).round(),
+  );
+}
+
 enum SaleKind { pagada, fiada }
 
 class Sale {
@@ -551,6 +620,7 @@ class Layaway {
     required this.createdAt,
     this.dueDate,
     this.status = LayawayStatus.activo,
+    this.photoPath,
   });
 
   final String id;
@@ -561,14 +631,23 @@ class Layaway {
   final DateTime? dueDate;
   final LayawayStatus status;
 
-  Layaway withStatus(LayawayStatus s) => Layaway(
+  /// Foto del artículo apartado (ruta en la nube, como las de producto). null = sin foto.
+  final String? photoPath;
+
+  Layaway withStatus(LayawayStatus s) => _copy(status: s, photoPath: photoPath);
+
+  /// Con otra foto (o sin foto, con null).
+  Layaway withPhoto(String? path) => _copy(status: status, photoPath: path);
+
+  Layaway _copy({required LayawayStatus status, required String? photoPath}) => Layaway(
     id: id,
     customerId: customerId,
     description: description,
     totalCents: totalCents,
     createdAt: createdAt,
     dueDate: dueDate,
-    status: s,
+    status: status,
+    photoPath: photoPath,
   );
 }
 

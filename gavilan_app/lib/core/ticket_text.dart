@@ -4,6 +4,7 @@ import 'money.dart';
 String two(int n) => n.toString().padLeft(2, '0');
 String dateTimeLabel(DateTime d) => '${two(d.day)}/${two(d.month)}/${d.year} ${two(d.hour)}:${two(d.minute)}';
 String timeLabel(DateTime d) => '${two(d.hour)}:${two(d.minute)}';
+String dayLabel(DateTime d) => '${two(d.day)}/${two(d.month)}/${d.year}';
 
 /// Texto del ticket para mandar por WhatsApp. (La versión en imagen PNG viene después.)
 String ticketText({
@@ -13,6 +14,7 @@ String ticketText({
   int? newBalanceCents,
   bool watermark = false,
   String? place,
+  List<SaleReturn> returns = const [],
 }) {
   final b = StringBuffer()
     ..writeln('*$business*')
@@ -41,6 +43,10 @@ String ticketText({
   } else {
     b.writeln('A cuenta de ${customerName ?? 'cliente'}');
     if (newBalanceCents != null) b.writeln('Saldo pendiente: ${money(newBalanceCents)}');
+  }
+  if (returns.isNotEmpty) b.writeln('');
+  for (final r in returns) {
+    b.writeln('Devolución ${dayLabel(r.createdAt)}: ${r.summary}  -${money(r.amountCents)}');
   }
   if (sale.cancelled) {
     b

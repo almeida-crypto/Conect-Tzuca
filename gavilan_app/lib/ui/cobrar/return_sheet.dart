@@ -11,13 +11,20 @@ import '../widgets/common.dart';
 typedef ReturnRequest = ({Map<int, double> back, String reason});
 
 /// Hoja para devolver parte de una venta: se elige cuánto regresa de cada producto.
-Future<ReturnRequest?> showReturnSheet(BuildContext context, Sale sale) =>
-    showGSheet<ReturnRequest>(context, (_) => _ReturnSheet(sale: sale));
+/// [late]: la venta es de un corte ya cerrado; [earlier] son sus devoluciones de antes (no se devuelve dos veces).
+Future<ReturnRequest?> showReturnSheet(
+  BuildContext context,
+  Sale sale, {
+  bool late = false,
+  List<SaleReturn> earlier = const [],
+}) => showGSheet<ReturnRequest>(context, (_) => _ReturnSheet(sale: sale, late: late, earlier: earlier));
 
 class _ReturnSheet extends StatefulWidget {
-  const _ReturnSheet({required this.sale});
+  const _ReturnSheet({required this.sale, required this.late, required this.earlier});
 
   final Sale sale;
+  final bool late;
+  final List<SaleReturn> earlier;
 
   @override
   State<_ReturnSheet> createState() => _ReturnSheetState();
@@ -28,11 +35,25 @@ class _ReturnSheetState extends State<_ReturnSheet> {
   static const _reasons = ['Producto en mal estado', 'Se equivocó de producto', 'Ya no lo quiso'];
   String _reason = _reasons.first;
 
+  /// Lo que ya se devolvió de cada renglón (por su clave).
+  late final Map<String, double> _already = () {
+    final out = <String, double>{};
+    for (final r in widget.earlier) {
+      for (final l in r.lines) {
+        out[l.key] = (out[l.key] ?? 0) + l.qty;
+      }
+    }
+    return out;
+  }();
+
+  /// Lo que todavía se puede devolver del renglón.
+  double _left(SaleLine l) => (l.qty - (_already[l.key] ?? 0)).clamp(0, l.qty).toDouble();
+
   /// Piezas enteras de una en una; lo que va por kilo (con decimales) se regresa completo o nada.
-  double _step(SaleLine l) => l.qty == l.qty.roundToDouble() ? 1 : l.qty;
+  double _step(SaleLine l) => _left(l) == _left(l).roundToDouble() ? 1 : _left(l);
 
   void _change(int i, SaleLine l, double delta) =>
-      setState(() => _back[i] = ((_back[i] ?? 0) + delta).clamp(0, l.qty).toDouble());
+      setState(() => _back[i] = ((_back[i] ?? 0) + delta).clamp(0, _left(l)).toDouble());
 
   @override
   Widget build(BuildContext context) {
@@ -43,8 +64,19 @@ class _ReturnSheetState extends State<_ReturnSheet> {
       refund += ((_back[i] ?? 0) * l.unitCents * factor).round();
     }
     final any = _back.values.any((v) => v > 0);
+    // De otro día: el efectivo sale de la caja de hoy; lo demás (tarjeta o transferencia), fuera de la caja.
+    final cashLeft = sale.kind == SaleKind.pagada
+        ? (sale.cashCents - widget.earlier.fold<int>(0, (a, r) => a + r.cashCents)).clamp(0, sale.cashCents)
+        : 0;
+    final lateCash = refund < cashLeft ? refund : cashLeft;
     final howBack = sale.kind == SaleKind.fiada
         ? 'Se le quitan ${money(refund)} de la deuda.'
+        : widget.late
+        ? [
+            if (lateCash > 0) 'Devuélvele ${money(lateCash)} en efectivo: se anotan como gasto en la caja de hoy.',
+            if (refund - lateCash > 0)
+              'Devuélvele ${money(refund - lateCash)} por tarjeta o transferencia; la app solo lo anota.',
+          ].join(' ')
         : sale.split
         ? 'Devuélvele ${money(refund)}, primero de lo que pagó en efectivo.'
         : sale.method == PayMethod.efectivo
@@ -56,7 +88,9 @@ class _ReturnSheetState extends State<_ReturnSheet> {
       children: [
         SheetHeader('Devolver productos', caption: 'Venta ${sale.folioLabel}'),
         Text(
-          'Marca lo que regresa el cliente. Lo demás se queda como una venta nueva con su propio folio.',
+          widget.late
+              ? 'Es de un corte ya cerrado, que no cambia. Marca lo que regresa el cliente.'
+              : 'Marca lo que regresa el cliente. Lo demás se queda como una venta nueva con su propio folio.',
           style: GText.sans(size: 13, weight: FontWeight.w400, color: GColors.tintaSuave),
         ),
         const SizedBox(height: 10),
@@ -73,7 +107,12 @@ class _ReturnSheetState extends State<_ReturnSheet> {
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       Text(l.name, style: GText.sans(size: 14, weight: FontWeight.w700)),
-                      Text('Compró ${qtyLabel(l.qty)} · ${money(l.unitCents)} c/u', style: GText.muted(size: 12.5)),
+                      Text(
+                        (_already[l.key] ?? 0) > 0
+                            ? 'Compró ${qtyLabel(l.qty)} · ya devolvió ${qtyLabel(_already[l.key]!)}'
+                            : 'Compró ${qtyLabel(l.qty)} · ${money(l.unitCents)} c/u',
+                        style: GText.muted(size: 12.5),
+                      ),
                     ],
                   ),
                 ),
@@ -92,7 +131,7 @@ class _ReturnSheetState extends State<_ReturnSheet> {
                 ),
                 IconButton(
                   tooltip: 'Regresa uno más',
-                  onPressed: (_back[i] ?? 0) < l.qty ? () => _change(i, l, _step(l)) : null,
+                  onPressed: (_back[i] ?? 0) < _left(l) ? () => _change(i, l, _step(l)) : null,
                   icon: const Icon(Icons.add_circle_outline_rounded),
                 ),
               ],

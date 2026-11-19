@@ -1,4 +1,5 @@
 import '../domain/business.dart';
+import '../core/labels.dart';
 import '../core/limits.dart';
 import '../core/money.dart';
 
@@ -210,6 +211,19 @@ abstract class _StoreCore extends Notifier<StoreState> {
     _save((r) => r.upsertProduct(product, isNew: isNew));
   }
 
+  /// Les pone código a los productos que no traen, para imprimir sus etiquetas: un EAN-13 interno que
+  /// empieza con 20 (no choca con los de marca). Se guarda en el producto, así el lector los encuentra.
+  void giveCodes(Iterable<String> productIds) {
+    final taken = {for (final p in state.products) ?p.barcode};
+    for (final id in productIds) {
+      final p = state.productById(id);
+      if (p == null || (p.barcode ?? '').isNotEmpty) continue;
+      final code = newInternalCode(taken);
+      taken.add(code);
+      saveProduct(p.copyWith(barcode: code));
+    }
+  }
+
   /// Suma (o con [adjustment], corrige) la existencia de un producto.
   void addStock(String productId, double qty, {bool adjustment = false}) {
     final current = state.productById(productId);
@@ -322,9 +336,13 @@ abstract class _StoreCore extends Notifier<StoreState> {
       inSession: late ? open!.id : null,
     );
 
+    // Lo que ya se devolvió en otro día ya regresó al inventario y al cliente: no se cuenta dos veces.
+    final returned = state.returnedOf(sale.id);
+    final earlier = state.returnsOf(sale.id);
     final back = <String, double>{};
     for (final l in sale.lines) {
-      if (l.productId != null) back[l.productId!] = (back[l.productId!] ?? 0) + l.qty;
+      final left = l.qty - (returned[l.key] ?? 0);
+      if (l.productId != null && left > 0.0001) back[l.productId!] = (back[l.productId!] ?? 0) + left;
     }
     final restocked = [
       for (final p in state.products)
@@ -337,7 +355,7 @@ abstract class _StoreCore extends Notifier<StoreState> {
             id: newId(),
             customerId: sale.customerId!,
             type: CreditType.cancelacion,
-            amountCents: sale.totalCents,
+            amountCents: sale.totalCents - earlier.fold<int>(0, (a, r) => a + r.amountCents),
             createdAt: now,
             saleId: sale.id,
             sessionId: late ? open!.id : sale.sessionId,
@@ -350,10 +368,101 @@ abstract class _StoreCore extends Notifier<StoreState> {
     );
     _save((r) => r.cancelSale(sale: cancelled, restocked: restocked, reversal: reversal));
     // Lo que se le regresa en efectivo sale de la caja de hoy.
-    if (late && sale.kind == SaleKind.pagada && sale.cashCents > 0) {
-      addMovement(CashKind.gasto, sale.cashCents, 'Devolución de la venta ${sale.folioLabel}');
+    final cashBack = sale.cashCents - earlier.fold<int>(0, (a, r) => a + r.cashCents);
+    if (late && sale.kind == SaleKind.pagada && cashBack > 0) {
+      addMovement(CashKind.gasto, cashBack, 'Devolución de la venta ${sale.folioLabel}');
     }
     return cancelled;
+  }
+
+  /// Devolución de una parte de una venta de un corte ya cerrado. Ese corte no cambia: lo devuelto vuelve al
+  /// inventario, el efectivo sale de la caja abierta de hoy (como gasto) y, si fue fiada, se le quita de la
+  /// deuda. Se puede devolver varias veces, hasta lo que compró. Si regresa todo lo que quedaba y no había
+  /// devuelto nada antes, mejor se cancela la venta. null si no se pudo (sin caja abierta, nada que devolver).
+  SaleReturn? returnFromPastSale(String saleId, Map<int, double> back, {required String reason}) {
+    final sale = state.sales.where((s) => s.id == saleId).firstOrNull;
+    final open = state.openSession;
+    if (sale == null || sale.cancelled || open == null || state.sessionIsOpen(sale.sessionId)) return null;
+    final already = state.returnedOf(sale.id);
+    final earlier = state.returnsOf(sale.id);
+    // El descuento de la venta se reparte: cada peso devuelto vale lo que se cobró por él.
+    final factor = sale.subtotalCents == 0 ? 1.0 : sale.totalCents / sale.subtotalCents;
+    final lines = <ReturnedLine>[];
+    var everything = true;
+    for (final (i, l) in sale.lines.indexed) {
+      final left = l.qty - (already[l.key] ?? 0);
+      final r = (back[i] ?? 0).clamp(0, left < 0 ? 0 : left).toDouble();
+      if (left - r > 0.0001) everything = false;
+      if (r <= 0) continue;
+      lines.add(
+        ReturnedLine(
+          key: l.key,
+          productId: l.productId,
+          name: l.name,
+          qty: r,
+          amountCents: (r * l.unitCents * factor).round(),
+        ),
+      );
+    }
+    if (lines.isEmpty) return null;
+    final why = reason.trim().isEmpty ? 'Devolución' : reason.trim();
+    if (everything && earlier.isEmpty) {
+      cancelSale(saleId, reason: 'Devolvió todo: $why');
+      return null;
+    }
+    // Lo que se devuelve no pasa de lo que falta por devolver del total (por los centavos del redondeo).
+    final leftCents = sale.totalCents - earlier.fold<int>(0, (a, r) => a + r.amountCents);
+    var amount = lines.fold<int>(0, (a, l) => a + l.amountCents);
+    if (everything || amount > leftCents) amount = leftCents;
+    // Pagada: primero de lo que pagó en efectivo (como al devolver el mismo día).
+    final cashLeft = sale.kind == SaleKind.pagada
+        ? sale.cashCents - earlier.fold<int>(0, (a, r) => a + r.cashCents)
+        : 0;
+    final cash = amount < cashLeft ? amount : (cashLeft < 0 ? 0 : cashLeft);
+    final now = _now();
+    final ret = SaleReturn(
+      id: newId(),
+      saleId: sale.id,
+      sessionId: open.id,
+      lines: lines,
+      amountCents: amount,
+      cashCents: cash,
+      reason: why,
+      clerk: _clerkName,
+      createdAt: now,
+    );
+    final backByProduct = <String, double>{};
+    for (final l in lines) {
+      if (l.productId != null) backByProduct[l.productId!] = (backByProduct[l.productId!] ?? 0) + l.qty;
+    }
+    final restocked = [
+      for (final p in state.products)
+        if (p.trackStock && backByProduct.containsKey(p.id)) p.copyWith(stock: p.stock + backByProduct[p.id]!),
+    ];
+    final byId = {for (final p in restocked) p.id: p};
+    final reversal = sale.kind == SaleKind.fiada && sale.customerId != null
+        ? CreditEntry(
+            id: newId(),
+            customerId: sale.customerId!,
+            type: CreditType.cancelacion,
+            amountCents: amount,
+            createdAt: now,
+            saleId: sale.id,
+            sessionId: open.id,
+            clerk: _clerkName,
+          )
+        : null;
+    state = state.copyWith(
+      saleReturns: [...state.saleReturns, ret],
+      products: [for (final p in state.products) byId[p.id] ?? p],
+      credit: reversal == null ? null : [...state.credit, reversal],
+    );
+    _save((r) => r.recordReturn(ret: ret, restocked: restocked, reversal: reversal));
+    if (cash > 0) {
+      final note = 'Devolución de la venta ${sale.folioLabel}: ${ret.summary}';
+      addMovement(CashKind.gasto, cash, note.length > 120 ? '${note.substring(0, 117)}...' : note);
+    }
+    return ret;
   }
 
   /// Devolución de una parte: [back] dice cuánto regresa de cada renglón (por posición).

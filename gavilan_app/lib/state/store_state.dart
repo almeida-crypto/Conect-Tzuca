@@ -5,6 +5,7 @@ part of 'store.dart';
 class StoreState {
   const StoreState({
     this.photos = const {},
+    this.saleReturns = const [],
     this.logoPath,
     this.device,
     this.registerName,
@@ -62,6 +63,28 @@ class StoreState {
 
   /// Bytes de la foto de un producto, si ya está aquí.
   Uint8List? photoOf(Product p) => p.photoPath == null ? null : photos[p.photoPath];
+
+  /// Bytes de la foto de un apartado, si ya está aquí.
+  Uint8List? photoOfLayaway(Layaway l) => l.photoPath == null ? null : photos[l.photoPath];
+
+  /// Devoluciones de ventas de cortes ya cerrados (las del mismo turno rehacen la venta).
+  final List<SaleReturn> saleReturns;
+
+  List<SaleReturn> returnsOf(String saleId) => [
+    for (final r in saleReturns)
+      if (r.saleId == saleId) r,
+  ];
+
+  /// Cuánto ya se devolvió de cada renglón de la venta (por su clave).
+  Map<String, double> returnedOf(String saleId) {
+    final out = <String, double>{};
+    for (final r in returnsOf(saleId)) {
+      for (final l in r.lines) {
+        out[l.key] = (out[l.key] ?? 0) + l.qty;
+      }
+    }
+    return out;
+  }
 
   /// Ruta en la nube del logo del negocio (va en la misma carpeta que las fotos). null = sin logo.
   final String? logoPath;
@@ -454,6 +477,7 @@ class StoreState {
 
   StoreState copyWith({
     Map<String, Uint8List>? photos,
+    List<SaleReturn>? saleReturns,
     String? logoPath,
     bool clearLogo = false,
     String? device,
@@ -490,6 +514,7 @@ class StoreState {
     int? nextFolio,
   }) => StoreState(
     photos: photos ?? this.photos,
+    saleReturns: saleReturns ?? this.saleReturns,
     logoPath: clearLogo ? null : (logoPath ?? this.logoPath),
     device: device ?? this.device,
     registerName: clearRegisterName ? null : (registerName ?? this.registerName),

@@ -2,7 +2,7 @@ import '../../core/limits.dart';
 
 import 'package:flutter/material.dart';
 
-import '../../core/ticket_text.dart';
+export '../../core/ticket_text.dart' show dayLabel;
 import '../../theme/colors.dart';
 import '../../theme/theme.dart';
 
@@ -64,8 +64,6 @@ class ProgressStrip extends StatelessWidget {
     );
   }
 }
-
-String dayLabel(DateTime d) => '${two(d.day)}/${two(d.month)}/${d.year}';
 
 /// "en 3 días", "hoy", "venció hace 2 días".
 String dueLabel(DateTime due, DateTime now) {

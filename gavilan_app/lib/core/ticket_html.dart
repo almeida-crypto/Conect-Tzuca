@@ -16,6 +16,7 @@ String ticketHtml({
   bool watermark = false,
   String? place,
   Uint8List? logo,
+  List<SaleReturn> returns = const [],
 }) {
   final paid = sale.kind == SaleKind.pagada;
   final rows = StringBuffer();
@@ -49,6 +50,12 @@ String ticketHtml({
   } else {
     row('Cliente', customerName ?? '');
     row('Saldo pendiente', money(newBalanceCents ?? 0));
+  }
+  if (returns.isNotEmpty) {
+    rows.writeln('<tr class="sep"><td colspan="2"></td></tr>');
+    for (final r in returns) {
+      row('Devolución ${dayLabel(r.createdAt)}: ${r.summary}', '-${money(r.amountCents)}');
+    }
   }
 
   return '''<!doctype html>

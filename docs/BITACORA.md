@@ -943,3 +943,26 @@ Se abren desde **Más → Módulos** con el plan Emprendedor o superior. Los tre
 - Se guarda con las fotos (tabla `product_photos` con id `logo`), su ruta en `businesses.logo_path` (la columna ya existía) y se sube al bucket `product-photos` como `<negocio>/logo-<hora>.png`. Los otros celulares lo bajan al respaldar; quitarlo también llega a ellos. Al enlazar un negocio que ya tenía logo, se sube.
 - Migración **0025**: el bucket acepta también PNG.
 - Pruebas: `logo_test.dart` (HTML con y sin logo, planes, `prepareLogo` con un PNG transparente, guardar y quitar al reabrir) y una nueva en `sync_test.dart` (un celular lo sube, el otro lo baja y lo quita). 133 pruebas pasan, `flutter analyze` sin avisos. Revisado a ojo el ticket en pantalla, la tarjeta de Más y el ticket impreso (Edge).
+
+### Foto del apartado
+- Al dar de alta un apartado hay "Foto del artículo" (opcional) y en su detalle se ve grande (tocarla la abre para acercar), con "Cambiar foto" o "Agregar foto del artículo". En la lista sale chiquita junto a la descripción. "Mandar comprobante" manda la foto con el texto.
+- La foto va como las de producto (600×600 JPEG) en el bucket `product-photos`, como `<negocio>/layaway-<apartado>-<hora>.jpg`, y su ruta en `layaways.photo_path` (la columna ya existía). Los otros celulares la bajan al respaldar.
+- Migración **0026**: el cajero también puede subir estas fotos (los apartados los registra él); las de producto y el logo siguen siendo solo del dueño y el administrador. Probado en la base: cajero sube la del apartado, no la de producto ni el logo; el mesero no sube.
+- El selector de foto (cámara, galería, quitar) quedó en `ui/widgets/photo_picker.dart`, junto con el visor en grande; la ficha de producto lo usa también.
+- Base local **v16**: `layaways.photoPath`.
+
+### Etiquetas con código de barras
+- En **Inventario → Etiquetas** (dueño y administrador): se eligen los productos y cuántas de cada uno ("Una de cada uno" de golpe), con o sin precio, en **hoja carta** (30 por hoja, 66.7×25.4 mm, como las de papelería) o **rollo 50×25 mm** para impresora de etiquetas. Sale un PDF: en el celular se comparte (guardar, imprimir, WhatsApp); en la computadora se descarga.
+- A los productos sin código se les crea uno al hacer el PDF (con aviso): EAN-13 que empieza con 20, el rango para uso interno de las tiendas, y se guarda en el producto para que el lector lo encuentre.
+- Las barras salen en EAN-13, EAN-8, UPC-A o Code 128 según el código. Paquete nuevo: `pdf`. Revisado a ojo el PDF (3 columnas × 10 renglones y el rollo).
+
+### Devolver parte de una venta de otro día
+- En el ticket de una venta de un corte ya cerrado ahora también sale "Devolver algunos productos". Ese corte no cambia: queda una **devolución** con lo que regresó; la mercancía vuelve al inventario; el efectivo sale como gasto de la caja abierta de hoy (primero del efectivo, si pagó en partes; lo de tarjeta o transferencia la app solo lo anota) y, si fue fiada, se le quita de la deuda. Lo devuelto vale lo que se cobró (con su parte del descuento).
+- Se puede devolver varias veces hasta lo que compró; la hoja dice "ya devolvió 1". Regresar todo de una vez es cancelar la venta. Si después se cancela, solo se regresa lo que quedaba (inventario, efectivo y deuda).
+- El ticket (pantalla, impreso y texto) muestra "DEVOLUCIÓN <día>" con lo devuelto.
+- Migración **0027**: tabla `sale_returns` (renglones en JSON). La suben solo el dueño y el administrador (como cancelar de otro día); el cajero la ve; la venta tiene que ser del mismo negocio. Probado en la base con dueño, cajero y mesero simulados.
+- Base local **v16**: tabla `sale_returns`. Se baja con las demás (`pullTables`).
+
+### Verificación
+- `flutter analyze` sin avisos y 145 pruebas pasan. Nuevas: `labels_test.dart` (cifra de control, código interno, tipo de barras, crear códigos, PDF), `late_return_test.dart` (efectivo, descuento y pagos en partes, fiada, regresar todo, cancelar después, guardar al reabrir) y en `sync_test.dart` (el cajero aparta con foto y el dueño la ve; el mesero y el cajero no suben lo que no les toca; una devolución pasa a otro celular).
+- Revisado a ojo: pantalla de etiquetas, apartado con foto, ticket con devolución y la hoja de devolver.

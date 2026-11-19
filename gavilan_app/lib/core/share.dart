@@ -1,3 +1,4 @@
+import 'dart:typed_data';
 import 'dart:ui' as ui;
 
 import 'package:flutter/material.dart';
@@ -13,6 +14,21 @@ Future<void> shareText(BuildContext context, String text) async {
     messenger.showSnackBar(
       const SnackBar(content: Text('No se pudo abrir el menú para compartir en este dispositivo.')),
     );
+  }
+}
+
+/// Manda un texto con una foto (en WhatsApp la foto lleva el texto al pie). Si no se puede, solo el texto.
+Future<void> shareTextWithImage(BuildContext context, String text, Uint8List image, {required String fileName}) async {
+  try {
+    await SharePlus.instance.share(
+      ShareParams(
+        text: text,
+        files: [XFile.fromData(image, mimeType: 'image/jpeg', name: fileName)],
+        fileNameOverrides: [fileName],
+      ),
+    );
+  } catch (_) {
+    if (context.mounted) await shareText(context, text);
   }
 }
 

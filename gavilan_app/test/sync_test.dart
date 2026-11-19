@@ -617,6 +617,85 @@ void main() {
     expect(b.state.productById('coca')!.photoPath, isNull);
   });
 
+  test('el cajero aparta con foto: se sube y el dueño la ve; el mesero no puede subirla', () async {
+    final owner = await phone(device: 'K7');
+    await _setUpShop(owner);
+    await owner.login('mary@correo.mx');
+    await owner.settle();
+    final code = await owner.sync.createInvite(MemberRole.cashier, 'Juan');
+    final cashier = await phone(device: 'R3');
+    await cashier.sync.signIn('juan@correo.mx', 'secreta1');
+    await cashier.sync.joinWithCode(code);
+    await cashier.settle();
+
+    final customer = cashier.store.addCustomer('Doña Rosa');
+    final jpeg = Uint8List.fromList(List.generate(120, (i) => i));
+    final l = cashier.store.addLayaway(
+      customerId: customer.id,
+      description: 'Vestido azul talla M',
+      totalCents: 45000,
+      depositCents: 10000,
+      photo: jpeg,
+    );
+    expect(l.photoPath, startsWith('${cashier.state.businessId}/layaway-${l.id}-'));
+    expect(cashier.state.photoOfLayaway(l), jpeg);
+    await cashier.settle();
+    expect(cashier.status.pending, 0);
+    expect(server.storage[l.photoPath], jpeg);
+    expect(server.table('layaways')[l.id]!['photo_path'], l.photoPath);
+
+    await owner.settle();
+    final seen = owner.state.layawayById(l.id)!;
+    expect(owner.state.photoOfLayaway(seen), jpeg);
+
+    // Otra foto: el dueño baja la nueva.
+    final second = Uint8List.fromList(List.filled(80, 3));
+    cashier.store.setLayawayPhoto(l.id, second);
+    await cashier.settle();
+    await owner.settle();
+    expect(owner.state.photoOfLayaway(owner.state.layawayById(l.id)!), second);
+
+    // Un mesero no sube fotos (en Supabase lo niega la regla del almacenamiento).
+    final waiterCode = await owner.sync.createInvite(MemberRole.waiter, 'Luis');
+    final waiter = await phone(device: 'M1');
+    await waiter.sync.signIn('luis@correo.mx', 'secreta1');
+    await waiter.sync.joinWithCode(waiterCode);
+    await waiter.settle();
+    await expectLater(
+      waiter.remote.uploadPhoto('${owner.state.businessId}/layaway-x-1.jpg', jpeg),
+      throwsA(isA<SyncException>()),
+    );
+    // Y el cajero no sube fotos de producto.
+    await expectLater(
+      cashier.remote.uploadPhoto('${owner.state.businessId}/coca-1.jpg', jpeg),
+      throwsA(isA<SyncException>()),
+    );
+  });
+
+  test('una devolución de otro día se sube y el otro celular la ve', () async {
+    final a = await phone(device: 'K7');
+    await _setUpShop(a);
+    await a.login('mary@correo.mx');
+    await a.settle();
+    final sale = a.sell('coca', 3);
+    a.store.closeCash(a.state.summaryFor(a.state.openSession!).expectedCashCents);
+    a.store.openCash(0);
+    final ret = a.store.returnFromPastSale(sale.id, {0: 1}, reason: 'Mal estado')!;
+    await a.settle();
+    expect(a.status.pending, 0);
+    final row = server.table('sale_returns')[ret.id]!;
+    expect(row['sale_id'], sale.id);
+    expect((row['lines']! as List).single, containsPair('qty', 1.0));
+
+    final b = await phone(device: 'R3');
+    await b.login('mary@correo.mx');
+    await b.settle();
+    final seen = b.state.returnsOf(sale.id).single;
+    expect(seen.amountCents, ret.amountCents);
+    expect(b.state.returnedOf(sale.id)['coca'], 1);
+    expect(b.state.productById('coca')!.stock, a.state.productById('coca')!.stock);
+  });
+
   test('el logo del negocio se sube y el otro celular lo baja', () async {
     final a = await phone(device: 'K7');
     await _setUpShop(a);
