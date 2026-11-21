@@ -17,6 +17,7 @@ String ticketHtml({
   String? place,
   Uint8List? logo,
   List<SaleReturn> returns = const [],
+  ({String folio, int cents})? exchange,
 }) {
   final paid = sale.kind == SaleKind.pagada;
   final rows = StringBuffer();
@@ -37,7 +38,16 @@ String ticketHtml({
     row('Total pagado', money(sale.paidCents), strong: true);
   }
   rows.writeln('<tr class="sep"><td colspan="2"></td></tr>');
-  if (paid && sale.split) {
+  if (paid && exchange != null) {
+    final diff = sale.totalCents - exchange.cents;
+    row('Regresó (venta ${exchange.folio})', '-${money(exchange.cents)}');
+    if (diff > 0) {
+      row('Pagó la diferencia', money(diff), strong: true);
+      row('Pago', (sale.split ? sale.payments.last.method : sale.method ?? PayMethod.efectivo).label);
+    } else if (diff < 0) {
+      row('Se le devolvió', money(-diff), strong: true);
+    }
+  } else if (paid && sale.split) {
     for (final p in sale.payments) {
       row(p.method.label, money(p.amountCents));
     }
@@ -58,7 +68,10 @@ String ticketHtml({
   if (returns.isNotEmpty) {
     rows.writeln('<tr class="sep"><td colspan="2"></td></tr>');
     for (final r in returns) {
-      row('Devolución ${dayLabel(r.createdAt)}: ${r.summary}', '-${money(r.amountCents)}');
+      row(
+        '${r.isExchange ? 'Cambio' : 'Devolución'} ${dayLabel(r.createdAt)}: ${r.summary}',
+        '-${money(r.amountCents)}',
+      );
     }
   }
 

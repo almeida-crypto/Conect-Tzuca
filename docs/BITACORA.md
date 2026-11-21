@@ -1084,3 +1084,63 @@ Hasta hoy los límites de cada plan solo los cuidaba la app (decisión 65: se de
 
 ### Verificación
 - `flutter analyze` sin avisos y 185 pruebas pasan (11 nuevas de migración; el plan que llega de la nube y el mensaje de rechazo en `sync_test.dart`). Avisos de Supabase: solo los de siempre.
+
+## 20/11/2026 — Apartados para zapaterías y tiendas de ropa
+
+El usuario preguntó por los apartados de una zapatería o tienda de ropa (distintos del fiado de la tiendita). Ya había apartados (anticipo, abonos, fecha, comprobante); se agregó lo que les faltaba. Todo viene apagado o igual que antes hasta que alguien lo usa.
+
+### Tallas y colores
+- En la ficha del producto, "Tiene tallas o colores" (apagado; no sale en restaurante ni comida por encargo). Se escriben las tallas con comas o con un toque (Zapato dama, caballero, niño, Ropa, Ropa niño, Pantalón) y, si se quiere, los colores. Sale una fila por combinación para escribir cuántas hay (o cuántas llegaron, si ya existía).
+- Cada talla es un producto con su existencia, código y ventas, que apunta a su modelo (`parent_id`). Se llama "Tenis Runner · 26 · Negro" en la cuenta, el ticket y los reportes. Precio, costo, icono y foto son los del modelo.
+- El modelo no se vende solo: en Cobrar sale una vez con todas sus piezas y al tocarlo se escoge la talla (agotadas en rojo). En Inventario sale con el total y las tallas que se acaban. En Etiquetas sale cada talla para ponerle su código.
+- Quitar una talla de la lista la oculta (sus ventas siguen). Un producto suelto que pasa a tener tallas reparte su existencia en ellas.
+- Para el límite del plan cuenta el modelo, no cada talla (en la app y en el servidor). Hasta 80 combinaciones por modelo.
+
+### Apartar del inventario
+- "Nuevo apartado" → "Del inventario": se busca el producto y la talla. La pieza sale de la existencia (queda guardada para el cliente) y en Inventario se ve "1 apartada". El precio se llena solo (se puede bajar: dice el descuento). Se puede seguir escribiendo a mano lo que no está en inventario.
+- Si se cancela, las piezas regresan. En el servidor es `inventory_movements` con razón `layaway` (sale y regresa sin pisar a otros celulares).
+
+### Reglas del apartado (las pone el dueño)
+- Apartados → "Reglas": plazo para liquidar (15 a 90 días o sin fecha), anticipo mínimo (10% a 50%), qué pasa si cancela y condiciones para el comprobante. Sin configurar es como siempre (30 días, decidir cada vez).
+- Al cancelar: se devuelve todo, se devuelve menos un porcentaje, se queda el anticipo, no se devuelve nada, o queda como saldo a favor. Con "decidirlo cada vez" se escoge al cancelar.
+- Lo que se devuelve en efectivo sale de la caja abierta como gasto ("Devolución de apartado · cliente"); sin caja abierta se puede devolver por transferencia. El apartado guarda cuánto se devolvió y cuánto quedó a favor.
+- Saldo a favor: se usa como anticipo de otro apartado del mismo cliente; no vuelve a entrar a la caja (ese dinero ya había entrado). Si alcanza para todo, queda liquidado en el momento y se entrega.
+- Las reglas salen en el comprobante y van en `businesses.layaway_rules`; las ve todo el equipo, las cambian dueño y administradores.
+
+### Entregado y recordatorios
+- Liquidado ya no es el final: queda "Por entregar" hasta que se toca "Ya se lo llevó". Pestañas: Activos, Por entregar, Entregados y Cancelados.
+- Al apartar se puede decir cada cuánto abona (semana, quincena, mes). Arriba de la lista sale "Por avisar hoy": se acerca la fecha (3 días), ya pasó, le toca abonar o ya puede recogerlo. "Avisar" abre WhatsApp con el mensaje listo y no se vuelve a sugerir en dos días.
+
+### Base y pruebas
+- Base del teléfono v20 (columnas nuevas en productos, apartados y abonos; tabla `layaway_items`). La 1.12.0 salió con la v19: se agregó a la prueba de actualizar bases viejas, con un apartado de antes.
+- Migración `0034_variants_layaway_items` en la nube. Probado en el servidor (y deshecho): apartar descuenta la pieza, Semilla no deja apartar, una talla nueva no cuenta como producto, reglas mal formadas se rechazan. Avisos de Supabase: los de siempre.
+- `flutter analyze` sin avisos y 204 pruebas pasan (16 nuevas en `apartados_tallas_test.dart`, una de sincronización con dos celulares y la de migración).
+
+## 20/11/2026 — Cambio de talla, compras a proveedores y conteo de inventario
+
+### Cambio de talla (o de producto)
+- En el ticket de una venta pagada: "Cambiar por otra talla o producto". Se marca lo que regresa y lo que se lleva; si lo que regresa es una talla, sale "Otra talla de Tenis Runner" para escoger con un toque (las agotadas no se pueden).
+- Lo que regresa vuelve al inventario y paga parte de lo nuevo: solo se cobra la diferencia (en efectivo, tarjeta o transferencia) o, si lo nuevo vale menos, se le devuelve del efectivo de la caja.
+- Se guarda como una devolución ligada a la venta nueva (`exchange_sale_id`). La venta nueva tiene su folio y su ticket dice "Regresó (venta X) / Pagó la diferencia"; también al imprimir y por WhatsApp.
+- En la caja sale el renglón "Cambios de mercancía": lo que regresó entra como efectivo a la venta nueva y sale igual, así el cajón solo cambia por la diferencia. "Total vendido" no cuenta dos veces. En Reportes, "Formas de pago" lo muestra como "Cambio de mercancía", no como efectivo.
+- El cajero puede hacer cambios; devolver dinero lo autoriza el dueño (o con su PIN). El servidor solo acepta del cajero un cambio donde lo devuelto no vale más que la venta nueva.
+- Una venta del turno abierto que ya tuvo un cambio no se cancela ni se devuelve (se corrige la venta nueva): si no, el dinero contaría dos veces.
+- Solo ventas pagadas (no fiadas) y con la caja abierta.
+
+### Compras a proveedores (módulo nuevo, apagado; plan Emprendedor en adelante)
+- Más → Lo que uso → "Compras a proveedores". Pantalla con lo que se debe a proveedores, la lista de proveedores y las últimas compras.
+- "Llegó mercancía": proveedor (opcional), productos (con talla), cuántos y a cómo. Entra al inventario y, si se deja marcado, el costo de cada producto queda como el de esta compra (en un modelo con tallas, el de todas). Se dice cuánto se pagó (todo, una parte o nada) y cómo; en efectivo puede salir de la caja.
+- Cada proveedor: lo que se le debe, sus compras y pagos, "Registrar pago" y mandar su cuenta por WhatsApp.
+- En la caja: "Pagos a proveedores" (lo que salió del cajón). No es gasto: es mercancía.
+- Solo dueño y administradores (el cajero ni lo ve; en el servidor tampoco).
+
+### Conteo de inventario
+- Inventario → "Contar": lista de lo que lleva existencia (las tallas, no los modelos). Se cuenta con el lector (cada código suma uno), con la cámara (modo "Contar inventario"), con el botón +1 o escribiendo cuántos hay.
+- Lo contado se guarda en el aparato mientras tanto (se puede cerrar la app y seguir). Filtros: Todos, Contados y Distintos.
+- "Ajustar": lo contado queda como existencia; lo que no se contó no cambia. Sale qué faltó y qué sobró, a costo, y se puede mandar por WhatsApp. Los conteos quedan en "Conteos anteriores".
+- En la nube: `stock_counts` y movimientos `adjustment`.
+
+### Base y pruebas
+- Base del teléfono v21 (devoluciones con cambio; proveedores, compras, pagos y conteos). Migración `0035_exchanges_purchases_counts` en la nube.
+- Probado en el servidor (y deshecho): el dueño registra compras y conteos; el cajero hace un cambio sin devolver dinero, pero no uno con devolución, ni devoluciones normales, ni ve o crea proveedores; Semilla no tiene compras. Avisos de Supabase: los de siempre.
+- `flutter analyze` sin avisos y 217 pruebas pasan (12 nuevas en `cambios_compras_conteo_test.dart` y una de sincronización con dueño y cajero).

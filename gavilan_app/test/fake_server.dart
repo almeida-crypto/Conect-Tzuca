@@ -214,8 +214,17 @@ class FakeRemote implements SyncRemote {
       throw const SyncException(SyncFailure.rejected, 'RLS: floor_items');
     }
     // Como 0027: las devoluciones de otro día solo el dueño y el administrador.
+    // Como 0035: el cajero solo sube cambios en los que no sale dinero (lo devuelto no vale más que lo nuevo).
     if (table == 'sale_returns' && !{MemberRole.owner, MemberRole.admin}.contains(role)) {
-      throw const SyncException(SyncFailure.rejected, 'RLS: sale_returns');
+      for (final r in rows) {
+        final sale = server.table('sales')[r['exchange_sale_id']];
+        final ok = role == MemberRole.cashier && sale != null && (r['amount']! as num) <= (sale['total']! as num);
+        if (!ok) throw const SyncException(SyncFailure.rejected, 'RLS: sale_returns');
+      }
+    }
+    // Como 0035: proveedores, compras, pagos y conteos solo dueño y administrador.
+    if (_bossTables.contains(table) && !{MemberRole.owner, MemberRole.admin}.contains(role)) {
+      throw SyncException(SyncFailure.rejected, 'RLS: $table');
     }
     // Como 0015: lo ya guardado de ventas, fiados y movimientos solo lo cambian dueño y administrador
     // (volver a subirlo igual sí se puede), y un corte cerrado tampoco lo cambia el cajero.
@@ -249,6 +258,7 @@ class FakeRemote implements SyncRemote {
     if (_moneyTables.contains(table) && !{MemberRole.owner, MemberRole.admin, MemberRole.cashier}.contains(role)) {
       return [];
     }
+    if (_bossTables.contains(table) && !{MemberRole.owner, MemberRole.admin}.contains(role)) return [];
     final all =
         server
             .rows(table)
@@ -259,6 +269,8 @@ class FakeRemote implements SyncRemote {
     return all.skip(offset).take(limit).map((r) => Map<String, Object?>.from(r)).toList();
   }
 }
+
+const _bossTables = {'suppliers', 'purchases', 'supplier_payments', 'stock_counts'};
 
 const _ledgerTables = {
   'sales',

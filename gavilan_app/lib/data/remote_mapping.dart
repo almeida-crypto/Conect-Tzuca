@@ -1,10 +1,12 @@
 import '../domain/business.dart';
+import '../domain/layaway_rules.dart';
 
 import 'dart:convert';
 
 import 'package:uuid/uuid.dart';
 
 import '../domain/models.dart';
+import '../domain/purchases.dart';
 import '../domain/restaurant.dart';
 import 'database.dart';
 
@@ -63,6 +65,9 @@ RemoteRow productToRemote(Product p, {required bool withStock}) => {
   'is_active': p.active,
   'image_path': p.photoPath,
   'sold_at': p.place.remote,
+  'parent_id': p.parentId,
+  'size': p.size,
+  'color': p.color,
   if (withStock) 'stock_qty': p.stock,
 };
 
@@ -98,7 +103,79 @@ RemoteRow saleReturnToRemote(SaleReturn r) => {
   'reason': r.reason,
   'clerk_name': r.clerk,
   'created_at': _iso(r.createdAt),
+  'exchange_sale_id': r.exchangeSaleId,
 };
+
+RemoteRow supplierToRemote(Supplier s) => {'id': s.id, 'name': s.name, 'phone': s.phone, 'is_active': s.active};
+
+SupplierRow supplierFromRemote(RemoteRow r) => SupplierRow(
+  id: r['id']! as String,
+  name: r['name']! as String,
+  phone: r['phone'] as String?,
+  active: (r['is_active'] as bool?) ?? true,
+);
+
+RemoteRow purchaseToRemote(Purchase p) => {
+  'id': p.id,
+  'supplier_id': p.supplierId,
+  'lines': [for (final l in p.lines) l.toJson()],
+  'total': _pesos(p.totalCents),
+  'note': p.note,
+  'clerk_name': p.clerk,
+  'created_at': _iso(p.createdAt),
+};
+
+PurchaseRow purchaseFromRemote(RemoteRow r) => PurchaseRow(
+  id: r['id']! as String,
+  supplierId: r['supplier_id'] as String?,
+  lines: jsonEncode(r['lines']),
+  totalCents: _cents(r['total']),
+  note: r['note'] as String?,
+  clerk: r['clerk_name'] as String?,
+  createdAt: _date(r['created_at']),
+);
+
+RemoteRow supplierPaymentToRemote(SupplierPayment p) => {
+  'id': p.id,
+  'supplier_id': p.supplierId,
+  'purchase_id': p.purchaseId,
+  'amount': _pesos(p.amountCents),
+  'method': _methodOut[p.method],
+  'cash_session_id': p.sessionId,
+  'note': p.note,
+  'clerk_name': p.clerk,
+  'created_at': _iso(p.createdAt),
+};
+
+SupplierPaymentRow supplierPaymentFromRemote(RemoteRow r) => SupplierPaymentRow(
+  id: r['id']! as String,
+  supplierId: r['supplier_id']! as String,
+  purchaseId: r['purchase_id'] as String?,
+  amountCents: _cents(r['amount']),
+  method: _method(r['method']) ?? PayMethod.efectivo,
+  sessionId: r['cash_session_id'] as String?,
+  note: r['note'] as String?,
+  clerk: r['clerk_name'] as String?,
+  createdAt: _date(r['created_at']),
+);
+
+RemoteRow stockCountToRemote(StockCount c) => {
+  'id': c.id,
+  'lines': [for (final l in c.lines) l.toJson()],
+  'missing_cost': _pesos(c.missingCostCents),
+  'extra_cost': _pesos(c.extraCostCents),
+  'clerk_name': c.clerk,
+  'created_at': _iso(c.createdAt),
+};
+
+StockCountRow stockCountFromRemote(RemoteRow r) => StockCountRow(
+  id: r['id']! as String,
+  lines: jsonEncode(r['lines']),
+  missingCostCents: _cents(r['missing_cost']),
+  extraCostCents: _cents(r['extra_cost']),
+  clerk: r['clerk_name'] as String?,
+  createdAt: _date(r['created_at']),
+);
 
 SaleReturnRow saleReturnFromRemote(RemoteRow r) => SaleReturnRow(
   id: r['id']! as String,
@@ -110,6 +187,7 @@ SaleReturnRow saleReturnFromRemote(RemoteRow r) => SaleReturnRow(
   reason: r['reason'] as String?,
   clerk: r['clerk_name'] as String?,
   createdAt: _date(r['created_at']),
+  exchangeSaleId: r['exchange_sale_id'] as String?,
 );
 
 /// Logo del negocio: su ruta en el almacenamiento (null = sin logo).
@@ -269,6 +347,9 @@ ProductRow productFromRemote(RemoteRow r) => ProductRow(
   active: ((r['is_active'] as bool?) ?? true) && r['deleted_at'] == null,
   photoPath: r['image_path'] as String?,
   soldAt: ProductPlace.fromRemote(r['sold_at'] as String?).remote,
+  parentId: r['parent_id'] as String?,
+  size: r['size'] as String?,
+  color: r['color'] as String?,
 );
 
 CustomerRow customerFromRemote(RemoteRow r) => CustomerRow(
@@ -410,7 +491,34 @@ RemoteRow layawayToRemote(Layaway l) => {
   'status': _layawayOut[l.status],
   'photo_path': l.photoPath,
   'created_at': _iso(l.createdAt),
+  'delivered_at': l.deliveredAt == null ? null : _iso(l.deliveredAt!),
+  'refunded': _pesos(l.refundCents),
+  'store_credit': _pesos(l.creditCents),
+  'pay_every_days': l.payEveryDays,
+  'reminded_at': l.remindedAt == null ? null : _iso(l.remindedAt!),
 };
+
+RemoteRow layawayItemToRemote(LayawayItem i) => {
+  'id': i.id,
+  'layaway_id': i.layawayId,
+  'product_id': i.productId,
+  'name': i.name,
+  'qty': i.qty,
+  'unit_price': _pesos(i.unitCents),
+  'position': i.position,
+};
+
+LayawayItemRow layawayItemFromRemote(RemoteRow r) => LayawayItemRow(
+  id: r['id']! as String,
+  layawayId: r['layaway_id']! as String,
+  productId: r['product_id'] as String?,
+  name: r['name']! as String,
+  qty: _double(r['qty']),
+  unitCents: _cents(r['unit_price']),
+  position: (r['position'] as num?)?.toInt() ?? 0,
+);
+
+RemoteRow layawayRulesToRemote(LayawayRules rules) => {'layaway_rules': rules.isStandard ? null : rules.toJson()};
 
 RemoteRow layawayPaymentToRemote(LayawayPayment p) => {
   'id': p.id,
@@ -419,6 +527,7 @@ RemoteRow layawayPaymentToRemote(LayawayPayment p) => {
   'method': _methodOut[p.method],
   'cash_session_id': p.sessionId,
   'created_at': _iso(p.createdAt),
+  'from_layaway_id': p.fromLayawayId,
 };
 
 RemoteRow batchToRemote(Tanda b) => {
@@ -467,6 +576,11 @@ LayawayRow layawayFromRemote(RemoteRow r) => LayawayRow(
   dueDate: _dateOrNull(r['due_date']),
   status: _layawayIn[r['status']] ?? LayawayStatus.activo,
   photoPath: r['photo_path'] as String?,
+  deliveredAt: _dateOrNull(r['delivered_at']),
+  refundCents: _cents(r['refunded']),
+  creditCents: _cents(r['store_credit']),
+  payEveryDays: (r['pay_every_days'] as num?)?.toInt(),
+  remindedAt: _dateOrNull(r['reminded_at']),
 );
 
 LayawayPaymentRow layawayPaymentFromRemote(RemoteRow r) => LayawayPaymentRow(
@@ -476,6 +590,7 @@ LayawayPaymentRow layawayPaymentFromRemote(RemoteRow r) => LayawayPaymentRow(
   method: _method(r['method']) ?? PayMethod.efectivo,
   createdAt: _date(r['created_at']),
   sessionId: r['cash_session_id'] as String?,
+  fromLayawayId: r['from_layaway_id'] as String?,
 );
 
 BatchRow batchFromRemote(RemoteRow r) => BatchRow(

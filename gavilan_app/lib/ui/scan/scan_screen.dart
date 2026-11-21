@@ -23,6 +23,9 @@ enum ScanMode {
 
   /// Lee un código y lo devuelve (para la ficha de producto).
   capturar,
+
+  /// Cada código suma una pieza al conteo de inventario.
+  contar,
 }
 
 /// Lee un solo código con la cámara. null si se canceló.
@@ -30,9 +33,12 @@ Future<String?> scanOneCode(BuildContext context) =>
     Navigator.of(context).push<String>(MaterialPageRoute(builder: (_) => const ScanScreen(mode: ScanMode.capturar)));
 
 class ScanScreen extends ConsumerStatefulWidget {
-  const ScanScreen({super.key, this.mode = ScanMode.cobrar});
+  const ScanScreen({super.key, this.mode = ScanMode.cobrar, this.onCount});
 
   final ScanMode mode;
+
+  /// En modo contar: se llama con cada producto leído.
+  final ValueChanged<Product>? onCount;
 
   @override
   ConsumerState<ScanScreen> createState() => _ScanScreenState();
@@ -56,6 +62,7 @@ class _ScanScreenState extends ConsumerState<ScanScreen> {
     lookup: (code) => ref.read(storeProvider).productByBarcode(code),
     onFound: (p) {
       if (_mode == ScanMode.cobrar) ref.read(cartProvider.notifier).addProduct(p);
+      if (_mode == ScanMode.contar) widget.onCount?.call(p);
     },
   );
   ScanOutcome? _last;
@@ -140,9 +147,9 @@ class _ScanScreenState extends ConsumerState<ScanScreen> {
                         icon: const Icon(Icons.arrow_back, color: Colors.white),
                       ),
                       const SizedBox(width: 4),
-                      if (capturing)
+                      if (capturing || _mode == ScanMode.contar)
                         Text(
-                          'Leer código',
+                          capturing ? 'Leer código' : 'Contar inventario',
                           style: GText.sans(size: 17, weight: FontWeight.w800, color: Colors.white),
                         )
                       else
@@ -203,12 +210,11 @@ class _ScanScreenState extends ConsumerState<ScanScreen> {
     if (_mode == ScanMode.capturar) {
       feedback = Text('Apunta al código de barras del producto.', style: GText.sans(size: 15));
     } else if (last == null) {
-      feedback = Text(
-        _mode == ScanMode.cobrar
-            ? 'Apunta a los códigos: cada producto se suma a la cuenta.'
-            : 'Apunta a un código para ver su precio.',
-        style: GText.sans(size: 15, weight: FontWeight.w400),
-      );
+      feedback = Text(switch (_mode) {
+        ScanMode.cobrar => 'Apunta a los códigos: cada producto se suma a la cuenta.',
+        ScanMode.contar => 'Apunta a cada pieza: se suma una al conteo. Retírala y acerca la siguiente.',
+        _ => 'Apunta a un código para ver su precio.',
+      }, style: GText.sans(size: 15, weight: FontWeight.w400));
     } else if (last is ScanFound) {
       feedback = _mode == ScanMode.precio
           ? _PriceCard(product: last.product)
@@ -224,7 +230,12 @@ class _ScanScreenState extends ConsumerState<ScanScreen> {
                     style: GText.sans(size: 16, weight: FontWeight.w800),
                   ),
                 ),
-                Text(money(last.product.priceCents), style: GText.amount(size: 18)),
+                Text(
+                  _mode == ScanMode.contar
+                      ? 'Van ${qtyLabel(ref.watch(storeProvider).countDraft[last.product.id] ?? 0)}'
+                      : money(last.product.priceCents),
+                  style: GText.amount(size: 18),
+                ),
               ],
             );
     } else {

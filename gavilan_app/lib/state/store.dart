@@ -10,9 +10,12 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:uuid/uuid.dart';
 
 import '../data/repository.dart';
+import '../domain/layaway_rules.dart';
 import '../domain/models.dart';
+import '../domain/variants.dart';
 import '../domain/plan.dart';
 import '../domain/profit.dart';
+import '../domain/purchases.dart';
 import '../domain/floor_layout.dart';
 import '../domain/restaurant.dart';
 import 'app_state.dart';
@@ -227,6 +230,75 @@ abstract class _StoreCore extends Notifier<StoreState> {
     }
   }
 
+  /// Guarda un modelo con sus tallas y colores. Cada combinación de [drafts] trae cuántas piezas hay (si es
+  /// nueva) o cuántas llegaron (si ya existía). Las que ya no están en la lista se ocultan (no se borran: sus
+  /// ventas siguen en los reportes). Precio, costo, icono y dónde se vende son los del modelo.
+  void saveModel(Product model, List<({String? size, String? color, double qty})> drafts, {double? minStock}) {
+    final prior = state.productById(model.id);
+    // Un producto suelto que pasa a tener tallas: su existencia se reparte en las tallas.
+    if (prior != null && !state.isModel(prior) && prior.trackStock && prior.stock != 0) {
+      addStock(prior.id, -prior.stock, adjustment: true);
+    }
+    final base = model.copyWith(trackStock: false, stock: 0, clearBarcode: true, clearMinStock: true);
+    saveProduct(base);
+    final existing = {
+      for (final v in state.products.where((p) => p.parentId == base.id)) variantKey(v.size, v.color): v,
+    };
+    final seen = <String>{};
+    for (final d in drafts) {
+      final key = variantKey(d.size, d.color);
+      if (!seen.add(key)) continue;
+      final old = existing[key];
+      final name = variantName(base.name, d.size, d.color);
+      if (old == null) {
+        saveProduct(
+          Product(
+            id: newId(),
+            parentId: base.id,
+            size: d.size,
+            color: d.color,
+            name: name,
+            priceCents: base.priceCents,
+            costCents: base.costCents,
+            iconId: base.iconId,
+            trackStock: true,
+            stock: d.qty.clamp(0, Limits.maxQty),
+            minStock: minStock,
+            place: base.place,
+          ),
+        );
+      } else {
+        saveProduct(
+          old.copyWith(
+            name: name,
+            priceCents: base.priceCents,
+            costCents: base.costCents,
+            iconId: base.iconId,
+            trackStock: true,
+            minStock: minStock,
+            clearMinStock: minStock == null,
+            active: true,
+            place: base.place,
+          ),
+        );
+        if (d.qty > 0) addStock(old.id, d.qty);
+      }
+    }
+    for (final e in existing.entries) {
+      if (!seen.contains(e.key) && e.value.active) saveProduct(e.value.copyWith(active: false));
+    }
+  }
+
+  /// "Ya no lo vendo": lo oculta; si es un modelo, también sus tallas.
+  void hideProduct(String productId) {
+    final p = state.productById(productId);
+    if (p == null) return;
+    for (final v in state.variantsOf(productId)) {
+      saveProduct(v.copyWith(active: false));
+    }
+    saveProduct(p.copyWith(active: false));
+  }
+
   /// Suma (o con [adjustment], corrige) la existencia de un producto.
   void addStock(String productId, double qty, {bool adjustment = false}) {
     final current = state.productById(productId);
@@ -330,6 +402,7 @@ abstract class _StoreCore extends Notifier<StoreState> {
   Sale? cancelSale(String saleId, {required String reason}) {
     final sale = state.sales.where((s) => s.id == saleId).firstOrNull;
     if (sale == null || sale.cancelled) return null;
+    if (state.hadExchangeToday(sale)) return null;
     // De un turno abierto (de este celular o de otro: el dueño puede cancelar una del cajero), o de un corte
     // ya cerrado: entonces ese corte no cambia y lo que se devuelve se anota en la caja abierta de este celular.
     final late = !state.sessionIsOpen(sale.sessionId);
@@ -380,6 +453,92 @@ abstract class _StoreCore extends Notifier<StoreState> {
       addMovement(CashKind.gasto, cashBack, 'Devolución de la venta ${sale.folioLabel}');
     }
     return cancelled;
+  }
+
+  /// Cambio (de talla, de color o de producto): el cliente regresa [back] (cuánto de cada renglón, por
+  /// posición) de una venta pagada y se lleva [newLines]. Lo que regresa vuelve al inventario y paga parte de la
+  /// venta nueva; solo se cobra la diferencia (con [method]) o, si lo nuevo vale menos, se le devuelve en
+  /// efectivo. Necesita la caja abierta. null si no se pudo.
+  ({Sale sale, SaleReturn ret})? exchange(
+    String saleId,
+    Map<int, double> back,
+    List<SaleLine> newLines, {
+    PayMethod method = PayMethod.efectivo,
+    int? receivedCents,
+    String reason = 'Cambio',
+  }) {
+    final original = state.sales.where((s) => s.id == saleId).firstOrNull;
+    final open = state.openSession;
+    if (original == null ||
+        original.cancelled ||
+        original.kind != SaleKind.pagada ||
+        open == null ||
+        newLines.isEmpty) {
+      return null;
+    }
+    final already = state.returnedOf(original.id);
+    final earlier = state.returnsOf(original.id);
+    final factor = original.subtotalCents == 0 ? 1.0 : original.totalCents / original.subtotalCents;
+    final lines = <ReturnedLine>[];
+    for (final (i, l) in original.lines.indexed) {
+      final left = l.qty - (already[l.key] ?? 0);
+      final r = (back[i] ?? 0).clamp(0, left < 0 ? 0 : left).toDouble();
+      if (r <= 0) continue;
+      lines.add(
+        ReturnedLine(
+          key: l.key,
+          productId: l.productId,
+          name: l.name,
+          qty: r,
+          amountCents: (r * l.unitCents * factor).round(),
+        ),
+      );
+    }
+    if (lines.isEmpty) return null;
+    final leftCents = original.totalCents - earlier.fold<int>(0, (a, r) => a + r.amountCents);
+    final value = lines.fold<int>(0, (a, l) => a + l.amountCents).clamp(0, leftCents);
+    final newTotal = newLines.fold(0, (a, l) => a + l.totalCents);
+    final diff = newTotal - value;
+    // Lo devuelto entra como efectivo a la venta nueva y sale igual en el cambio: en el cajón solo queda la
+    // diferencia. Si la diferencia se paga con tarjeta o transferencia, va como un pago aparte.
+    final payments = diff > 0 && method != PayMethod.efectivo
+        ? [SalePayment(method: PayMethod.efectivo, amountCents: value), SalePayment(method: method, amountCents: diff)]
+        : const <SalePayment>[];
+    final sale = checkout(
+      lines: newLines,
+      kind: SaleKind.pagada,
+      method: payments.isEmpty ? PayMethod.efectivo : null,
+      payments: payments,
+      receivedCents: payments.isEmpty && diff > 0 ? (receivedCents ?? diff) + value : null,
+      customerId: original.customerId,
+    );
+    final ret = SaleReturn(
+      id: newId(),
+      saleId: original.id,
+      sessionId: open.id,
+      lines: lines,
+      amountCents: value,
+      cashCents: value,
+      reason: reason.trim().isEmpty ? 'Cambio' : reason.trim(),
+      clerk: _clerkName,
+      createdAt: _now(),
+      exchangeSaleId: sale.id,
+    );
+    final backByProduct = <String, double>{};
+    for (final l in lines) {
+      if (l.productId != null) backByProduct[l.productId!] = (backByProduct[l.productId!] ?? 0) + l.qty;
+    }
+    final restocked = [
+      for (final p in state.products)
+        if (p.trackStock && backByProduct.containsKey(p.id)) p.copyWith(stock: p.stock + backByProduct[p.id]!),
+    ];
+    final byId = {for (final p in restocked) p.id: p};
+    state = state.copyWith(
+      saleReturns: [...state.saleReturns, ret],
+      products: [for (final p in state.products) byId[p.id] ?? p],
+    );
+    _save((r) => r.recordReturn(ret: ret, restocked: restocked));
+    return (sale: sale, ret: ret);
   }
 
   /// Devolución de una parte de una venta de un corte ya cerrado. Ese corte no cambia: lo devuelto vuelve al
@@ -480,6 +639,8 @@ abstract class _StoreCore extends Notifier<StoreState> {
     final sale = state.sales.where((s) => s.id == saleId).firstOrNull;
     final open = state.openSession;
     if (sale == null || sale.cancelled || open == null || sale.sessionId != open.id) return null;
+    // Ya tuvo un cambio: rehacerla movería otra vez lo que ya pagó la venta nueva.
+    if (state.hadExchangeToday(sale)) return null;
     final kept = <SaleLine>[];
     final returned = <String>[];
     for (final (i, l) in sale.lines.indexed) {

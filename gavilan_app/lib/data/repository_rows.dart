@@ -17,6 +17,9 @@ Product _product(ProductRow p) => Product(
   active: p.active,
   photoPath: p.photoPath,
   place: ProductPlace.fromRemote(p.soldAt),
+  parentId: p.parentId,
+  size: p.size,
+  color: p.color,
 );
 
 CashSession _session(SessionRow s) => CashSession(
@@ -64,6 +67,7 @@ SaleReturn _saleReturn(SaleReturnRow r) => SaleReturn(
   reason: r.reason,
   clerk: r.clerk,
   createdAt: r.createdAt,
+  exchangeSaleId: r.exchangeSaleId,
 );
 
 SaleReturnRow _saleReturnRow(SaleReturn r) => SaleReturnRow(
@@ -76,6 +80,73 @@ SaleReturnRow _saleReturnRow(SaleReturn r) => SaleReturnRow(
   reason: r.reason,
   clerk: r.clerk,
   createdAt: r.createdAt,
+  exchangeSaleId: r.exchangeSaleId,
+);
+
+Supplier _supplier(SupplierRow r) => Supplier(id: r.id, name: r.name, phone: r.phone, active: r.active);
+
+SupplierRow _supplierRow(Supplier s) => SupplierRow(id: s.id, name: s.name, phone: s.phone, active: s.active);
+
+Purchase _purchase(PurchaseRow r) => Purchase(
+  id: r.id,
+  supplierId: r.supplierId,
+  lines: [for (final l in (jsonDecode(r.lines) as List).cast<Map<String, dynamic>>()) PurchaseLine.fromJson(l)],
+  totalCents: r.totalCents,
+  note: r.note,
+  clerk: r.clerk,
+  createdAt: r.createdAt,
+);
+
+PurchaseRow _purchaseRow(Purchase p) => PurchaseRow(
+  id: p.id,
+  supplierId: p.supplierId,
+  lines: jsonEncode([for (final l in p.lines) l.toJson()]),
+  totalCents: p.totalCents,
+  note: p.note,
+  clerk: p.clerk,
+  createdAt: p.createdAt,
+);
+
+SupplierPayment _supplierPayment(SupplierPaymentRow r) => SupplierPayment(
+  id: r.id,
+  supplierId: r.supplierId,
+  purchaseId: r.purchaseId,
+  amountCents: r.amountCents,
+  method: r.method,
+  sessionId: r.sessionId,
+  note: r.note,
+  clerk: r.clerk,
+  createdAt: r.createdAt,
+);
+
+SupplierPaymentRow _supplierPaymentRow(SupplierPayment p) => SupplierPaymentRow(
+  id: p.id,
+  supplierId: p.supplierId,
+  purchaseId: p.purchaseId,
+  amountCents: p.amountCents,
+  method: p.method,
+  sessionId: p.sessionId,
+  note: p.note,
+  clerk: p.clerk,
+  createdAt: p.createdAt,
+);
+
+StockCount _stockCount(StockCountRow r) => StockCount(
+  id: r.id,
+  lines: [for (final l in (jsonDecode(r.lines) as List).cast<Map<String, dynamic>>()) CountLine.fromJson(l)],
+  missingCostCents: r.missingCostCents,
+  extraCostCents: r.extraCostCents,
+  clerk: r.clerk,
+  createdAt: r.createdAt,
+);
+
+StockCountRow _stockCountRow(StockCount c) => StockCountRow(
+  id: c.id,
+  lines: jsonEncode([for (final l in c.lines) l.toJson()]),
+  missingCostCents: c.missingCostCents,
+  extraCostCents: c.extraCostCents,
+  clerk: c.clerk,
+  createdAt: c.createdAt,
 );
 
 Layaway _layaway(LayawayRow r) => Layaway(
@@ -87,6 +158,11 @@ Layaway _layaway(LayawayRow r) => Layaway(
   dueDate: r.dueDate,
   status: r.status,
   photoPath: r.photoPath,
+  deliveredAt: r.deliveredAt,
+  refundCents: r.refundCents,
+  creditCents: r.creditCents,
+  payEveryDays: r.payEveryDays,
+  remindedAt: r.remindedAt,
 );
 
 LayawayRow _layawayRow(Layaway l) => LayawayRow(
@@ -98,6 +174,31 @@ LayawayRow _layawayRow(Layaway l) => LayawayRow(
   dueDate: l.dueDate,
   status: l.status,
   photoPath: l.photoPath,
+  deliveredAt: l.deliveredAt,
+  refundCents: l.refundCents,
+  creditCents: l.creditCents,
+  payEveryDays: l.payEveryDays,
+  remindedAt: l.remindedAt,
+);
+
+LayawayItem _layawayItem(LayawayItemRow r) => LayawayItem(
+  id: r.id,
+  layawayId: r.layawayId,
+  productId: r.productId,
+  name: r.name,
+  qty: r.qty,
+  unitCents: r.unitCents,
+  position: r.position,
+);
+
+LayawayItemRow _layawayItemRow(LayawayItem i) => LayawayItemRow(
+  id: i.id,
+  layawayId: i.layawayId,
+  productId: i.productId,
+  name: i.name,
+  qty: i.qty,
+  unitCents: i.unitCents,
+  position: i.position,
 );
 
 LayawayPayment _layawayPayment(LayawayPaymentRow r) => LayawayPayment(
@@ -107,6 +208,7 @@ LayawayPayment _layawayPayment(LayawayPaymentRow r) => LayawayPayment(
   method: r.method,
   createdAt: r.createdAt,
   sessionId: r.sessionId,
+  fromLayawayId: r.fromLayawayId,
 );
 
 LayawayPaymentRow _layawayPaymentRow(LayawayPayment p) => LayawayPaymentRow(
@@ -116,6 +218,7 @@ LayawayPaymentRow _layawayPaymentRow(LayawayPayment p) => LayawayPaymentRow(
   method: p.method,
   createdAt: p.createdAt,
   sessionId: p.sessionId,
+  fromLayawayId: p.fromLayawayId,
 );
 
 Tanda _batch(BatchRow r) =>
@@ -261,6 +364,9 @@ ProductRow _productRow(Product p) => ProductRow(
   active: p.active,
   photoPath: p.photoPath,
   soldAt: p.place.remote,
+  parentId: p.parentId,
+  size: p.size,
+  color: p.color,
 );
 
 CreditRow _creditRow(CreditEntry e) => CreditRow(

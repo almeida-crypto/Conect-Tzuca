@@ -74,6 +74,15 @@ Prioridad: **Alta** = sin esto no se puede usar con un negocio real · **Media**
 ## Etapa 3 · Módulos por giro
 - [x] **Media** · Apartados: anticipo, abonos, fecha límite con aviso de vencido, liquidación automática, cancelación y comprobante por WhatsApp. *31/10/2026*
 - [x] **Media** · Foto del artículo apartado (cámara + Supabase Storage). *18/11/2026*
+- [x] **Media** · Tallas y colores en productos (cada talla con su existencia y código). *20/11/2026*
+- [x] **Media** · Apartar piezas del inventario, reglas del dueño al cancelar (devolver, porcentaje, anticipo, nada o saldo a favor), entregado y recordatorios por WhatsApp. *20/11/2026*
+- [ ] **Baja** · Usar el saldo a favor también en una venta normal de Cobrar (hoy se usa en otro apartado).
+- [ ] **Baja** · Precio distinto por talla (hoy todas las tallas valen lo del modelo).
+- [x] **Media** · Cambio de talla o de producto desde el ticket: solo se cobra o devuelve la diferencia. *20/11/2026*
+- [x] **Media** · Compras a proveedores: lo que llega entra al inventario con su costo, lo que se debe y los pagos. *20/11/2026*
+- [x] **Media** · Conteo de inventario con lector, cámara o a mano, con faltantes a costo. *20/11/2026*
+- [ ] **Baja** · Cambio de una venta fiada (hoy solo pagadas).
+- [ ] **Baja** · Compras: pedido sugerido al proveedor según lo que se acaba.
 - [x] **Media** · Pacas y lotes: inversión, ventas rápidas, barra de recuperación y ganancia; entra al corte. El plan gratis permite 1 paca activa. *31/10/2026*
 - [x] **Media** · Pedidos por tanda: entrega y pago en dos toques, insumos, ganancia y aviso por WhatsApp. *31/10/2026*
 - [ ] **Baja** · Decidir si lo cobrado de las tandas entra al corte de caja (hoy no entra: muchas tandas se cobran fuera del mostrador).

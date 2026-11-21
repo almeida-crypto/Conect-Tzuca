@@ -76,7 +76,7 @@ class _LabelsScreenState extends ConsumerState<LabelsScreen> {
     final store = ref.watch(storeProvider);
     final q = _q.trim().toLowerCase();
     final list =
-        store.activeProducts
+        store.sellableProducts
             .where((p) => q.isEmpty || p.name.toLowerCase().contains(q) || (p.barcode?.contains(q) ?? false))
             .toList()
           ..sort((a, b) => a.name.compareTo(b.name));

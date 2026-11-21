@@ -6,7 +6,8 @@ enum Module {
   restaurante('Mesas y cocina', 'Meseros, comandas, extras y pantalla de cocina'),
   apartados('Apartados', 'Anticipo, abonos y fecha límite'),
   pacas('Pacas y lotes', 'Cuánto falta para recuperar lo invertido'),
-  tandas('Pedidos por tanda', 'Cochinita del domingo, marquesitas, cenas');
+  tandas('Pedidos por tanda', 'Cochinita del domingo, marquesitas, cenas'),
+  compras('Compras a proveedores', 'Lo que llega, a cómo y lo que se le debe a cada uno');
 
   const Module(this.label, this.description);
   final String label;

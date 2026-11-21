@@ -5,8 +5,10 @@ import 'dart:convert';
 
 import 'package:drift/drift.dart';
 
+import '../domain/layaway_rules.dart';
 import '../domain/models.dart';
 import '../domain/plan.dart';
+import '../domain/purchases.dart';
 import '../domain/restaurant.dart';
 import '../domain/team.dart';
 import '../state/store.dart';
@@ -24,6 +26,8 @@ const _kClerkLock = 'clerk_lock';
 const _kModules = 'modules';
 const _kCreditLimit = 'credit_limit';
 const _kPayMethods = 'pay_methods';
+const _kLayawayRules = 'layaway_rules';
+const _kCountDraft = 'count_draft';
 const _kRegisterName = 'register_name';
 const _kKitchenPrint = 'kitchen_print';
 const _kTicketPrint = 'ticket_print';
@@ -62,6 +66,11 @@ const pullTables = [
   'lot_sales',
   'layaways',
   'layaway_payments',
+  'layaway_items',
+  'suppliers',
+  'purchases',
+  'supplier_payments',
+  'stock_counts',
   'batches',
   'batch_orders',
   'restaurant_tables',
@@ -168,6 +177,8 @@ class DriftRepository implements StoreRepository, SyncStore {
       modules: modulesFromText(meta[_kModules]),
       defaultCreditLimitCents: int.tryParse(meta[_kCreditLimit] ?? ''),
       payMethods: payMethodsFromText(meta[_kPayMethods]),
+      layawayRules: _rulesFromText(meta[_kLayawayRules]),
+      countDraft: _draftFromText(meta[_kCountDraft]),
       registerName: (meta[_kRegisterName] ?? '').isEmpty ? null : meta[_kRegisterName],
       kitchenPrint: meta[_kKitchenPrint] == '1',
       ticketPrint: meta[_kTicketPrint] == '1',
@@ -242,6 +253,25 @@ class DriftRepository implements StoreRepository, SyncStore {
       ],
       layaways: [for (final r in await db.select(db.layawaysTable).get()) _layaway(r)],
       layawayPayments: [for (final r in await db.select(db.layawayPaymentsTable).get()) _layawayPayment(r)],
+      layawayItems: [
+        for (final r in await (db.select(db.layawayItemsTable)..orderBy([(t) => OrderingTerm.asc(t.position)])).get())
+          _layawayItem(r),
+      ],
+      suppliers: [for (final r in await db.select(db.suppliersTable).get()) _supplier(r)],
+      purchases: [
+        for (final r in await (db.select(db.purchasesTable)..orderBy([(t) => OrderingTerm.asc(t.createdAt)])).get())
+          _purchase(r),
+      ],
+      supplierPayments: [
+        for (final r in await (db.select(
+          db.supplierPaymentsTable,
+        )..orderBy([(t) => OrderingTerm.asc(t.createdAt)])).get())
+          _supplierPayment(r),
+      ],
+      stockCounts: [
+        for (final r in await (db.select(db.stockCountsTable)..orderBy([(t) => OrderingTerm.asc(t.createdAt)])).get())
+          _stockCount(r),
+      ],
       batches: [for (final r in await db.select(db.batchesTable).get()) _batch(r)],
       batchOrders: [for (final r in await db.select(db.batchOrdersTable).get()) _batchOrder(r)],
       tables: [for (final r in await db.select(db.diningTablesTable).get()) _table(r)],
@@ -258,6 +288,27 @@ class DriftRepository implements StoreRepository, SyncStore {
     );
     final plan = Plan.values.asNameMap()[meta[_kPlan]] ?? Plan.semilla;
     return LoadedData(store: withModules, plan: plan);
+  }
+
+  static Map<String, double> _draftFromText(String? text) {
+    if (text == null || text.isEmpty) return const {};
+    try {
+      return {
+        for (final e in (jsonDecode(text) as Map<String, dynamic>).entries)
+          if (e.value is num) e.key: (e.value as num).toDouble(),
+      };
+    } on FormatException {
+      return const {};
+    }
+  }
+
+  static LayawayRules _rulesFromText(String? text) {
+    if (text == null || text.isEmpty) return LayawayRules.standard;
+    try {
+      return LayawayRules.fromJson(jsonDecode(text));
+    } on FormatException {
+      return LayawayRules.standard;
+    }
   }
 
   // ---------- Conversión a renglones locales ----------
@@ -354,6 +405,13 @@ class DriftRepository implements StoreRepository, SyncStore {
       b.insertAll(db.lotSalesTable, state.lotSales.map(_lotSaleRow));
       b.insertAll(db.layawaysTable, state.layaways.map(_layawayRow));
       b.insertAll(db.layawayPaymentsTable, state.layawayPayments.map(_layawayPaymentRow));
+      b.insertAll(db.layawayItemsTable, state.layawayItems.map(_layawayItemRow));
+      b.insertAll(db.saleReturnsTable, state.saleReturns.map(_saleReturnRow));
+      b.insertAll(db.suppliersTable, state.suppliers.map(_supplierRow));
+      b.insertAll(db.purchasesTable, state.purchases.map(_purchaseRow));
+      b.insertAll(db.supplierPaymentsTable, state.supplierPayments.map(_supplierPaymentRow));
+      b.insertAll(db.stockCountsTable, state.stockCounts.map(_stockCountRow));
+      b.insertAll(db.floorItemsTable, state.floorItems.map(_floorItemRow));
       b.insertAll(db.batchesTable, state.batches.map(_batchRow));
       b.insertAll(db.batchOrdersTable, state.batchOrders.map(_batchOrderRow));
       b.insertAll(db.diningTablesTable, state.tables.map(_tableRow));
@@ -370,6 +428,7 @@ class DriftRepository implements StoreRepository, SyncStore {
     if (state.modules != null) await _setMeta(_kModules, modulesToText(state.modules!));
     if (state.defaultCreditLimitCents != null) await _setMeta(_kCreditLimit, '${state.defaultCreditLimitCents}');
     if (state.payMethods != null) await _setMeta(_kPayMethods, payMethodsToText(state.payMethods!));
+    if (!state.layawayRules.isStandard) await _setMeta(_kLayawayRules, jsonEncode(state.layawayRules.toJson()));
     if (state.clerks.isNotEmpty) await setClerks(state.clerks, state.lockMinutes);
     await _setMeta(_kDemo, state.isDemo ? '1' : '0');
     await _setMeta(_kFolio, '${state.nextFolio}');
@@ -652,10 +711,134 @@ class DriftRepository implements StoreRepository, SyncStore {
   });
 
   @override
-  Future<void> upsertLayaway(Layaway layaway) => db.transaction(() async {
+  Future<void> upsertLayaway(
+    Layaway layaway, {
+    List<LayawayItem> items = const [],
+    List<Product> changedProducts = const [],
+    Map<String, double> stock = const {},
+  }) => db.transaction(() async {
     await db.into(db.layawaysTable).put(_layawayRow(layaway));
+    for (final i in items) {
+      await db.into(db.layawayItemsTable).put(_layawayItemRow(i));
+    }
+    for (final p in changedProducts) {
+      await db.into(db.productsTable).put(_productRow(p));
+    }
+    final now = DateTime.now();
     await _enqueue([
       (table: 'layaways', rows: [layawayToRemote(layaway)]),
+      if (items.isNotEmpty) (table: 'layaway_items', rows: items.map(layawayItemToRemote).toList()),
+      // Apartar saca las piezas de la existencia; cancelar las regresa. El id no se repite: al reintentar no
+      // vuelve a descontar.
+      if (stock.isNotEmpty)
+        (
+          table: 'inventory_movements',
+          rows: [
+            for (final e in stock.entries)
+              stockToRemote(
+                id: stableId('${layaway.id}/layaway/${e.key}/${e.value < 0 ? 'out' : 'back'}'),
+                productId: e.key,
+                change: e.value,
+                reason: 'layaway',
+                refId: layaway.id,
+                at: now,
+              ),
+          ],
+        ),
+    ]);
+  });
+
+  @override
+  Future<void> upsertSupplier(Supplier supplier) => db.transaction(() async {
+    await db.into(db.suppliersTable).put(_supplierRow(supplier));
+    await _enqueue([
+      (table: 'suppliers', rows: [supplierToRemote(supplier)]),
+    ]);
+  });
+
+  @override
+  Future<void> recordPurchase({
+    required Purchase purchase,
+    required List<Product> changedProducts,
+    required Map<String, double> stock,
+    SupplierPayment? payment,
+  }) => db.transaction(() async {
+    await db.into(db.purchasesTable).put(_purchaseRow(purchase));
+    for (final p in changedProducts) {
+      await db.into(db.productsTable).put(_productRow(p));
+    }
+    if (payment != null) await db.into(db.supplierPaymentsTable).put(_supplierPaymentRow(payment));
+    await _enqueue([
+      (table: 'purchases', rows: [purchaseToRemote(purchase)]),
+      // El costo nuevo (si se actualizó) sin tocar la existencia: esa la llevan los movimientos.
+      if (changedProducts.isNotEmpty)
+        (table: 'products', rows: [for (final p in changedProducts) productToRemote(p, withStock: false)]),
+      if (stock.isNotEmpty)
+        (
+          table: 'inventory_movements',
+          rows: [
+            for (final e in stock.entries)
+              stockToRemote(
+                id: stableId('${purchase.id}/stock/${e.key}'),
+                productId: e.key,
+                change: e.value,
+                reason: 'purchase',
+                refId: purchase.id,
+                at: purchase.createdAt,
+              ),
+          ],
+        ),
+      if (payment != null) (table: 'supplier_payments', rows: [supplierPaymentToRemote(payment)]),
+    ]);
+  });
+
+  @override
+  Future<void> insertSupplierPayment(SupplierPayment payment) => db.transaction(() async {
+    await db.into(db.supplierPaymentsTable).put(_supplierPaymentRow(payment));
+    await _enqueue([
+      (table: 'supplier_payments', rows: [supplierPaymentToRemote(payment)]),
+    ]);
+  });
+
+  @override
+  Future<void> recordCount({required StockCount count, required List<Product> changedProducts}) =>
+      db.transaction(() async {
+        await db.into(db.stockCountsTable).put(_stockCountRow(count));
+        for (final p in changedProducts) {
+          await db.into(db.productsTable).put(_productRow(p));
+        }
+        await (db.delete(db.metaTable)..where((t) => t.key.equals(_kCountDraft))).go();
+        await _enqueue([
+          (table: 'stock_counts', rows: [stockCountToRemote(count)]),
+          if (count.lines.any((l) => l.diff != 0))
+            (
+              table: 'inventory_movements',
+              rows: [
+                for (final l in count.lines)
+                  if (l.diff != 0)
+                    stockToRemote(
+                      id: stableId('${count.id}/adjust/${l.productId}'),
+                      productId: l.productId,
+                      change: l.diff,
+                      reason: 'adjustment',
+                      refId: count.id,
+                      at: count.createdAt,
+                    ),
+              ],
+            ),
+        ]);
+      });
+
+  @override
+  Future<void> setCountDraft(Map<String, double> draft) => draft.isEmpty
+      ? (db.delete(db.metaTable)..where((t) => t.key.equals(_kCountDraft))).go()
+      : _setMeta(_kCountDraft, jsonEncode(draft));
+
+  @override
+  Future<void> setLayawayRules(LayawayRules rules) => db.transaction(() async {
+    await _setMeta(_kLayawayRules, rules.isStandard ? '' : jsonEncode(rules.toJson()));
+    await _enqueue([
+      (table: 'businesses', rows: [layawayRulesToRemote(rules)]),
     ]);
   });
 
@@ -742,6 +925,11 @@ class DriftRepository implements StoreRepository, SyncStore {
         (table: 'businesses', rows: [logoToRemote(s.logoPath)]),
       ]);
     }
+    if (!s.layawayRules.isStandard) {
+      await _enqueue([
+        (table: 'businesses', rows: [layawayRulesToRemote(s.layawayRules)]),
+      ]);
+    }
     // Todo lo que ya existía en el teléfono, en orden de dependencias. Los productos
     // suben con su existencia actual, por eso las ventas viejas no vuelven a descontar.
     if (s.customers.isNotEmpty) {
@@ -749,7 +937,14 @@ class DriftRepository implements StoreRepository, SyncStore {
     }
     if (s.products.isNotEmpty) {
       await _enqueue([
-        (table: 'products', rows: [for (final p in s.products) productToRemote(p, withStock: true)]),
+        (
+          table: 'products',
+          rows: [
+            // El modelo antes que sus tallas.
+            for (final p in [...s.products.where((p) => !p.isVariant), ...s.products.where((p) => p.isVariant)])
+              productToRemote(p, withStock: true),
+          ],
+        ),
       ]);
     }
     if (s.sessions.isNotEmpty) {
@@ -771,8 +966,15 @@ class DriftRepository implements StoreRepository, SyncStore {
       if (s.lots.isNotEmpty) (table: 'lots', rows: s.lots.map(lotToRemote).toList()),
       if (s.lotSales.isNotEmpty) (table: 'lot_sales', rows: s.lotSales.map(lotSaleToRemote).toList()),
       if (s.layaways.isNotEmpty) (table: 'layaways', rows: s.layaways.map(layawayToRemote).toList()),
+      if (s.layawayItems.isNotEmpty) (table: 'layaway_items', rows: s.layawayItems.map(layawayItemToRemote).toList()),
+      // Los pagados con saldo a favor apuntan a otro apartado: van después de todos los apartados.
       if (s.layawayPayments.isNotEmpty)
         (table: 'layaway_payments', rows: s.layawayPayments.map(layawayPaymentToRemote).toList()),
+      if (s.suppliers.isNotEmpty) (table: 'suppliers', rows: s.suppliers.map(supplierToRemote).toList()),
+      if (s.purchases.isNotEmpty) (table: 'purchases', rows: s.purchases.map(purchaseToRemote).toList()),
+      if (s.supplierPayments.isNotEmpty)
+        (table: 'supplier_payments', rows: s.supplierPayments.map(supplierPaymentToRemote).toList()),
+      if (s.stockCounts.isNotEmpty) (table: 'stock_counts', rows: s.stockCounts.map(stockCountToRemote).toList()),
       if (s.batches.isNotEmpty) (table: 'batches', rows: s.batches.map(batchToRemote).toList()),
       if (s.batchOrders.isNotEmpty) (table: 'batch_orders', rows: s.batchOrders.map(batchOrderToRemote).toList()),
       if (s.tables.isNotEmpty) (table: 'restaurant_tables', rows: s.tables.map(tableToRemote).toList()),
@@ -884,6 +1086,10 @@ class DriftRepository implements StoreRepository, SyncStore {
           if (r.containsKey('credit_limit')) {
             await _setMeta(_kCreditLimit, _centsText(r['credit_limit']));
           }
+          if (r.containsKey('layaway_rules')) {
+            final rules = r['layaway_rules'];
+            await _setMeta(_kLayawayRules, rules == null ? '' : jsonEncode(rules));
+          }
           // Con cuenta, el plan es el de la nube (lo cambia solo el cobro): la vista previa ya no aplica.
           final plan = PlanInfo.fromRemote(r['plan']);
           if (plan != null) await _setMeta(_kPlan, plan.name);
@@ -929,6 +1135,16 @@ class DriftRepository implements StoreRepository, SyncStore {
           await db.into(db.layawaysTable).put(layawayFromRemote(r));
         case 'layaway_payments':
           await db.into(db.layawayPaymentsTable).put(layawayPaymentFromRemote(r));
+        case 'layaway_items':
+          await db.into(db.layawayItemsTable).put(layawayItemFromRemote(r));
+        case 'suppliers':
+          await db.into(db.suppliersTable).put(supplierFromRemote(r));
+        case 'purchases':
+          await db.into(db.purchasesTable).put(purchaseFromRemote(r));
+        case 'supplier_payments':
+          await db.into(db.supplierPaymentsTable).put(supplierPaymentFromRemote(r));
+        case 'stock_counts':
+          await db.into(db.stockCountsTable).put(stockCountFromRemote(r));
         case 'batches':
           await db.into(db.batchesTable).put(batchFromRemote(r));
         case 'batch_orders':

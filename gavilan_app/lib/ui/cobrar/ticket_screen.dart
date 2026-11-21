@@ -16,6 +16,7 @@ import '../../theme/colors.dart';
 import '../../theme/theme.dart';
 import '../widgets/buttons.dart';
 import '../clerks/lock_screen.dart';
+import 'exchange_screen.dart';
 import 'return_sheet.dart';
 
 /// Ticket de la venta con sello PAGADO, FIADO o CANCELADA.
@@ -134,10 +135,23 @@ class _TicketScreenState extends ConsumerState<TicketScreen> {
         (late || (open != null && sale.sessionId == open.id)) &&
         (sale.lines.length > 1 || piecesLeft > 1 || returns.isNotEmpty) &&
         piecesLeft > 0.0001;
+    // Cambio de talla o de producto: también lo hace el cajero (si no hay que devolver dinero).
+    final canExchange = paid && !sale.cancelled && piecesLeft > 0.0001 && ref.watch(permissionsProvider).charge;
+    // Ya tuvo un cambio hoy: se corrige la venta nueva, no esta.
+    final lockedByExchange = store.hadExchangeToday(sale);
+    final exchanges = store.exchangesInto(sale.id);
+    final exchangeCredit = exchanges.fold(0, (a, r) => a + r.amountCents);
     final order = sale.orderId == null ? null : store.orderById(sale.orderId!);
     final place = order == null ? null : store.orderTitle(order);
     final logo = plan.limits.logo ? store.logo : null;
+    final exchangeInfo = exchanges.isEmpty
+        ? null
+        : (
+            folio: store.sales.where((x) => x.id == exchanges.first.saleId).firstOrNull?.folioLabel ?? '',
+            cents: exchangeCredit,
+          );
     final text = ticketText(
+      exchange: exchangeInfo,
       returns: returns,
       place: place,
       business: store.businessName,
@@ -149,6 +163,7 @@ class _TicketScreenState extends ConsumerState<TicketScreen> {
 
     void printTicket() => printHtml(
       ticketHtml(
+        exchange: exchangeInfo,
         returns: returns,
         place: place,
         business: store.businessName,
@@ -257,7 +272,26 @@ class _TicketScreenState extends ConsumerState<TicketScreen> {
                                   _row('Total pagado', money(sale.paidCents), bold: true),
                                 ],
                                 const _Dashed(),
-                                if (paid && sale.split) ...[
+                                if (paid && exchanges.isNotEmpty) ...[
+                                  // Venta nueva de un cambio: lo que regresó pagó parte; solo se cobra la diferencia.
+                                  for (final r in exchanges)
+                                    _row(
+                                      'Regresó (venta ${store.sales.where((x) => x.id == r.saleId).firstOrNull?.folioLabel ?? ''})',
+                                      '-${money(r.amountCents)}',
+                                    ),
+                                  if (sale.totalCents - exchangeCredit > 0) ...[
+                                    _row('Pagó la diferencia', money(sale.totalCents - exchangeCredit), bold: true),
+                                    _row(
+                                      'Pago',
+                                      sale.split
+                                          ? sale.payments.last.method.label
+                                          : (sale.method ?? PayMethod.efectivo).label,
+                                    ),
+                                  ] else if (sale.totalCents - exchangeCredit < 0)
+                                    _row('Se le devolvió', money(exchangeCredit - sale.totalCents), bold: true)
+                                  else
+                                    _row('Diferencia', money(0)),
+                                ] else if (paid && sale.split) ...[
                                   // Pagada en partes: cada pago con su método.
                                   for (final p in sale.payments) _row(p.method.label, money(p.amountCents)),
                                   if (sale.receivedCents != null && sale.cashCents > 0) ...[
@@ -277,7 +311,11 @@ class _TicketScreenState extends ConsumerState<TicketScreen> {
                                 if (returns.isNotEmpty) ...[
                                   const _Dashed(),
                                   for (final r in returns) ...[
-                                    _row('DEVOLUCIÓN ${dayLabel(r.createdAt)}', '-${money(r.amountCents)}', bold: true),
+                                    _row(
+                                      '${r.isExchange ? 'CAMBIO' : 'DEVOLUCIÓN'} ${dayLabel(r.createdAt)}',
+                                      '-${money(r.amountCents)}',
+                                      bold: true,
+                                    ),
                                     Text(r.summary, style: GText.mono(size: 11.5)),
                                   ],
                                 ],
@@ -358,7 +396,7 @@ class _TicketScreenState extends ConsumerState<TicketScreen> {
                           ],
                         ),
                         // Corregir la venta, al final y aparte.
-                        if (canCancel) ...[
+                        if (canCancel || canExchange) ...[
                           const SizedBox(height: 18),
                           Container(
                             decoration: GShape.card(),
@@ -367,7 +405,24 @@ class _TicketScreenState extends ConsumerState<TicketScreen> {
                               type: MaterialType.transparency,
                               child: Column(
                                 children: [
-                                  if (canReturn) ...[
+                                  if (canExchange) ...[
+                                    _FixRow(
+                                      icon: Icons.swap_horiz_rounded,
+                                      label: 'Cambiar por otra talla o producto',
+                                      color: GColors.tinta,
+                                      onTap: () => openExchange(context, ref, sale),
+                                    ),
+                                    if (canCancel) const Divider(height: 1, indent: 50, color: GColors.linea),
+                                  ],
+                                  if (canCancel && lockedByExchange)
+                                    Padding(
+                                      padding: const EdgeInsets.fromLTRB(16, 12, 16, 12),
+                                      child: Text(
+                                        'Ya tuvo un cambio hoy: para corregir, cancela o devuelve la venta nueva.',
+                                        style: GText.muted(size: 12.5),
+                                      ),
+                                    ),
+                                  if (canReturn && !lockedByExchange) ...[
                                     _FixRow(
                                       icon: Icons.assignment_return_outlined,
                                       label: 'Devolver algunos productos',
@@ -376,12 +431,13 @@ class _TicketScreenState extends ConsumerState<TicketScreen> {
                                     ),
                                     const Divider(height: 1, indent: 50, color: GColors.linea),
                                   ],
-                                  _FixRow(
-                                    icon: Icons.undo_rounded,
-                                    label: 'Cancelar esta venta',
-                                    color: GColors.rojo,
-                                    onTap: () => _confirmCancel(sale, customer?.name),
-                                  ),
+                                  if (canCancel && !lockedByExchange)
+                                    _FixRow(
+                                      icon: Icons.undo_rounded,
+                                      label: 'Cancelar esta venta',
+                                      color: GColors.rojo,
+                                      onTap: () => _confirmCancel(sale, customer?.name),
+                                    ),
                                 ],
                               ),
                             ),

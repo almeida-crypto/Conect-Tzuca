@@ -43,10 +43,24 @@ class Product {
     this.active = true,
     this.photoPath,
     this.place = ProductPlace.todos,
+    this.parentId,
+    this.size,
+    this.color,
   });
 
   final String id;
   final String name;
+
+  /// Tallas y colores: cada talla/color es un producto con su existencia que apunta a su modelo. El modelo
+  /// ("Tenis Runner") no se vende solo; sus tallas sí ("Tenis Runner · 26 · Negro").
+  final String? parentId;
+  final String? size;
+  final String? color;
+
+  bool get isVariant => parentId != null;
+
+  /// "26 · Negro" (vacío si no es talla de un modelo).
+  String get variantLabel => [?size, ?color].join(' · ');
 
   /// En un restaurante: si sale en el menú de las mesas, en Cobrar (mostrador) o en los dos.
   final ProductPlace place;
@@ -85,6 +99,9 @@ class Product {
     ProductPlace? place,
   }) => Product(
     id: id,
+    parentId: parentId,
+    size: size,
+    color: color,
     place: place ?? this.place,
     name: name ?? this.name,
     priceCents: priceCents ?? this.priceCents,
@@ -136,10 +153,16 @@ class SaleReturn {
     this.cashCents = 0,
     this.reason,
     this.clerk,
+    this.exchangeSaleId,
   });
 
   final String id;
   final String saleId;
+
+  /// Cambio: la venta nueva de lo que se llevó. Lo devuelto pagó parte de esa venta (no salió dinero por eso).
+  final String? exchangeSaleId;
+
+  bool get isExchange => exchangeSaleId != null;
 
   /// Turno (de hoy) en que se hizo la devolución: de esa caja salió el efectivo.
   final String sessionId;
@@ -498,7 +521,15 @@ class CashSummary {
     this.cashTipsCents = 0,
     this.otherTipsCents = 0,
     this.tipsPaidCents = 0,
+    this.exchangeCents = 0,
+    this.supplierCashCents = 0,
   });
+
+  /// Mercancía que regresó en cambios: pagó parte de las ventas nuevas, así que no entró como dinero.
+  final int exchangeCents;
+
+  /// Lo que se les pagó a proveedores con el efectivo de la caja.
+  final int supplierCashCents;
 
   /// Propinas que ya se entregaron al equipo (salieron del cajón).
   final int tipsPaidCents;
@@ -538,8 +569,10 @@ class CashSummary {
       cashTipsCents +
       entradasCents -
       gastosCents -
-      tipsPaidCents;
-  int get totalSoldCents => cashSalesCents + otherSalesCents + creditSalesCents + lotSalesCents;
+      tipsPaidCents -
+      exchangeCents -
+      supplierCashCents;
+  int get totalSoldCents => cashSalesCents + otherSalesCents + creditSalesCents + lotSalesCents - exchangeCents;
 
   /// Lo que entró por tarjeta y transferencia (ventas, abonos, apartados y propinas).
   int get otherInCents => otherSalesCents + otherAbonosCents + otherLayawayCents + otherTipsCents;
@@ -561,6 +594,8 @@ class CashSummary {
     cashTipsCents: cashTipsCents + o.cashTipsCents,
     otherTipsCents: otherTipsCents + o.otherTipsCents,
     tipsPaidCents: tipsPaidCents + o.tipsPaidCents,
+    exchangeCents: exchangeCents + o.exchangeCents,
+    supplierCashCents: supplierCashCents + o.supplierCashCents,
   );
 
   static const zero = CashSummary(
@@ -681,6 +716,11 @@ class Layaway {
     this.dueDate,
     this.status = LayawayStatus.activo,
     this.photoPath,
+    this.deliveredAt,
+    this.refundCents = 0,
+    this.creditCents = 0,
+    this.payEveryDays,
+    this.remindedAt,
   });
 
   final String id;
@@ -694,21 +734,76 @@ class Layaway {
   /// Foto del artículo apartado (ruta en la nube, como las de producto). null = sin foto.
   final String? photoPath;
 
-  Layaway withStatus(LayawayStatus s) => _copy(status: s, photoPath: photoPath);
+  /// Cuándo se lo llevó (ya liquidado). null = sigue guardado en la tienda.
+  final DateTime? deliveredAt;
+
+  /// Al cancelar: lo que se le devolvió y lo que quedó como saldo a favor (para otro apartado).
+  final int refundCents;
+  final int creditCents;
+
+  /// Cada cuántos días le toca abonar (para recordarle). null = cuando pueda.
+  final int? payEveryDays;
+
+  /// La última vez que se le mandó un recordatorio.
+  final DateTime? remindedAt;
+
+  bool get delivered => deliveredAt != null;
+
+  /// Sigue apartado en la tienda: activo, o liquidado y todavía no se lo lleva.
+  bool get kept => status == LayawayStatus.activo || (status == LayawayStatus.liquidado && !delivered);
+
+  Layaway withStatus(LayawayStatus s) => copyWith(status: s);
 
   /// Con otra foto (o sin foto, con null).
-  Layaway withPhoto(String? path) => _copy(status: status, photoPath: path);
+  Layaway withPhoto(String? path) => copyWith(photoPath: path, clearPhoto: path == null);
 
-  Layaway _copy({required LayawayStatus status, required String? photoPath}) => Layaway(
+  Layaway copyWith({
+    LayawayStatus? status,
+    String? photoPath,
+    bool clearPhoto = false,
+    DateTime? deliveredAt,
+    int? refundCents,
+    int? creditCents,
+    DateTime? remindedAt,
+  }) => Layaway(
     id: id,
     customerId: customerId,
     description: description,
     totalCents: totalCents,
     createdAt: createdAt,
     dueDate: dueDate,
-    status: status,
-    photoPath: photoPath,
+    status: status ?? this.status,
+    photoPath: clearPhoto ? null : (photoPath ?? this.photoPath),
+    deliveredAt: deliveredAt ?? this.deliveredAt,
+    refundCents: refundCents ?? this.refundCents,
+    creditCents: creditCents ?? this.creditCents,
+    payEveryDays: payEveryDays,
+    remindedAt: remindedAt ?? this.remindedAt,
   );
+}
+
+/// Una pieza del inventario guardada en un apartado. Sale de la existencia al apartar y regresa si se cancela.
+/// [productId] nulo = algo escrito a mano (no descuenta nada).
+class LayawayItem {
+  const LayawayItem({
+    required this.id,
+    required this.layawayId,
+    required this.name,
+    required this.qty,
+    required this.unitCents,
+    this.productId,
+    this.position = 0,
+  });
+
+  final String id;
+  final String layawayId;
+  final String? productId;
+  final String name;
+  final double qty;
+  final int unitCents;
+  final int position;
+
+  int get totalCents => (unitCents * qty).round();
 }
 
 class LayawayPayment {
@@ -719,6 +814,7 @@ class LayawayPayment {
     required this.method,
     required this.createdAt,
     this.sessionId,
+    this.fromLayawayId,
   });
 
   final String id;
@@ -727,6 +823,11 @@ class LayawayPayment {
   final PayMethod method;
   final DateTime createdAt;
   final String? sessionId;
+
+  /// Pagado con el saldo a favor de otro apartado (cancelado): no entra a ninguna caja, ese dinero ya entró.
+  final String? fromLayawayId;
+
+  bool get fromCredit => fromLayawayId != null;
 }
 
 // ---------- Pedidos por tanda ----------

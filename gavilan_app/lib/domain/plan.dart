@@ -60,7 +60,11 @@ class PlanLimits {
     required this.printer,
     required this.reports,
     required this.devices,
+    required this.purchases,
   });
+
+  /// Compras a proveedores (lo que se les debe y lo que llega al inventario).
+  final bool purchases;
 
   final int? maxProducts;
   final int? maxDebtors;
@@ -95,6 +99,7 @@ class PlanLimits {
       printer: false,
       reports: false,
       devices: 1,
+      purchases: false,
     ),
     Plan.emprendedor => const PlanLimits(
       maxProducts: 300,
@@ -110,6 +115,7 @@ class PlanLimits {
       printer: false,
       reports: true,
       devices: 2,
+      purchases: true,
     ),
     Plan.negocio => const PlanLimits(
       maxProducts: null,
@@ -125,6 +131,7 @@ class PlanLimits {
       printer: true,
       reports: true,
       devices: null,
+      purchases: true,
     ),
   };
 }

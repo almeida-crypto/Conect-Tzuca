@@ -29,6 +29,11 @@ class ProductsTable extends Table {
   /// Dónde se vende (v19): null en todos lados, 'tables' o 'counter'.
   TextColumn get soldAt => text().nullable()();
 
+  /// Tallas y colores (v20): el modelo al que pertenece esta talla, y la talla y el color.
+  TextColumn get parentId => text().nullable()();
+  TextColumn get size => text().nullable()();
+  TextColumn get color => text().nullable()();
+
   @override
   Set<Column> get primaryKey => {id};
 }
@@ -89,6 +94,77 @@ class SaleReturnsTable extends Table {
   IntColumn get amountCents => integer()();
   IntColumn get cashCents => integer().withDefault(const Constant(0))();
   TextColumn get reason => text().nullable()();
+  TextColumn get clerk => text().nullable()();
+  DateTimeColumn get createdAt => dateTime()();
+
+  /// v21: cambio de talla (la venta nueva de lo que se llevó).
+  TextColumn get exchangeSaleId => text().nullable()();
+
+  @override
+  Set<Column> get primaryKey => {id};
+}
+
+// ---------- Compras a proveedores y conteos (v21) ----------
+
+@DataClassName('SupplierRow')
+class SuppliersTable extends Table {
+  @override
+  String get tableName => 'suppliers';
+
+  TextColumn get id => text()();
+  TextColumn get name => text()();
+  TextColumn get phone => text().nullable()();
+  BoolColumn get active => boolean().withDefault(const Constant(true))();
+
+  @override
+  Set<Column> get primaryKey => {id};
+}
+
+@DataClassName('PurchaseRow')
+class PurchasesTable extends Table {
+  @override
+  String get tableName => 'purchases';
+
+  TextColumn get id => text()();
+  TextColumn get supplierId => text().nullable()();
+  TextColumn get lines => text()();
+  IntColumn get totalCents => integer()();
+  TextColumn get note => text().nullable()();
+  TextColumn get clerk => text().nullable()();
+  DateTimeColumn get createdAt => dateTime()();
+
+  @override
+  Set<Column> get primaryKey => {id};
+}
+
+@DataClassName('SupplierPaymentRow')
+class SupplierPaymentsTable extends Table {
+  @override
+  String get tableName => 'supplier_payments';
+
+  TextColumn get id => text()();
+  TextColumn get supplierId => text()();
+  TextColumn get purchaseId => text().nullable()();
+  IntColumn get amountCents => integer()();
+  TextColumn get method => textEnum<PayMethod>()();
+  TextColumn get sessionId => text().nullable()();
+  TextColumn get note => text().nullable()();
+  TextColumn get clerk => text().nullable()();
+  DateTimeColumn get createdAt => dateTime()();
+
+  @override
+  Set<Column> get primaryKey => {id};
+}
+
+@DataClassName('StockCountRow')
+class StockCountsTable extends Table {
+  @override
+  String get tableName => 'stock_counts';
+
+  TextColumn get id => text()();
+  TextColumn get lines => text()();
+  IntColumn get missingCostCents => integer().withDefault(const Constant(0))();
+  IntColumn get extraCostCents => integer().withDefault(const Constant(0))();
   TextColumn get clerk => text().nullable()();
   DateTimeColumn get createdAt => dateTime()();
 
@@ -260,6 +336,31 @@ class LayawaysTable extends Table {
   TextColumn get status => textEnum<LayawayStatus>()();
   TextColumn get photoPath => text().nullable()();
 
+  /// v20: entregado, lo devuelto y el saldo a favor al cancelar, cada cuánto abona y el último recordatorio.
+  DateTimeColumn get deliveredAt => dateTime().nullable()();
+  IntColumn get refundCents => integer().withDefault(const Constant(0))();
+  IntColumn get creditCents => integer().withDefault(const Constant(0))();
+  IntColumn get payEveryDays => integer().nullable()();
+  DateTimeColumn get remindedAt => dateTime().nullable()();
+
+  @override
+  Set<Column> get primaryKey => {id};
+}
+
+/// Piezas del inventario guardadas en un apartado (v20).
+@DataClassName('LayawayItemRow')
+class LayawayItemsTable extends Table {
+  @override
+  String get tableName => 'layaway_items';
+
+  TextColumn get id => text()();
+  TextColumn get layawayId => text()();
+  TextColumn get productId => text().nullable()();
+  TextColumn get name => text()();
+  RealColumn get qty => real()();
+  IntColumn get unitCents => integer()();
+  IntColumn get position => integer().withDefault(const Constant(0))();
+
   @override
   Set<Column> get primaryKey => {id};
 }
@@ -275,6 +376,9 @@ class LayawayPaymentsTable extends Table {
   TextColumn get method => textEnum<PayMethod>()();
   DateTimeColumn get createdAt => dateTime()();
   TextColumn get sessionId => text().nullable()();
+
+  /// v20: pagado con el saldo a favor de este apartado cancelado.
+  TextColumn get fromLayawayId => text().nullable()();
 
   @override
   Set<Column> get primaryKey => {id};
@@ -443,6 +547,11 @@ class ExtrasTable extends Table {
     LotSalesTable,
     LayawaysTable,
     LayawayPaymentsTable,
+    LayawayItemsTable,
+    SuppliersTable,
+    PurchasesTable,
+    SupplierPaymentsTable,
+    StockCountsTable,
     BatchesTable,
     BatchOrdersTable,
     ProductsTable,
@@ -472,7 +581,7 @@ class GavilanDb extends _$GavilanDb {
   );
 
   @override
-  int get schemaVersion => 19;
+  int get schemaVersion => 21;
 
   @override
   MigrationStrategy get migration => MigrationStrategy(
@@ -550,6 +659,30 @@ class GavilanDb extends _$GavilanDb {
       }
       // v19: dónde se vende cada producto.
       if (from < 19) await m.addColumn(productsTable, productsTable.soldAt);
+      // v20: tallas y colores, piezas apartadas, entregado, reglas al cancelar y recordatorios.
+      if (from < 20) {
+        await m.addColumn(productsTable, productsTable.parentId);
+        await m.addColumn(productsTable, productsTable.size);
+        await m.addColumn(productsTable, productsTable.color);
+        // Antes de la versión 3 las tablas de apartados se crean completas (ya con lo nuevo).
+        if (from >= 3) {
+          await m.addColumn(layawaysTable, layawaysTable.deliveredAt);
+          await m.addColumn(layawaysTable, layawaysTable.refundCents);
+          await m.addColumn(layawaysTable, layawaysTable.creditCents);
+          await m.addColumn(layawaysTable, layawaysTable.payEveryDays);
+          await m.addColumn(layawaysTable, layawaysTable.remindedAt);
+          await m.addColumn(layawayPaymentsTable, layawayPaymentsTable.fromLayawayId);
+        }
+        await m.createTable(layawayItemsTable);
+      }
+      // v21: cambio de talla, compras a proveedores y conteos de inventario.
+      if (from < 21) {
+        // Antes de la versión 16 la tabla de devoluciones se crea completa.
+        if (from >= 16) await m.addColumn(saleReturnsTable, saleReturnsTable.exchangeSaleId);
+        for (final table in <TableInfo>[suppliersTable, purchasesTable, supplierPaymentsTable, stockCountsTable]) {
+          await m.createTable(table);
+        }
+      }
     },
   );
 }

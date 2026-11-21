@@ -16,6 +16,7 @@ import '../widgets/common.dart';
 import '../scan/scan_screen.dart';
 import '../inventario/first_products.dart';
 import '../inventario/product_form.dart';
+import '../inventario/variant_picker.dart';
 import '../widgets/product_icons.dart';
 import 'cart_sheet.dart';
 import 'open_bills.dart';
@@ -169,7 +170,7 @@ class _CobrarScreenState extends ConsumerState<CobrarScreen> {
     final byCode = store.productByBarcode(text);
     final matches = byCode != null ? [byCode] : _matching(store, text);
     if (matches.length == 1) {
-      ref.read(cartProvider.notifier).addProduct(matches.single);
+      _add(matches.single);
       _setQuery('');
     } else if (matches.isEmpty) {
       // Un código de barras que todavía no conocemos: se ofrece darlo de alta ahí mismo.
@@ -191,9 +192,20 @@ class _CobrarScreenState extends ConsumerState<CobrarScreen> {
     if (!await ensureRoomForProduct(context, ref) || !mounted) return;
     final saved = await showProductForm(context, initialBarcode: code);
     if (saved != null && mounted) {
-      ref.read(cartProvider.notifier).addProduct(saved);
+      _add(saved);
       _setQuery('');
     }
+  }
+
+  /// A la cuenta. Un modelo con tallas pregunta cuál.
+  Future<void> _add(Product p) async {
+    final store = ref.read(storeProvider);
+    if (!store.isModel(p)) {
+      ref.read(cartProvider.notifier).addProduct(p);
+      return;
+    }
+    final v = await pickVariant(context, p);
+    if (v != null && mounted) ref.read(cartProvider.notifier).addProduct(v);
   }
 
   Future<void> _startPayment() async {
@@ -221,6 +233,13 @@ class _CobrarScreenState extends ConsumerState<CobrarScreen> {
     // En un restaurante: sin lector de códigos, con las cuentas abiertas a la mano y el menú por grupos.
     final restaurant = restaurantTab(store, ref.watch(planProvider));
     Widget tileOf(Product p) {
+      if (store.isModel(p)) {
+        // Con tallas: se ven las piezas de todas y lo que va en la cuenta de cualquiera.
+        final ids = {for (final v in store.variantsOf(p.id)) v.id};
+        final inCart = cart.where((l) => ids.contains(l.productId)).fold(0.0, (a, l) => a + l.qty);
+        final shown = p.copyWith(trackStock: true, stock: store.stockOfModel(p.id));
+        return _ProductTile(product: shown, qty: inCart, onTap: () => _add(p));
+      }
       final inCart = cart.where((l) => l.productId == p.id).fold(0.0, (a, l) => a + l.qty);
       return _ProductTile(product: p, qty: inCart, onTap: () => ref.read(cartProvider.notifier).addProduct(p));
     }

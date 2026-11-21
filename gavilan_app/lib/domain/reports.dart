@@ -148,7 +148,8 @@ List<Share> _shares(Map<String, (int, int)> map) {
 }
 
 /// Por forma de pago. Una venta pagada en partes reparte su total entre sus formas; lo fiado va aparte.
-List<Share> byMethod(List<Sale> sales) {
+/// [exchangeCredit]: por venta nueva de un cambio, lo que pagó la mercancía que regresó (no fue dinero).
+List<Share> byMethod(List<Sale> sales, {Map<String, int> exchangeCredit = const {}}) {
   final map = <String, (int, int)>{};
   void add(String k, int cents) {
     final (c, n) = map[k] ?? (0, 0);
@@ -161,10 +162,18 @@ List<Share> byMethod(List<Sale> sales) {
     } else {
       // La propina no es venta: se descuenta de lo pagado (primero del efectivo, como en el corte).
       var tip = s.tipCents;
+      // En un cambio, lo que regresó cuenta aparte y se descuenta primero del efectivo.
+      var credit = exchangeCredit[s.id] ?? 0;
+      if (credit > 0) add('Cambio de mercancía', credit.clamp(0, s.totalCents));
       final parts = [...s.paymentParts]..sort((a, b) => a.method == PayMethod.efectivo ? -1 : 1);
       for (final p in parts) {
-        final off = tip.clamp(0, p.amountCents);
+        var off = tip.clamp(0, p.amountCents);
         tip -= off;
+        if (p.method == PayMethod.efectivo && credit > 0) {
+          final used = credit.clamp(0, p.amountCents - off);
+          credit -= used;
+          off += used;
+        }
         if (p.amountCents - off > 0) add(p.method.label, p.amountCents - off);
       }
     }

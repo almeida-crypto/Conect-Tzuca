@@ -457,7 +457,7 @@ class _ProductPickerState extends ConsumerState<_ProductPicker> {
         // Lo marcado "solo en mostrador" no sale en el menú de las mesas.
         ref
             .watch(storeProvider)
-            .activeProducts
+            .sellableProducts
             .where((p) => p.atTables && (q.isEmpty || p.name.toLowerCase().contains(q)))
             .toList()
           ..sort((a, b) => a.name.compareTo(b.name));

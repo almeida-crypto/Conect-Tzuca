@@ -36,7 +36,7 @@ void main() {
   test('tipo y módulos viajan a Supabase y regresan', () {
     final row = businessSetupToRemote(BusinessType.ropa, {Module.pacas, Module.apartados});
     expect(row['business_type'], 'ropa');
-    expect(row['modules'], {'restaurante': false, 'apartados': true, 'pacas': true, 'tandas': false});
+    expect(row['modules'], {'restaurante': false, 'apartados': true, 'pacas': true, 'tandas': false, 'compras': false});
     expect(modulesFromRemote(row['modules']), {Module.pacas, Module.apartados});
     expect(modulesFromRemote(<String, Object?>{}), isNull); // negocio de antes: sin elegir
   });

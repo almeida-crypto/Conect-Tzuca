@@ -75,7 +75,35 @@ abstract class StoreRepository {
 
   Future<void> upsertLot(Lot lot);
   Future<void> insertLotSale(LotSale sale);
-  Future<void> upsertLayaway(Layaway layaway);
+
+  /// El apartado y, al apartarlo o cancelarlo, sus piezas y lo que sale o regresa al inventario ([stock] por
+  /// producto: negativo al apartar, positivo al cancelar). [changedProducts] ya traen la existencia nueva.
+  Future<void> upsertLayaway(
+    Layaway layaway, {
+    List<LayawayItem> items = const [],
+    List<Product> changedProducts = const [],
+    Map<String, double> stock = const {},
+  });
+  Future<void> setLayawayRules(LayawayRules rules);
+
+  // ---------- Compras a proveedores y conteos ----------
+  Future<void> upsertSupplier(Supplier supplier);
+
+  /// La compra, lo que entra al inventario ([stock] por producto), los productos con su costo nuevo y, si se
+  /// pagó algo en el momento, ese pago.
+  Future<void> recordPurchase({
+    required Purchase purchase,
+    required List<Product> changedProducts,
+    required Map<String, double> stock,
+    SupplierPayment? payment,
+  });
+  Future<void> insertSupplierPayment(SupplierPayment payment);
+
+  /// El conteo ya aplicado: los productos con su existencia contada (y se borra el borrador).
+  Future<void> recordCount({required StockCount count, required List<Product> changedProducts});
+
+  /// Lo que se lleva contado (solo en este aparato), por si se cierra la app a medio conteo.
+  Future<void> setCountDraft(Map<String, double> draft);
   Future<void> insertLayawayPayment(LayawayPayment payment);
   Future<void> upsertBatch(Tanda batch);
   Future<void> upsertBatchOrder(BatchOrder order);
@@ -204,7 +232,35 @@ class MemoryRepository implements StoreRepository {
   @override
   Future<void> insertLotSale(LotSale sale) async {}
   @override
-  Future<void> upsertLayaway(Layaway layaway) async {}
+  Future<void> upsertLayaway(
+    Layaway layaway, {
+    List<LayawayItem> items = const [],
+    List<Product> changedProducts = const [],
+    Map<String, double> stock = const {},
+  }) async {}
+
+  @override
+  Future<void> setLayawayRules(LayawayRules rules) async {}
+
+  @override
+  Future<void> upsertSupplier(Supplier supplier) async {}
+
+  @override
+  Future<void> recordPurchase({
+    required Purchase purchase,
+    required List<Product> changedProducts,
+    required Map<String, double> stock,
+    SupplierPayment? payment,
+  }) async {}
+
+  @override
+  Future<void> insertSupplierPayment(SupplierPayment payment) async {}
+
+  @override
+  Future<void> recordCount({required StockCount count, required List<Product> changedProducts}) async {}
+
+  @override
+  Future<void> setCountDraft(Map<String, double> draft) async {}
   @override
   Future<void> insertLayawayPayment(LayawayPayment payment) async {}
   @override

@@ -6,7 +6,9 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:gavilan/data/database.dart';
 import 'package:gavilan/data/repository.dart';
 import 'package:gavilan/data/sync_remote.dart';
+import 'package:gavilan/domain/layaway_rules.dart';
 import 'package:gavilan/domain/models.dart';
+import 'package:gavilan/domain/purchases.dart';
 import 'package:gavilan/state/app_state.dart';
 import 'package:gavilan/domain/plan.dart';
 import 'package:gavilan/domain/restaurant.dart';
@@ -406,6 +408,130 @@ void main() {
     await a.settle();
     expect(b.state.layawayById(apartado.id)!.status, LayawayStatus.liquidado);
     expect(a.state.ordersOfBatch(tanda.id).single.paid, isTrue);
+  });
+
+  test('tallas, piezas apartadas, entregado, saldo a favor y reglas llegan al otro celular', () async {
+    final a = await phone();
+    final lupe = await _setUpShop(a);
+    a.store.saveModel(const Product(id: 'runner', name: 'Tenis Runner', priceCents: 89900), [
+      (size: '26', color: null, qty: 3),
+      (size: '27', color: null, qty: 1),
+    ]);
+    final talla = a.state.variantsOf('runner').first;
+    final apartado = a.store.addLayaway(
+      customerId: lupe,
+      totalCents: 89900,
+      depositCents: 30000,
+      payEveryDays: 15,
+      items: [(productId: talla.id, name: talla.name, qty: 1, unitCents: 89900)],
+    );
+    final vestido = a.store.addLayaway(
+      customerId: lupe,
+      description: 'Vestido',
+      totalCents: 60000,
+      depositCents: 20000,
+    );
+    a.store.cancelLayaway(vestido.id, creditCents: 20000);
+    a.store.setLayawayRules(const LayawayRules(cancel: CancelRule.saldoAFavor, minDepositPct: 20));
+    await a.store.flush();
+
+    expect((await a.login('mary@correo.mx')).result, LinkResult.uploaded);
+    await a.settle();
+    expect(a.status.pending, 0);
+    final variants = server.rows('products').where((r) => r['parent_id'] == 'runner').toList();
+    expect(variants.map((r) => r['size']).toSet(), {'26', '27'});
+    expect(server.rows('layaway_items').single['product_id'], talla.id);
+    expect(server.rows('layaways').firstWhere((r) => r['id'] == vestido.id)['store_credit'], 200);
+    expect((server.rows('businesses').single['layaway_rules']! as Map)['cancel'], 'store_credit');
+
+    // Lo que se aparta después sale de la existencia también en la nube.
+    final otra = a.state.variantsOf('runner').last;
+    a.store.addLayaway(
+      customerId: lupe,
+      totalCents: 89900,
+      items: [(productId: otra.id, name: otra.name, qty: 1, unitCents: 89900)],
+    );
+    await a.settle();
+    expect(server.rows('inventory_movements').where((r) => r['reason'] == 'layaway').single['qty_change'], -1);
+    expect(server.table('products')[otra.id]!['stock_qty'], 0);
+
+    final b = await phone();
+    await b.login('mary@correo.mx');
+    expect(b.state.isModel(b.state.productById('runner')!), isTrue);
+    expect(b.state.variantsOf('runner').map((v) => v.stock), [2, 0]);
+    expect(b.state.reservedOf(talla.id), 1);
+    expect(b.state.itemsOfLayaway(apartado.id).single.name, 'Tenis Runner · 26');
+    expect(b.state.layawayById(apartado.id)!.payEveryDays, 15);
+    expect(b.state.creditOf(lupe), 20000);
+    expect((b.state.layawayRules.cancel, b.state.layawayRules.minDepositPct), (CancelRule.saldoAFavor, 20));
+
+    // Se liquida y se entrega en B; A lo ve entregado.
+    b.store.addLayawayPayment(apartado.id, 59900, PayMethod.efectivo);
+    b.store.deliverLayaway(apartado.id);
+    await b.settle();
+    await a.settle();
+    expect(a.state.layawayById(apartado.id)!.delivered, isTrue);
+    expect(a.state.reservedOf(talla.id), 0);
+  });
+
+  test('compras, conteo y cambios suben; el cajero cambia sin devolver dinero y no ve las compras', () async {
+    final owner = await phone(device: 'K7');
+    await _setUpShop(owner);
+    owner.store.saveProduct(const Product(id: 'pepsi', name: 'Pepsi', priceCents: 1700, trackStock: true, stock: 10));
+    final s = owner.store.addSupplier('Bebidas del Sur');
+    owner.store.addPurchase(
+      supplierId: s.id,
+      lines: [const PurchaseLine(productId: 'coca', name: 'Coca', qty: 12, unitCostCents: 1300)],
+      paidCents: 10000,
+    );
+    owner.store.setCounted('pepsi', 9);
+    owner.store.applyCount();
+    await owner.login('mary@correo.mx');
+    await owner.settle();
+    expect(owner.status.pending, 0);
+    expect(server.rows('purchases').single['total'], 156);
+    expect(server.rows('supplier_payments').single['amount'], 100);
+    expect(server.rows('stock_counts').single['missing_cost'], 0);
+    expect(server.table('products')['coca']!['stock_qty'], 21 + 12);
+    expect(server.table('products')['pepsi']!['stock_qty'], 9);
+
+    final code = await owner.sync.createInvite(MemberRole.cashier, 'Juan');
+    final cashier = await phone(device: 'R3');
+    await cashier.sync.signIn('juan@correo.mx', 'secreta1');
+    await cashier.sync.joinWithCode(formatInviteCode(code));
+    expect(cashier.state.suppliers, isEmpty); // las compras son del dueño
+    expect(cashier.state.purchases, isEmpty);
+    cashier.store.openCash(20000);
+
+    // Cambia una Coca por una Pepsi y le dan la diferencia (no sale dinero): el servidor lo acepta.
+    final sale = cashier.sell('coca', 1);
+    final pepsi = cashier.state.productById('pepsi')!;
+    cashier.store.exchange(
+      sale.id,
+      {0: 1},
+      [SaleLine(key: 'x', productId: 'pepsi', name: 'Pepsi', unitCents: pepsi.priceCents, qty: 2)],
+    );
+    await cashier.settle();
+    expect(cashier.status.pending, 0);
+    expect(server.rows('sale_returns').single['exchange_sale_id'], isNotNull);
+
+    // Uno donde hay que devolverle dinero lo rechaza el servidor si lo sube un cajero.
+    final sale2 = cashier.sell('coca', 1);
+    cashier.store.exchange(
+      sale2.id,
+      {0: 1},
+      [const SaleLine(key: 'y', productId: null, name: 'Chicle', unitCents: 500, qty: 1)],
+    );
+    await cashier.settle();
+    expect(cashier.status.failed, greaterThan(0));
+
+    // El dueño ve el cambio y la caja del cajero cuadra igual.
+    await owner.settle();
+    expect(owner.state.saleReturns.where((r) => r.isExchange), hasLength(1));
+    final other = await phone();
+    await other.login('mary@correo.mx');
+    expect(other.state.debtToSupplier(s.id), 15600 - 10000);
+    expect(other.state.stockCounts, hasLength(1));
   });
 
   test('los enlaces del correo abren la sesión en la app', () async {

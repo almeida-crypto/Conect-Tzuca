@@ -9,6 +9,7 @@ import '../../domain/business.dart';
 import '../../domain/models.dart';
 import '../../domain/plan.dart';
 import '../../domain/profit.dart';
+import '../../domain/variants.dart';
 import '../../state/app_state.dart';
 import '../../state/store.dart';
 import '../../state/sync.dart';
@@ -29,7 +30,10 @@ Future<Product?> showProductForm(BuildContext context, {Product? product, String
         .showSnackBar(const SnackBar(content: Text('Solo el dueño o un administrador pueden cambiar los productos')));
     return null;
   }
-  return showGSheet<Product>(context, (_) => _ProductForm(product: product, initialBarcode: initialBarcode));
+  // Una talla se edita desde su modelo.
+  final store = ProviderScope.containerOf(context).read(storeProvider);
+  final shown = product?.parentId == null ? product : (store.productById(product!.parentId!) ?? product);
+  return showGSheet<Product>(context, (_) => _ProductForm(product: shown, initialBarcode: initialBarcode));
 }
 
 /// Revisa el límite de productos del plan antes de dar de alta uno nuevo.
@@ -79,13 +83,52 @@ class _ProductFormState extends ConsumerState<_ProductForm> {
   late ProductPlace _place = widget.product?.place ?? ProductPlace.todos;
   final _errors = <String, String>{};
 
+  /// Tallas y colores: apagado de inicio; prendido si ya es un modelo con tallas.
+  late bool _variants = widget.product != null && ref.read(storeProvider).isModel(widget.product!);
+  late final List<Product> _existing = widget.product == null
+      ? const []
+      : ref.read(storeProvider).variantsOf(widget.product!.id);
+  late final _sizes = TextEditingController(text: _unique(_existing.map((v) => v.size)).join(', '));
+  late final _colors = TextEditingController(text: _unique(_existing.map((v) => v.color)).join(', '));
+  late final _variantMin = TextEditingController(
+    text: _existing.isEmpty || _existing.first.minStock == null ? '' : qtyLabel(_existing.first.minStock!),
+  );
+
+  /// Piezas de cada combinación: las que hay (nuevas) o las que llegaron (ya existían).
+  final _qty = <String, TextEditingController>{};
+
+  static List<String> _unique(Iterable<String?> values) {
+    final seen = <String>{};
+    return [
+      for (final v in values)
+        if (v != null && seen.add(v.toLowerCase())) v,
+    ];
+  }
+
+  TextEditingController _qtyFor(String key) => _qty.putIfAbsent(key, TextEditingController.new);
+
+  List<({String? size, String? color})> get _combos =>
+      variantCombos(splitVariantList(_sizes.text), splitVariantList(_colors.text));
+
   bool get _editing => widget.product != null;
 
   static String _cents(int? c) => centsInput(c);
 
   @override
   void dispose() {
-    for (final c in [_name, _price, _cost, _barcode, _stock, _min, _restock]) {
+    for (final c in [
+      _name,
+      _price,
+      _cost,
+      _barcode,
+      _stock,
+      _min,
+      _restock,
+      _sizes,
+      _colors,
+      _variantMin,
+      ..._qty.values,
+    ]) {
       c.dispose();
     }
     super.dispose();
@@ -113,6 +156,7 @@ class _ProductFormState extends ConsumerState<_ProductForm> {
       if (clash != null && clash.id != widget.product?.id) _errors['barcode'] = 'Ya lo usa "${clash.name}"';
     });
     if (_errors.isNotEmpty) return;
+    if (_variants) return _saveModel(price!, cost!);
 
     // Partimos del producto como está ahora (pudo venderse mientras el formulario estaba abierto).
     final base =
@@ -139,6 +183,43 @@ class _ProductFormState extends ConsumerState<_ProductForm> {
       notifier.setProductPhoto(saved.id, null);
     }
     Navigator.of(context).pop(saved);
+  }
+
+  /// Con tallas: el modelo y una talla por cada combinación.
+  void _saveModel(int price, int cost) {
+    final combos = _combos;
+    final min = _variantMin.text.trim().isEmpty ? null : parseQty(_variantMin.text);
+    final drafts = [
+      for (final c in combos)
+        (size: c.size, color: c.color, qty: parseQty(_qtyFor(variantKey(c.size, c.color)).text) ?? 0.0),
+    ];
+    setState(() {
+      if (combos.isEmpty) _errors['sizes'] = 'Escribe las tallas o los colores';
+      if (combos.length > maxVariants) {
+        _errors['sizes'] = 'Son ${combos.length} combinaciones; el máximo es $maxVariants';
+      }
+      if (_variantMin.text.trim().isNotEmpty && min == null) _errors['vmin'] = 'Entre 0 y 99,999';
+    });
+    if (_errors.isNotEmpty) return;
+    final store = ref.read(storeProvider);
+    final base =
+        (widget.product == null ? null : store.productById(widget.product!.id)) ??
+        Product(id: newId(), name: '', priceCents: 0);
+    final model = base.copyWith(
+      name: _name.text.trim(),
+      priceCents: price,
+      costCents: cost,
+      iconId: _icon,
+      place: _place,
+    );
+    final notifier = ref.read(storeProvider.notifier);
+    notifier.saveModel(model, drafts, minStock: min);
+    if (_photo != null) {
+      notifier.setProductPhoto(model.id, _photo);
+    } else if (_removePhoto) {
+      notifier.setProductPhoto(model.id, null);
+    }
+    Navigator.of(context).pop(ref.read(storeProvider).productById(model.id));
   }
 
   /// Toma o elige la foto. Se reduce a 600×600 al tomarla: pesa unos 50 KB.
@@ -170,7 +251,7 @@ class _ProductFormState extends ConsumerState<_ProductForm> {
   }
 
   void _deactivate() {
-    ref.read(storeProvider.notifier).saveProduct(widget.product!.copyWith(active: false));
+    ref.read(storeProvider.notifier).hideProduct(widget.product!.id);
     Navigator.of(context).pop();
   }
 
@@ -243,28 +324,30 @@ class _ProductFormState extends ConsumerState<_ProductForm> {
         ),
         _MarginNote(price: parseMoney(_price.text), cost: parseMoney(_cost.text)),
         const SizedBox(height: 10),
-        TextField(
-          controller: _barcode,
-          keyboardType: TextInputType.number,
-          inputFormatters: [maxChars(Limits.maxBarcodeLength)],
-          decoration: InputDecoration(
-            labelText: 'Código de barras (opcional)',
-            prefixIcon: const Icon(Icons.qr_code_2, size: 20),
-            suffixIcon: IconButton(
-              tooltip: 'Leer con la cámara',
-              icon: const Icon(Icons.qr_code_scanner),
-              onPressed: () async {
-                final code = await scanOneCode(context);
-                if (code == null || !mounted) return;
-                setState(() {
-                  _barcode.text = code;
-                  _errors.remove('barcode');
-                });
-              },
+        // Con tallas, cada talla lleva su código (en Etiquetas se les pone uno).
+        if (!_variants)
+          TextField(
+            controller: _barcode,
+            keyboardType: TextInputType.number,
+            inputFormatters: [maxChars(Limits.maxBarcodeLength)],
+            decoration: InputDecoration(
+              labelText: 'Código de barras (opcional)',
+              prefixIcon: const Icon(Icons.qr_code_2, size: 20),
+              suffixIcon: IconButton(
+                tooltip: 'Leer con la cámara',
+                icon: const Icon(Icons.qr_code_scanner),
+                onPressed: () async {
+                  final code = await scanOneCode(context);
+                  if (code == null || !mounted) return;
+                  setState(() {
+                    _barcode.text = code;
+                    _errors.remove('barcode');
+                  });
+                },
+              ),
+              errorText: _errors['barcode'],
             ),
-            errorText: _errors['barcode'],
           ),
-        ),
         const SizedBox(height: 14),
         Row(
           children: [
@@ -355,69 +438,86 @@ class _ProductFormState extends ConsumerState<_ProductForm> {
           }, style: GText.muted(size: 12.5)),
         ],
         const SizedBox(height: 10),
-        SwitchListTile(
-          contentPadding: EdgeInsets.zero,
-          value: _track,
-          activeThumbColor: GColors.marca,
-          onChanged: (v) => setState(() => _track = v),
-          title: Text('Controlar existencia', style: GText.sans(size: 14)),
-          subtitle: Text('Se descuenta sola con cada venta', style: GText.muted()),
-        ),
-        if (_track)
-          Row(
-            children: [
-              if (!_editing) ...[
+        // Para zapatos y ropa. En una fonda o en comida por encargo no hay tallas.
+        if (!{BusinessType.restaurante, BusinessType.encargos}.contains(ref.watch(storeProvider).businessType))
+          SwitchListTile(
+            contentPadding: EdgeInsets.zero,
+            value: _variants,
+            activeThumbColor: GColors.marca,
+            onChanged: (v) => setState(() {
+              _variants = v;
+              _errors.remove('sizes');
+            }),
+            title: Text('Tiene tallas o colores', style: GText.sans(size: 14)),
+            subtitle: Text('Zapatos, ropa: cada talla lleva sus piezas', style: GText.muted()),
+          ),
+        if (_variants)
+          ..._variantSection(current)
+        else ...[
+          SwitchListTile(
+            contentPadding: EdgeInsets.zero,
+            value: _track,
+            activeThumbColor: GColors.marca,
+            onChanged: (v) => setState(() => _track = v),
+            title: Text('Controlar existencia', style: GText.sans(size: 14)),
+            subtitle: Text('Se descuenta sola con cada venta', style: GText.muted()),
+          ),
+          if (_track)
+            Row(
+              children: [
+                if (!_editing) ...[
+                  Expanded(
+                    child: TextField(
+                      controller: _stock,
+                      keyboardType: const TextInputType.numberWithOptions(decimal: true),
+                      inputFormatters: const [QtyInputFormatter()],
+                      decoration: InputDecoration(labelText: 'Tengo ahora', errorText: _errors['stock']),
+                    ),
+                  ),
+                  const SizedBox(width: 10),
+                ],
                 Expanded(
                   child: TextField(
-                    controller: _stock,
+                    controller: _min,
                     keyboardType: const TextInputType.numberWithOptions(decimal: true),
                     inputFormatters: const [QtyInputFormatter()],
-                    decoration: InputDecoration(labelText: 'Tengo ahora', errorText: _errors['stock']),
+                    decoration: InputDecoration(labelText: 'Avisarme al llegar a', errorText: _errors['min']),
                   ),
                 ),
-                const SizedBox(width: 10),
               ],
-              Expanded(
-                child: TextField(
-                  controller: _min,
-                  keyboardType: const TextInputType.numberWithOptions(decimal: true),
-                  inputFormatters: const [QtyInputFormatter()],
-                  decoration: InputDecoration(labelText: 'Avisarme al llegar a', errorText: _errors['min']),
-                ),
+            ),
+          if (_editing && _track && current != null) ...[
+            const SizedBox(height: 14),
+            Container(
+              padding: const EdgeInsets.all(12),
+              decoration: BoxDecoration(
+                color: GColors.superficie,
+                border: Border.all(color: GColors.linea),
+                borderRadius: BorderRadius.circular(GShape.radiusSmall),
               ),
-            ],
-          ),
-        if (_editing && _track && current != null) ...[
-          const SizedBox(height: 14),
-          Container(
-            padding: const EdgeInsets.all(12),
-            decoration: BoxDecoration(
-              color: GColors.superficie,
-              border: Border.all(color: GColors.linea),
-              borderRadius: BorderRadius.circular(GShape.radiusSmall),
-            ),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.stretch,
-              children: [
-                Text('Existencia: ${qtyLabel(current.stock)}', style: GText.sans(size: 14, weight: FontWeight.w800)),
-                const SizedBox(height: 8),
-                Row(
-                  children: [
-                    Expanded(
-                      child: TextField(
-                        controller: _restock,
-                        keyboardType: const TextInputType.numberWithOptions(decimal: true),
-                        inputFormatters: const [QtyInputFormatter()],
-                        decoration: InputDecoration(hintText: 'Llegó mercancía: 12', errorText: _errors['restock']),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  Text('Existencia: ${qtyLabel(current.stock)}', style: GText.sans(size: 14, weight: FontWeight.w800)),
+                  const SizedBox(height: 8),
+                  Row(
+                    children: [
+                      Expanded(
+                        child: TextField(
+                          controller: _restock,
+                          keyboardType: const TextInputType.numberWithOptions(decimal: true),
+                          inputFormatters: const [QtyInputFormatter()],
+                          decoration: InputDecoration(hintText: 'Llegó mercancía: 12', errorText: _errors['restock']),
+                        ),
                       ),
-                    ),
-                    const SizedBox(width: 8),
-                    GButton(label: 'Sumar', kind: GButtonKind.dark, onPressed: _addStock),
-                  ],
-                ),
-              ],
+                      const SizedBox(width: 8),
+                      GButton(label: 'Sumar', kind: GButtonKind.dark, onPressed: _addStock),
+                    ],
+                  ),
+                ],
+              ),
             ),
-          ),
+          ],
         ],
         const SizedBox(height: 16),
         GButton(label: _editing ? 'Guardar cambios' : 'Guardar producto', expand: true, big: true, onPressed: _save),
@@ -430,6 +530,126 @@ class _ProductFormState extends ConsumerState<_ProductForm> {
         ],
       ],
     );
+  }
+
+  /// Tallas, colores y cuántas piezas hay de cada combinación.
+  List<Widget> _variantSection(Product? current) {
+    final store = ref.watch(storeProvider);
+    final byKey = {for (final v in _existing) variantKey(v.size, v.color): v};
+    final combos = _combos;
+    final hidden = [
+      for (final v in _existing)
+        if (!combos.any((c) => variantKey(c.size, c.color) == variantKey(v.size, v.color))) v.variantLabel,
+    ];
+    final hadStock = current != null && !store.isModel(current) && current.trackStock && current.stock > 0;
+    return [
+      TextField(
+        controller: _sizes,
+        onChanged: (_) => setState(() => _errors.remove('sizes')),
+        decoration: InputDecoration(
+          labelText: 'Tallas',
+          hintText: '22, 23, 24 · CH, M, G',
+          helperText: 'Sepáralas con comas',
+          errorText: _errors['sizes'],
+        ),
+      ),
+      const SizedBox(height: 6),
+      Wrap(
+        spacing: 6,
+        runSpacing: 4,
+        children: [
+          for (final e in sizePresets.entries)
+            ActionChip(
+              label: Text(e.key, style: GText.sans(size: 12)),
+              visualDensity: VisualDensity.compact,
+              onPressed: () => setState(() {
+                _sizes.text = e.value.join(', ');
+                _errors.remove('sizes');
+              }),
+            ),
+        ],
+      ),
+      const SizedBox(height: 10),
+      TextField(
+        controller: _colors,
+        onChanged: (_) => setState(() => _errors.remove('sizes')),
+        textCapitalization: TextCapitalization.sentences,
+        decoration: const InputDecoration(labelText: 'Colores (opcional)', hintText: 'Negro, Blanco, Café'),
+      ),
+      if (hadStock) ...[
+        const SizedBox(height: 10),
+        Text(
+          'Tenía ${qtyLabel(current.stock)} piezas sin talla: escribe cuántas hay de cada una.',
+          style: GText.sans(size: 13, color: GColors.marcaOscura),
+        ),
+      ],
+      if (combos.isNotEmpty) ...[
+        const SizedBox(height: 14),
+        Row(
+          children: [
+            Expanded(child: Text('Piezas de cada una', style: GText.label())),
+            Text('${combos.length} ${combos.length == 1 ? 'talla' : 'tallas'}', style: GText.muted(size: 12)),
+          ],
+        ),
+        const SizedBox(height: 4),
+        for (final c in combos.take(maxVariants))
+          Builder(
+            builder: (context) {
+              final key = variantKey(c.size, c.color);
+              final old = byKey[key] == null ? null : store.productById(byKey[key]!.id);
+              final reserved = old == null ? 0.0 : store.reservedOf(old.id);
+              return Container(
+                padding: const EdgeInsets.symmetric(vertical: 4),
+                decoration: const BoxDecoration(
+                  border: Border(bottom: BorderSide(color: GColors.linea)),
+                ),
+                child: Row(
+                  children: [
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text([?c.size, ?c.color].join(' · '), style: GText.sans(size: 14, weight: FontWeight.w700)),
+                          if (old != null)
+                            Text(
+                              'Hay ${qtyLabel(old.stock)}${reserved > 0 ? ' · ${qtyLabel(reserved)} apartada${reserved == 1 ? '' : 's'}' : ''}',
+                              style: GText.muted(size: 12),
+                            ),
+                        ],
+                      ),
+                    ),
+                    SizedBox(
+                      width: 104,
+                      child: TextField(
+                        controller: _qtyFor(key),
+                        keyboardType: const TextInputType.numberWithOptions(decimal: true),
+                        inputFormatters: const [QtyInputFormatter()],
+                        textAlign: TextAlign.right,
+                        decoration: InputDecoration(isDense: true, hintText: old == null ? 'Tengo: 0' : 'Llegaron'),
+                      ),
+                    ),
+                  ],
+                ),
+              );
+            },
+          ),
+      ],
+      if (hidden.isNotEmpty) ...[
+        const SizedBox(height: 6),
+        Text('Se van a ocultar: ${hidden.join(', ')}', style: GText.sans(size: 12.5, color: GColors.rojo)),
+      ],
+      const SizedBox(height: 10),
+      TextField(
+        controller: _variantMin,
+        keyboardType: const TextInputType.numberWithOptions(decimal: true),
+        inputFormatters: const [QtyInputFormatter()],
+        decoration: InputDecoration(
+          labelText: 'Avisarme cuando a una talla le queden',
+          hintText: 'Opcional: 1',
+          errorText: _errors['vmin'],
+        ),
+      ),
+    ];
   }
 }
 

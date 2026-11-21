@@ -23,6 +23,7 @@ import '../widgets/buttons.dart';
 import '../widgets/common.dart';
 import 'logo_card.dart';
 import 'offline_card.dart';
+import '../modules/purchases_screen.dart';
 import '../../core/print/print.dart' show canPrintTicket;
 import 'plan_screen.dart';
 import '../account/business_switcher.dart';
@@ -84,6 +85,16 @@ final _modules = [
     (l) => l.batches,
     screen: () => const TandasScreen(),
     module: Module.tandas,
+  ),
+  _Module(
+    Icons.local_shipping_outlined,
+    'Compras a proveedores',
+    'Lo que llega, a cómo y lo que se le debe',
+    Plan.emprendedor,
+    (l) => l.purchases,
+    screen: () => const PurchasesScreen(),
+    module: Module.compras,
+    ownerOnly: true,
   ),
   _Module(
     Icons.table_restaurant_outlined,

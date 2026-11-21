@@ -126,7 +126,13 @@ class _ReportsScreenState extends ConsumerState<ReportsScreen> {
     final change = changePct(t.cents, totalsOf(before).cents);
     final profit = profitIn(sales);
     final buckets = _period.days <= 1 ? byHour(sales) : byDay(sales, _period);
-    final methods = byMethod(sales);
+    final methods = byMethod(
+      sales,
+      exchangeCredit: {
+        for (final r in store.saleReturns)
+          if (r.exchangeSaleId != null) r.exchangeSaleId!: r.amountCents,
+      },
+    );
     final clerks = byClerk(sales);
     final registers = byRegister(sales, registerOf);
     final returns = returnsIn(store.saleReturns, _period);

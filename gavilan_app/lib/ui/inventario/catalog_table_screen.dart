@@ -139,7 +139,10 @@ class _CatalogTableScreenState extends ConsumerState<CatalogTableScreen> {
     for (final r in _rows) {
       r.dispose();
     }
-    final products = [...ref.read(storeProvider).activeProducts]..sort((a, b) => a.name.compareTo(b.name));
+    final store = ref.read(storeProvider);
+    // Los modelos con tallas se editan en su ficha (cada talla lleva sus piezas).
+    final products = [...store.activeProducts.where((p) => !store.isModel(p))]
+      ..sort((a, b) => a.name.compareTo(b.name));
     _rows = [for (final p in products) _Row.of(p)];
   }
 

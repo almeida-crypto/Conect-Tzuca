@@ -31,6 +31,13 @@ class StoreState {
     this.lotSales = const [],
     this.layaways = const [],
     this.layawayPayments = const [],
+    this.layawayItems = const [],
+    this.layawayRules = LayawayRules.standard,
+    this.suppliers = const [],
+    this.purchases = const [],
+    this.supplierPayments = const [],
+    this.stockCounts = const [],
+    this.countDraft = const {},
     this.batches = const [],
     this.batchOrders = const [],
     this.tables = const [],
@@ -56,6 +63,57 @@ class StoreState {
   final List<LotSale> lotSales;
   final List<Layaway> layaways;
   final List<LayawayPayment> layawayPayments;
+
+  /// Piezas del inventario guardadas en los apartados.
+  final List<LayawayItem> layawayItems;
+
+  /// Plazo, anticipo mínimo y qué pasa al cancelar: lo pone el dueño.
+  final LayawayRules layawayRules;
+
+  // ---------- Compras a proveedores y conteos ----------
+  final List<Supplier> suppliers;
+  final List<Purchase> purchases;
+  final List<SupplierPayment> supplierPayments;
+
+  /// Conteos de inventario ya aplicados.
+  final List<StockCount> stockCounts;
+
+  /// El conteo que se está haciendo en este aparato (producto → piezas contadas).
+  final Map<String, double> countDraft;
+
+  Supplier? supplierById(String id) => suppliers.where((s) => s.id == id).firstOrNull;
+
+  List<Purchase> purchasesOf(String supplierId) =>
+      purchases.where((p) => p.supplierId == supplierId).toList()..sort((a, b) => b.createdAt.compareTo(a.createdAt));
+
+  List<SupplierPayment> paymentsToSupplier(String supplierId) =>
+      supplierPayments.where((p) => p.supplierId == supplierId).toList()
+        ..sort((a, b) => b.createdAt.compareTo(a.createdAt));
+
+  /// Lo que se le debe a un proveedor: lo comprado menos lo pagado.
+  int debtToSupplier(String supplierId) {
+    final bought = purchases.where((p) => p.supplierId == supplierId).fold(0, (a, p) => a + p.totalCents);
+    final paid = supplierPayments.where((p) => p.supplierId == supplierId).fold(0, (a, p) => a + p.amountCents);
+    return bought - paid;
+  }
+
+  /// Lo que se les debe a todos los proveedores.
+  int get supplierDebt => suppliers.fold(0, (a, s) => a + debtToSupplier(s.id).clamp(0, 1 << 40));
+
+  /// Lo que se pagó al momento de una compra.
+  int paidOfPurchase(String purchaseId) =>
+      supplierPayments.where((p) => p.purchaseId == purchaseId).fold(0, (a, p) => a + p.amountCents);
+
+  /// Productos que se cuentan: los que llevan existencia (las tallas, no sus modelos).
+  List<Product> get countableProducts =>
+      sellableProducts.where((p) => p.trackStock).toList()
+        ..sort((a, b) => a.name.toLowerCase().compareTo(b.name.toLowerCase()));
+
+  /// Del turno abierto y ya tuvo un cambio: no se cancela ni se devuelve (se corrige la venta nueva).
+  bool hadExchangeToday(Sale sale) => sessionIsOpen(sale.sessionId) && returnsOf(sale.id).any((r) => r.isExchange);
+
+  /// Las devoluciones de cambio que pagaron parte de [saleId] (la venta nueva).
+  List<SaleReturn> exchangesInto(String saleId) => saleReturns.where((r) => r.exchangeSaleId == saleId).toList();
   final List<Tanda> batches;
   final List<BatchOrder> batchOrders;
   final List<DiningTable> tables;
@@ -266,7 +324,8 @@ class StoreState {
     return null;
   }
 
-  List<Product> get activeProducts => products.where((p) => p.active).toList();
+  /// Los productos a la vista: sueltos y modelos (las tallas van dentro de su modelo).
+  List<Product> get activeProducts => products.where((p) => p.active && !p.isVariant).toList();
 
   int balanceOf(String customerId) => credit
       .where((e) => e.customerId == customerId)
@@ -393,6 +452,64 @@ class StoreState {
     return l == null ? 0 : (l.totalCents - paidOfLayaway(id)).clamp(0, l.totalCents);
   }
 
+  List<LayawayItem> itemsOfLayaway(String id) =>
+      layawayItems.where((i) => i.layawayId == id).toList()..sort((a, b) => a.position.compareTo(b.position));
+
+  /// El anticipo: lo que se pagó al apartar (lleva la misma hora que el apartado).
+  int depositOfLayaway(String id) {
+    final l = layawayById(id);
+    if (l == null) return 0;
+    return layawayPayments
+        .where((p) => p.layawayId == id && p.createdAt == l.createdAt)
+        .fold(0, (a, p) => a + p.amountCents);
+  }
+
+  DateTime? lastPaymentOfLayaway(String id) {
+    DateTime? last;
+    for (final p in layawayPayments) {
+      if (p.layawayId == id && (last == null || p.createdAt.isAfter(last))) last = p.createdAt;
+    }
+    return last;
+  }
+
+  /// Piezas de un producto que están guardadas en apartados (siguen en la tienda pero ya no se venden).
+  double reservedOf(String productId) {
+    final kept = {
+      for (final l in layaways)
+        if (l.kept) l.id,
+    };
+    return layawayItems
+        .where((i) => i.productId == productId && kept.contains(i.layawayId))
+        .fold(0.0, (a, i) => a + i.qty);
+  }
+
+  /// Cuánto le queda de saldo a favor a [layawayId] (cancelado con saldo a favor).
+  int creditLeftOf(String layawayId) {
+    final l = layawayById(layawayId);
+    if (l == null || l.creditCents <= 0) return 0;
+    final used = layawayPayments.where((p) => p.fromLayawayId == layawayId).fold(0, (a, p) => a + p.amountCents);
+    return (l.creditCents - used).clamp(0, l.creditCents);
+  }
+
+  /// Saldo a favor de un cliente: lo que quedó de sus apartados cancelados y todavía no usa.
+  int creditOf(String customerId) =>
+      layaways.where((l) => l.customerId == customerId && l.creditCents > 0).fold(0, (a, l) => a + creditLeftOf(l.id));
+
+  // ---------- Tallas y colores ----------
+
+  /// Las tallas (activas) de un modelo, en orden.
+  List<Product> variantsOf(String modelId) =>
+      products.where((p) => p.parentId == modelId && p.active).toList()..sort(compareVariants);
+
+  /// Un modelo con tallas: no se vende solo, se escoge la talla.
+  bool isModel(Product p) => !p.isVariant && products.any((v) => v.parentId == p.id && v.active);
+
+  /// Piezas de todas las tallas de un modelo.
+  double stockOfModel(String modelId) => variantsOf(modelId).fold(0.0, (a, v) => a + (v.trackStock ? v.stock : 0));
+
+  /// Lo que se puede vender: los productos sueltos y las tallas (sin los modelos).
+  List<Product> get sellableProducts => products.where((p) => p.active && !isModel(p)).toList();
+
   // ---------- Pedidos por tanda ----------
 
   Tanda? batchById(String id) {
@@ -477,6 +594,14 @@ class StoreState {
     for (final s in lotSales.where((s) => s.sessionId == session.id)) {
       lotCash += s.amountCents;
     }
+    var exchanges = 0;
+    for (final r in saleReturns.where((r) => r.sessionId == session.id && r.isExchange)) {
+      exchanges += r.cashCents;
+    }
+    var supplierCash = 0;
+    for (final p in supplierPayments.where((p) => p.sessionId == session.id && p.method == PayMethod.efectivo)) {
+      supplierCash += p.amountCents;
+    }
     var layawayCash = 0, layawayOther = 0;
     for (final p in layawayPayments.where((p) => p.sessionId == session.id)) {
       if (p.method == PayMethod.efectivo) {
@@ -501,6 +626,8 @@ class StoreState {
       cashTipsCents: cashTips,
       otherTipsCents: otherTips,
       tipsPaidCents: tipsPaid,
+      exchangeCents: exchanges,
+      supplierCashCents: supplierCash,
     );
   }
 
@@ -535,6 +662,13 @@ class StoreState {
     List<LotSale>? lotSales,
     List<Layaway>? layaways,
     List<LayawayPayment>? layawayPayments,
+    List<LayawayItem>? layawayItems,
+    LayawayRules? layawayRules,
+    List<Supplier>? suppliers,
+    List<Purchase>? purchases,
+    List<SupplierPayment>? supplierPayments,
+    List<StockCount>? stockCounts,
+    Map<String, double>? countDraft,
     List<Tanda>? batches,
     List<BatchOrder>? batchOrders,
     List<DiningTable>? tables,
@@ -570,6 +704,13 @@ class StoreState {
     lotSales: lotSales ?? this.lotSales,
     layaways: layaways ?? this.layaways,
     layawayPayments: layawayPayments ?? this.layawayPayments,
+    layawayItems: layawayItems ?? this.layawayItems,
+    layawayRules: layawayRules ?? this.layawayRules,
+    suppliers: suppliers ?? this.suppliers,
+    purchases: purchases ?? this.purchases,
+    supplierPayments: supplierPayments ?? this.supplierPayments,
+    stockCounts: stockCounts ?? this.stockCounts,
+    countDraft: countDraft ?? this.countDraft,
     batches: batches ?? this.batches,
     batchOrders: batchOrders ?? this.batchOrders,
     tables: tables ?? this.tables,

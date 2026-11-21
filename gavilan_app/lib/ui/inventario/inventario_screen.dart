@@ -16,6 +16,7 @@ import 'catalog_table_screen.dart';
 import 'first_products.dart';
 import 'labels_screen.dart';
 import 'product_form.dart';
+import 'stock_count_screen.dart';
 
 class InventarioScreen extends ConsumerStatefulWidget {
   const InventarioScreen({super.key});
@@ -39,13 +40,16 @@ class _InventarioScreenState extends ConsumerState<InventarioScreen> {
     final plan = ref.watch(planProvider);
     final q = _q.trim().toLowerCase();
     final all = store.activeProducts;
-    final low = all.where((p) => p.isLow).length;
-    final list =
-        all
-            .where((p) => !_onlyLow || p.isLow)
-            .where((p) => q.isEmpty || p.name.toLowerCase().contains(q) || (p.barcode?.contains(q) ?? false))
-            .toList()
-          ..sort((a, b) => a.name.compareTo(b.name));
+    // Con tallas: cuenta cada talla por acabarse, y el modelo sale si alguna lo está.
+    final low = store.sellableProducts.where((p) => p.isLow).length;
+    bool isLow(Product p) => store.isModel(p) ? store.variantsOf(p.id).any((v) => v.isLow) : p.isLow;
+    bool matches(Product p) =>
+        q.isEmpty ||
+        p.name.toLowerCase().contains(q) ||
+        (p.barcode?.contains(q) ?? false) ||
+        store.variantsOf(p.id).any((v) => v.barcode?.contains(q) ?? false);
+    final list = all.where((p) => !_onlyLow || isLow(p)).where(matches).toList()
+      ..sort((a, b) => a.name.compareTo(b.name));
     final max = plan.limits.maxProducts;
 
     return ListView(
@@ -87,7 +91,9 @@ class _InventarioScreenState extends ConsumerState<InventarioScreen> {
             ),
           ),
         ),
-        Padding(
+        // Los botones se recorren de lado si no caben en un celular angosto.
+        SingleChildScrollView(
+          scrollDirection: Axis.horizontal,
           padding: const EdgeInsets.symmetric(horizontal: 16),
           child: Row(
             children: [
@@ -98,6 +104,13 @@ class _InventarioScreenState extends ConsumerState<InventarioScreen> {
                 onTap: () => setState(() => _onlyLow = !_onlyLow),
               ),
               if (ref.watch(permissionsProvider).editCatalog && all.isNotEmpty) ...[
+                const SizedBox(width: 8),
+                SoftButton(
+                  label: store.countDraft.isEmpty ? 'Contar' : 'Contar (${store.countDraft.length})',
+                  icon: Icons.fact_check_outlined,
+                  onTap: () =>
+                      Navigator.of(context).push(MaterialPageRoute<void>(builder: (_) => const StockCountScreen())),
+                ),
                 const SizedBox(width: 8),
                 SoftButton(
                   label: 'Etiquetas',
@@ -134,17 +147,20 @@ class _InventarioScreenState extends ConsumerState<InventarioScreen> {
   }
 }
 
-class _StockRow extends StatelessWidget {
+class _StockRow extends ConsumerWidget {
   const _StockRow({required this.product});
 
   final Product product;
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
+    final store = ref.watch(storeProvider);
+    if (store.isModel(product)) return _ModelRow(model: product);
     final p = product;
+    final reserved = store.reservedOf(p.id);
     // La barra se llena respecto a 4 veces el mínimo (o 20 piezas si no hay mínimo).
-    final ref = (p.minStock ?? 5) * 4;
-    final fill = p.trackStock ? (p.stock / ref).clamp(0.0, 1.0) : 0.0;
+    final full = (p.minStock ?? 5) * 4;
+    final fill = p.trackStock ? (p.stock / full).clamp(0.0, 1.0) : 0.0;
     final barColor = p.isLow ? GColors.rojo : (fill < 0.5 ? GColors.izamal : GColors.cenote);
     return InkWell(
       onTap: () => showProductForm(context, product: p),
@@ -199,6 +215,13 @@ class _StockRow extends StatelessWidget {
                     )
                   else
                     Text('Sin control de existencia', style: GText.muted(size: 12)),
+                  if (reserved > 0) ...[
+                    const SizedBox(height: 3),
+                    Text(
+                      '${qtyLabel(reserved)} ${reserved == 1 ? 'apartada' : 'apartadas'} (ya no está a la venta)',
+                      style: GText.muted(size: 11.5),
+                    ),
+                  ],
                 ],
               ),
             ),
@@ -215,6 +238,77 @@ class _StockRow extends StatelessWidget {
                   textAlign: TextAlign.right,
                   style: GText.amount(size: 17, color: p.isLow ? GColors.rojo : GColors.tinta),
                 ),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+/// Un modelo con tallas: cuántas piezas hay en total y qué tallas se están acabando.
+class _ModelRow extends ConsumerWidget {
+  const _ModelRow({required this.model});
+
+  final Product model;
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final store = ref.watch(storeProvider);
+    final variants = store.variantsOf(model.id);
+    final total = store.stockOfModel(model.id);
+    final low = variants.where((v) => v.isLow || (v.trackStock && v.stock <= 0)).toList();
+    return InkWell(
+      onTap: () => showProductForm(context, product: model),
+      child: Padding(
+        padding: const EdgeInsets.fromLTRB(14, 12, 16, 12),
+        child: Row(
+          children: [
+            ProductThumb(model, size: 42),
+            const SizedBox(width: 14),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Row(
+                    children: [
+                      Flexible(
+                        child: Text(
+                          model.name,
+                          overflow: TextOverflow.ellipsis,
+                          style: GText.sans(size: 14.5, weight: FontWeight.w600),
+                        ),
+                      ),
+                      const SizedBox(width: 6),
+                      Text(
+                        money(model.priceCents, hideZeroCents: true),
+                        maxLines: 1,
+                        style: GText.figures(size: 12, color: GColors.tintaTenue),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 4),
+                  Text(
+                    [
+                      '${variants.length} ${variants.length == 1 ? 'talla' : 'tallas'}',
+                      if (low.isNotEmpty)
+                        'se acaba: ${low.take(4).map((v) => v.variantLabel).join(', ')}${low.length > 4 ? '…' : ''}',
+                    ].join(' · '),
+                    maxLines: 2,
+                    overflow: TextOverflow.ellipsis,
+                    style: GText.sans(size: 12, color: low.isEmpty ? GColors.tintaSuave : GColors.rojo),
+                  ),
+                ],
+              ),
+            ),
+            const SizedBox(width: 10),
+            SizedBox(
+              width: 64,
+              child: FittedBox(
+                fit: BoxFit.scaleDown,
+                alignment: Alignment.centerRight,
+                child: Text(qtyLabel(total), maxLines: 1, textAlign: TextAlign.right, style: GText.amount(size: 17)),
               ),
             ),
           ],

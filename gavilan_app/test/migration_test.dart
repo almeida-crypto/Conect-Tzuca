@@ -18,9 +18,9 @@ import 'generated_migrations/schema.dart';
 /// drift_schemas/drift_schema_vN.json`), regenerar (`dart run drift_dev schema generate --data-classes
 /// --companions drift_schemas/ test/generated_migrations/`) y agregar N a [current] aquí.
 void main() {
-  /// Versiones de la base que salieron en un APK (1.1.1, 1.6.1, 1.8.0, 1.9.0 y 1.10.0/1.11.0).
-  const released = [7, 10, 14, 15, 16];
-  const current = 19;
+  /// Versiones de la base que salieron en un APK (1.1.1, 1.6.1, 1.8.0, 1.9.0, 1.10.0/1.11.0 y 1.12.0).
+  const released = [7, 10, 14, 15, 16, 19];
+  const current = 21;
 
   driftRuntimeOptions.dontWarnAboutMultipleDatabases = true;
   late SchemaVerifier verifier;
@@ -66,6 +66,10 @@ void main() {
         "insert into order_items (id, order_id, product_id, name, qty, unit_cents, status, created_at) "
             "values ('i1', 'o1', 'p1', 'Tacos de pastor', 3, 2000, 'pendiente', '2026-11-01T12:01:00.000')",
         "insert into outbox (payload, created_at, attempts) values ('[]', '2026-11-01T12:02:00.000', 0)",
+        "insert into layaways (id, customer_id, description, total_cents, created_at, status) "
+            "values ('l1', 'c1', 'Vestido azul', 50000, '2026-11-01T13:00:00.000', 'activo')",
+        "insert into layaway_payments (id, layaway_id, amount_cents, method, created_at, session_id) "
+            "values ('a1', 'l1', 10000, 'efectivo', '2026-11-01T13:00:00.000', 's1')",
       ];
       for (final sql in statements) {
         old.execute(sql);
@@ -92,7 +96,7 @@ void main() {
       expect(s.balanceOf('c1'), 2000);
 
       final cut = s.summaryFor(s.sessions.single);
-      expect(cut.expectedCashCents, 50000 + 4000 - 3000);
+      expect(cut.expectedCashCents, 50000 + 4000 - 3000 + 10000);
       expect(cut.tipsCents, 0);
 
       final table = s.tables.single;
@@ -103,6 +107,16 @@ void main() {
       expect(s.openOrderOfTable('t1')!.id, 'o1');
       expect(s.itemsOfOrder('o1').single.qty, 3);
       expect(s.floorItems, isEmpty);
+      expect(s.products.single.parentId, isNull);
+      expect(s.isModel(s.products.single), isFalse);
+
+      // El apartado de antes sigue activo, sin piezas del inventario y con su anticipo.
+      final layaway = s.layaways.single;
+      expect((layaway.description, layaway.kept, layaway.delivered), ('Vestido azul', true, false));
+      expect((layaway.refundCents, layaway.creditCents, layaway.payEveryDays), (0, 0, null));
+      expect(s.itemsOfLayaway('l1'), isEmpty);
+      expect(s.pendingOfLayaway('l1'), 40000);
+      expect(s.paymentsOfLayaway('l1').single.fromCredit, isFalse);
       expect(s.saleReturns, isEmpty);
 
       // Lo que faltaba por subir a la nube sigue pendiente.
