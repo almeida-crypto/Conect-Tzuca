@@ -149,7 +149,12 @@ List<Share> _shares(Map<String, (int, int)> map) {
 
 /// Por forma de pago. Una venta pagada en partes reparte su total entre sus formas; lo fiado va aparte.
 /// [exchangeCredit]: por venta nueva de un cambio, lo que pagó la mercancía que regresó (no fue dinero).
-List<Share> byMethod(List<Sale> sales, {Map<String, int> exchangeCredit = const {}}) {
+/// [storeCredit]: por venta, lo que pagó el saldo a favor de un apartado cancelado.
+List<Share> byMethod(
+  List<Sale> sales, {
+  Map<String, int> exchangeCredit = const {},
+  Map<String, int> storeCredit = const {},
+}) {
   final map = <String, (int, int)>{};
   void add(String k, int cents) {
     final (c, n) = map[k] ?? (0, 0);
@@ -165,6 +170,9 @@ List<Share> byMethod(List<Sale> sales, {Map<String, int> exchangeCredit = const 
       // En un cambio, lo que regresó cuenta aparte y se descuenta primero del efectivo.
       var credit = exchangeCredit[s.id] ?? 0;
       if (credit > 0) add('Cambio de mercancía', credit.clamp(0, s.totalCents));
+      final fromCredit = (storeCredit[s.id] ?? 0).clamp(0, s.totalCents);
+      if (fromCredit > 0) add('Saldo a favor', fromCredit);
+      credit += fromCredit;
       final parts = [...s.paymentParts]..sort((a, b) => a.method == PayMethod.efectivo ? -1 : 1);
       for (final p in parts) {
         var off = tip.clamp(0, p.amountCents);

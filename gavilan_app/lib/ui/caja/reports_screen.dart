@@ -132,6 +132,7 @@ class _ReportsScreenState extends ConsumerState<ReportsScreen> {
         for (final r in store.saleReturns)
           if (r.exchangeSaleId != null) r.exchangeSaleId!: r.amountCents,
       },
+      storeCredit: {for (final u in store.creditUses) u.saleId: store.creditPaidOf(u.saleId)},
     );
     final clerks = byClerk(sales);
     final registers = byRegister(sales, registerOf);

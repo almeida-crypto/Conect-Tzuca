@@ -82,8 +82,14 @@ class _ExchangeScreenState extends ConsumerState<ExchangeScreen> {
   Future<void> _confirm(int value, int newTotal) async {
     final diff = newTotal - value;
     // Devolver dinero es del dueño o un encargado (o con su PIN).
+    final onCredit = _sale.kind == SaleKind.fiada;
     if (diff < 0 &&
-            !await allowOrAskPin(context, ref, allowed: (can) => can.cancelSales, action: 'Devolver la diferencia') ||
+            !await allowOrAskPin(
+              context,
+              ref,
+              allowed: (can) => can.cancelSales,
+              action: onCredit ? 'Quitar de la deuda' : 'Devolver la diferencia',
+            ) ||
         !mounted) {
       return;
     }
@@ -110,6 +116,8 @@ class _ExchangeScreenState extends ConsumerState<ExchangeScreen> {
     messenger.showSnackBar(
       SnackBar(
         content: Text(switch (diff) {
+          > 0 when onCredit => 'Cambio hecho. Se sumaron ${money(diff)} a su cuenta',
+          < 0 when onCredit => 'Cambio hecho. Se quitaron ${money(-diff)} de su cuenta',
           > 0 => 'Cambio hecho. Cobra ${money(diff)}',
           < 0 => 'Cambio hecho. Devuélvele ${money(-diff)}',
           _ => 'Cambio hecho, quedó parejo',
@@ -132,6 +140,9 @@ class _ExchangeScreenState extends ConsumerState<ExchangeScreen> {
     final diff = newTotal - value;
     final ready = value > 0 && _take.isNotEmpty;
     final canRefund = ref.watch(permissionsProvider).cancelSales || store.usesPins;
+    // Fiada: la diferencia va a su cuenta, sin dinero de por medio.
+    final onCredit = sale.kind == SaleKind.fiada;
+    final who = sale.customerId == null ? null : store.customerById(sale.customerId!)?.name;
     // Modelos de lo que regresa: para ofrecer "otra talla" del mismo.
     final models = <Product>[
       for (final (i, l) in sale.lines.indexed)
@@ -269,12 +280,28 @@ class _ExchangeScreenState extends ConsumerState<ExchangeScreen> {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.stretch,
                 children: [
-                  _Line('Regresa', '-${money(value)}'),
+                  _Line('Regresa', value == 0 ? money(0) : '-${money(value)}'),
                   _Line('Se lleva', money(newTotal)),
                   const Divider(color: GColors.linea),
                   if (!ready)
                     Text(value == 0 ? 'Marca lo que regresa' : 'Agrega lo que se lleva', style: GText.muted(size: 13.5))
-                  else if (diff > 0) ...[
+                  else if (onCredit && diff != 0) ...[
+                    _Line(
+                      diff > 0 ? 'Se suma a su cuenta' : 'Se le quita de su cuenta',
+                      money(diff.abs()),
+                      strong: true,
+                      color: diff > 0 ? GColors.marca : GColors.cenote,
+                    ),
+                    const SizedBox(height: 4),
+                    Text(
+                      [
+                        'Fue fiado${who == null ? '' : ' a $who'}: la diferencia va a su cuenta.',
+                        if (diff < 0 && !canRefund) 'Quitarle de la deuda lo autoriza el dueño.',
+                        'Debe ahora ${money(store.balanceOf(sale.customerId!) + diff)}.',
+                      ].join(' '),
+                      style: GText.muted(size: 12.5),
+                    ),
+                  ] else if (diff > 0) ...[
                     _Line('Paga la diferencia', money(diff), strong: true, color: GColors.cenote),
                     const SizedBox(height: 10),
                     PayMethodChips(selected: _method, onPick: (m) => setState(() => _method = m)),

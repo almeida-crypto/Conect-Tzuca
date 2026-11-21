@@ -38,6 +38,7 @@ class StoreState {
     this.supplierPayments = const [],
     this.stockCounts = const [],
     this.countDraft = const {},
+    this.creditUses = const [],
     this.batches = const [],
     this.batchOrders = const [],
     this.tables = const [],
@@ -81,6 +82,18 @@ class StoreState {
   /// El conteo que se está haciendo en este aparato (producto → piezas contadas).
   final Map<String, double> countDraft;
 
+  /// Saldo a favor que pagó ventas de Cobrar.
+  final List<CreditUse> creditUses;
+
+  /// El saldo a favor que pagó parte de una venta.
+  int creditPaidOf(String saleId) => creditUses.where((u) => u.saleId == saleId).fold(0, (a, u) => a + u.amountCents);
+
+  /// Clientes con saldo a favor (de apartados cancelados), con cuánto.
+  List<(Customer, int)> get customersWithCredit => [
+    for (final c in customers)
+      if (creditOf(c.id) case final cents when cents > 0) (c, cents),
+  ];
+
   Supplier? supplierById(String id) => suppliers.where((s) => s.id == id).firstOrNull;
 
   List<Purchase> purchasesOf(String supplierId) =>
@@ -103,6 +116,47 @@ class StoreState {
   /// Lo que se pagó al momento de una compra.
   int paidOfPurchase(String purchaseId) =>
       supplierPayments.where((p) => p.purchaseId == purchaseId).fold(0, (a, p) => a + p.amountCents);
+
+  /// El proveedor de la última compra en que llegó un producto (null si nunca se le ha comprado).
+  String? lastSupplierOf(String productId) {
+    Purchase? last;
+    for (final p in purchases) {
+      if (p.supplierId != null &&
+          p.lines.any((l) => l.productId == productId) &&
+          (last == null || p.createdAt.isAfter(last.createdAt))) {
+        last = p;
+      }
+    }
+    return last?.supplierId;
+  }
+
+  /// Cuántas piezas de cada producto se vendieron por día en los últimos [days] días.
+  Map<String, double> soldPerDay({required DateTime now, int days = 28}) {
+    final from = now.subtract(Duration(days: days));
+    final out = <String, double>{};
+    for (final s in sales) {
+      if (s.cancelled || s.createdAt.isBefore(from)) continue;
+      for (final l in s.lines) {
+        if (l.productId != null) out[l.productId!] = (out[l.productId!] ?? 0) + l.qty;
+      }
+    }
+    return {for (final e in out.entries) e.key: e.value / days};
+  }
+
+  /// Lo que hay que pedir para que alcance [coverDays] días: según lo que se vende al día, el mínimo de aviso y
+  /// lo que hay. Solo lo que lleva existencia y le falta algo (lo agotado, al menos una pieza).
+  List<RestockLine> restockSuggestions({required DateTime now, int coverDays = 7}) {
+    final perDay = soldPerDay(now: now);
+    final out = <RestockLine>[];
+    for (final p in countableProducts) {
+      final daily = perDay[p.id] ?? 0;
+      var need = (daily * coverDays + (p.minStock ?? 0) - p.stock).ceilToDouble();
+      if (p.stock <= 0 && need < 1) need = 1;
+      if (need < 1) continue;
+      out.add(RestockLine(product: p, qty: need, perDay: daily, supplierId: lastSupplierOf(p.id)));
+    }
+    return out;
+  }
 
   /// Productos que se cuentan: los que llevan existencia (las tallas, no sus modelos).
   List<Product> get countableProducts =>
@@ -487,7 +541,9 @@ class StoreState {
   int creditLeftOf(String layawayId) {
     final l = layawayById(layawayId);
     if (l == null || l.creditCents <= 0) return 0;
-    final used = layawayPayments.where((p) => p.fromLayawayId == layawayId).fold(0, (a, p) => a + p.amountCents);
+    final int used =
+        layawayPayments.where((p) => p.fromLayawayId == layawayId).fold<int>(0, (a, p) => a + p.amountCents) +
+        creditUses.where((u) => u.layawayId == layawayId).fold<int>(0, (a, u) => a + u.amountCents);
     return (l.creditCents - used).clamp(0, l.creditCents);
   }
 
@@ -594,9 +650,15 @@ class StoreState {
     for (final s in lotSales.where((s) => s.sessionId == session.id)) {
       lotCash += s.amountCents;
     }
-    var exchanges = 0;
+    var exchanges = 0, exchangesOnCredit = 0;
     for (final r in saleReturns.where((r) => r.sessionId == session.id && r.isExchange)) {
       exchanges += r.cashCents;
+      // De una venta fiada: se quitó de la deuda (no hubo efectivo).
+      if (r.cashCents == 0) exchangesOnCredit += r.amountCents;
+    }
+    var creditUsed = 0;
+    for (final u in creditUses.where((u) => u.sessionId == session.id)) {
+      creditUsed += u.amountCents;
     }
     var supplierCash = 0;
     for (final p in supplierPayments.where((p) => p.sessionId == session.id && p.method == PayMethod.efectivo)) {
@@ -628,6 +690,8 @@ class StoreState {
       tipsPaidCents: tipsPaid,
       exchangeCents: exchanges,
       supplierCashCents: supplierCash,
+      exchangeOnCreditCents: exchangesOnCredit,
+      creditUsedCents: creditUsed,
     );
   }
 
@@ -669,6 +733,7 @@ class StoreState {
     List<SupplierPayment>? supplierPayments,
     List<StockCount>? stockCounts,
     Map<String, double>? countDraft,
+    List<CreditUse>? creditUses,
     List<Tanda>? batches,
     List<BatchOrder>? batchOrders,
     List<DiningTable>? tables,
@@ -711,6 +776,7 @@ class StoreState {
     supplierPayments: supplierPayments ?? this.supplierPayments,
     stockCounts: stockCounts ?? this.stockCounts,
     countDraft: countDraft ?? this.countDraft,
+    creditUses: creditUses ?? this.creditUses,
     batches: batches ?? this.batches,
     batchOrders: batchOrders ?? this.batchOrders,
     tables: tables ?? this.tables,

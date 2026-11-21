@@ -51,6 +51,7 @@ void main() {
     // Escribir el precio marca el producto; tocar otro lo marca sin precio.
     await tester.enterText(priceOf('Coca-Cola 600 ml'), '19');
     await tester.pump();
+    await tester.scrollUntilVisible(find.text('Papas chicas'), 200, scrollable: find.byType(Scrollable).first);
     await tapInk(tester, 'Papas chicas');
     expect(find.text('2 productos marcados'), findsOneWidget);
 

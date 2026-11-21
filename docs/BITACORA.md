@@ -1144,3 +1144,46 @@ El usuario preguntó por los apartados de una zapatería o tienda de ropa (disti
 - Base del teléfono v21 (devoluciones con cambio; proveedores, compras, pagos y conteos). Migración `0035_exchanges_purchases_counts` en la nube.
 - Probado en el servidor (y deshecho): el dueño registra compras y conteos; el cajero hace un cambio sin devolver dinero, pero no uno con devolución, ni devoluciones normales, ni ve o crea proveedores; Semilla no tiene compras. Avisos de Supabase: los de siempre.
 - `flutter analyze` sin avisos y 217 pruebas pasan (12 nuevas en `cambios_compras_conteo_test.dart` y una de sincronización con dueño y cajero).
+
+## 21/11/2026 — Listas de inicio para otros giros
+
+- "Elegir de una lista" (Agrega tus primeros productos) ya no es solo de tiendita: arriba se escoge Tiendita, Fonda, Papelería, Ferretería o Farmacia. Abre en la del tipo de negocio (restaurante y comida por encargo: Fonda; lo demás: Tiendita).
+- Fonda con platillos de la región (cochinita, panuchos, salbutes, poc chuc, relleno negro, sopa de lima), bebidas y extras; papelería con útiles, papel y servicios (copias, impresiones, enmicado); ferretería con tornillería, construcción, electricidad, plomería y herramienta; farmacia con medicinas sin receta, curación y cuidado personal (repelente, bloqueador).
+- Lo marcado en una lista no se pierde al cambiar a otra (el botón dice cuántos lleva cada una) y se agregan todos juntos, sin repetir nombres. El precio gris sigue siendo solo ejemplo.
+- Pruebas: cada lista tiene más de 20 productos, iconos que existen y nombres sin repetir; una fonda abre en su lista y se agregan productos de dos listas a la vez. 220 pruebas pasan.
+
+## 21/11/2026 — Saldo a favor en Cobrar, precio por talla, cambio fiado y pedido al proveedor
+
+### Saldo a favor en Cobrar
+- En la hoja de cobro, si algún cliente tiene saldo a favor (de un apartado cancelado), sale "Usar saldo a favor": se escoge al cliente, se descuenta del total y se cobra solo lo que falta (o "Pagar con saldo a favor" si alcanza).
+- Se guarda en `credit_uses` (de qué apartado salió y qué venta pagó). En la venta entra como efectivo y en el corte se descuenta igual ("Pagado con saldo a favor"), porque ese dinero ya había entrado como abono del apartado. En Reportes sale como "Saldo a favor".
+- El ticket dice "Saldo a favor -$X / Pagó $Y con …". Mientras se usa, "Pagar en partes" se apaga.
+
+### Precio por talla
+- En la ficha del modelo, cada talla tiene un campo de precio: vacío = el del modelo; con algo, esa talla cuesta eso (por ejemplo, las tallas grandes). Al escoger la talla sale su precio si es distinto.
+
+### Cambio de una venta fiada
+- El cambio ya funciona con ventas fiadas: lo que regresa se quita de su deuda y lo nuevo se le fía; la pantalla dice cuánto se suma o se quita y cuánto debe ahora. No se mueve dinero de la caja.
+- Quitarle de la deuda (lo nuevo vale menos) lo autoriza el dueño, igual que devolver dinero. El ticket dice "Regresó (venta X) / Se sumó a su cuenta".
+
+### Pedido al proveedor
+- Compras → "Armar pedido": con lo vendido en las últimas 4 semanas y el aviso de mínimo, cuánto pedir para 1 semana, 2 semanas o 1 mes. Agrupado por el proveedor de la última compra de cada producto ("Sin proveedor todavía" si nunca se registró).
+- Se pueden cambiar las piezas o quitar productos; "WhatsApp" manda el pedido y "Ya llegó" abre la compra con el proveedor y lo pedido ya escrito.
+
+### Base y pruebas
+- Base del teléfono v22 (`credit_uses`); migración `0036_credit_uses` en la nube. Probado en el servidor (y deshecho): el cajero registra y ve el saldo usado.
+- `flutter analyze` sin avisos y 226 pruebas pasan (`saldo_precio_pedido_test.dart`, el cambio fiado y una de sincronización del saldo usado).
+
+## 21/11/2026 — Listos para la prueba cerrada de Google Play
+
+### Prueba rápida
+- `flutter analyze` sin avisos y 229 pruebas pasan. En la versión web (compilada) se abrió la tiendita de ejemplo, se cobró, se vio el ticket, se hizo un cambio y se revisó la caja: todo bien. En la consola solo sale el error conocido de Flutter 3.47 al cargar un efecto visual (no es de la app).
+- Detalle corregido: en el cambio, "Regresa" decía "-$0.00" antes de marcar algo.
+
+### Lo que pide Google y ya quedó
+- **Borrar la cuenta** (obligatorio si la app crea cuentas): Más → Cuenta y respaldo → "Borrar mi cuenta" (se confirma escribiendo BORRAR). Borra las fotos de sus negocios, sus negocios completos si es dueño, y su usuario; lo que registró en negocios ajenos se queda sin autor. Migración `0037_delete_account`, probada en el servidor con usuarios de prueba (y deshecha).
+- **Aviso de privacidad** y **página para borrar la cuenta** en `play-store/web/` (falta el correo de contacto y publicarlas).
+- **Ficha**: nombre, descripciones, notas de versión (`play-store/ficha.md`); **formularios** de contenido y seguridad de datos (`play-store/formularios.md`); **gráficos** en `play-store/graficos/` (ícono 512, destacada 1024×500, 5 capturas 1080×1920 sacadas de la app con `test/store_assets_test.dart`).
+- **App Bundle** `play-store/Gavilan-1.14.0.aab` (versión 1.14.0, código 17), firmado con la llave de siempre (SHA-256 7D:2C:87…:B0:8B). La app ya apunta a Android 16 (API 36), lo que pide Google desde el 31/08/2026.
+- **Guía paso a paso** en `play-store/GUIA-PRUEBA-CERRADA.md`: 12 probadores 14 días seguidos (cuentas personales nuevas), usar la propia llave en Play para que quien ya tiene el APK actualice sin desinstalar, y lo que falta del lado del usuario (cuenta de Play, Supabase Pro, correo propio, correo de contacto, plan de los probadores).
+

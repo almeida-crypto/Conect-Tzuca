@@ -142,6 +142,8 @@ class _CajaScreenState extends ConsumerState<CajaScreen> {
             // Lo que regresó en un cambio pagó parte de una venta nueva: no entró como dinero.
             if (s.exchangeCents > 0) _Ledger('Cambios de mercancía', -s.exchangeCents, color: GColors.cafe),
             if (s.supplierCashCents > 0) _Ledger('Pagos a proveedores', -s.supplierCashCents, color: GColors.cafe),
+            // El saldo a favor ya había entrado como abono de un apartado.
+            if (s.creditUsedCents > 0) _Ledger('Pagado con saldo a favor', -s.creditUsedCents, color: GColors.cafe),
             _Ledger('Gastos', -s.gastosCents, color: s.gastosCents > 0 ? GColors.rojo : null),
             _Ledger('Debe haber en caja', s.expectedCashCents, total: true),
           ],

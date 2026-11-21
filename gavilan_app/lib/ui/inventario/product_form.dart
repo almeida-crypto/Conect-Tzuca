@@ -97,6 +97,15 @@ class _ProductFormState extends ConsumerState<_ProductForm> {
   /// Piezas de cada combinación: las que hay (nuevas) o las que llegaron (ya existían).
   final _qty = <String, TextEditingController>{};
 
+  /// Precio propio de una talla (vacío = el del modelo). Viene lleno si ya tenía uno distinto.
+  final _prices = <String, TextEditingController>{};
+
+  TextEditingController _priceFor(String key) => _prices.putIfAbsent(key, () {
+    final old = _existing.where((v) => variantKey(v.size, v.color) == key).firstOrNull;
+    final own = old != null && widget.product != null && old.priceCents != widget.product!.priceCents;
+    return TextEditingController(text: own ? centsInput(old.priceCents) : '');
+  });
+
   static List<String> _unique(Iterable<String?> values) {
     final seen = <String>{};
     return [
@@ -128,6 +137,7 @@ class _ProductFormState extends ConsumerState<_ProductForm> {
       _colors,
       _variantMin,
       ..._qty.values,
+      ..._prices.values,
     ]) {
       c.dispose();
     }
@@ -193,7 +203,21 @@ class _ProductFormState extends ConsumerState<_ProductForm> {
       for (final c in combos)
         (size: c.size, color: c.color, qty: parseQty(_qtyFor(variantKey(c.size, c.color)).text) ?? 0.0),
     ];
+    final prices = <String, int>{};
+    var badPrice = false;
+    for (final c in combos) {
+      final key = variantKey(c.size, c.color);
+      final text = _prices[key]?.text.trim() ?? '';
+      if (text.isEmpty) continue;
+      final cents = parseMoney(text);
+      if (cents == null || cents == 0) {
+        badPrice = true;
+      } else if (cents != price) {
+        prices[key] = cents;
+      }
+    }
     setState(() {
+      if (badPrice) _errors['sizes'] = 'Revisa el precio de las tallas';
       if (combos.isEmpty) _errors['sizes'] = 'Escribe las tallas o los colores';
       if (combos.length > maxVariants) {
         _errors['sizes'] = 'Son ${combos.length} combinaciones; el máximo es $maxVariants';
@@ -213,7 +237,7 @@ class _ProductFormState extends ConsumerState<_ProductForm> {
       place: _place,
     );
     final notifier = ref.read(storeProvider.notifier);
-    notifier.saveModel(model, drafts, minStock: min);
+    notifier.saveModel(model, drafts, minStock: min, prices: prices);
     if (_photo != null) {
       notifier.setProductPhoto(model.id, _photo);
     } else if (_removePhoto) {
@@ -587,7 +611,7 @@ class _ProductFormState extends ConsumerState<_ProductForm> {
         const SizedBox(height: 14),
         Row(
           children: [
-            Expanded(child: Text('Piezas de cada una', style: GText.label())),
+            Expanded(child: Text('Precio (si cambia) y piezas de cada una', style: GText.label())),
             Text('${combos.length} ${combos.length == 1 ? 'talla' : 'tallas'}', style: GText.muted(size: 12)),
           ],
         ),
@@ -618,14 +642,30 @@ class _ProductFormState extends ConsumerState<_ProductForm> {
                         ],
                       ),
                     ),
+                    // Precio propio (las tallas grandes a veces cuestan más); vacío = el del modelo.
                     SizedBox(
-                      width: 104,
+                      width: 86,
+                      child: TextField(
+                        controller: _priceFor(key),
+                        keyboardType: const TextInputType.numberWithOptions(decimal: true),
+                        inputFormatters: const [MoneyInputFormatter()],
+                        textAlign: TextAlign.right,
+                        decoration: InputDecoration(
+                          isDense: true,
+                          prefixText: '\$',
+                          hintText: centsInput(parseMoney(_price.text) ?? 0),
+                        ),
+                      ),
+                    ),
+                    const SizedBox(width: 6),
+                    SizedBox(
+                      width: 92,
                       child: TextField(
                         controller: _qtyFor(key),
                         keyboardType: const TextInputType.numberWithOptions(decimal: true),
                         inputFormatters: const [QtyInputFormatter()],
                         textAlign: TextAlign.right,
-                        decoration: InputDecoration(isDense: true, hintText: old == null ? 'Tengo: 0' : 'Llegaron'),
+                        decoration: InputDecoration(isDense: true, hintText: old == null ? 'Hay: 0' : 'Llegó'),
                       ),
                     ),
                   ],

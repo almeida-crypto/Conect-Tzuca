@@ -16,6 +16,7 @@ String ticketText({
   String? place,
   List<SaleReturn> returns = const [],
   ({String folio, int cents})? exchange,
+  int creditCents = 0,
 }) {
   final b = StringBuffer()
     ..writeln('*$business*')
@@ -43,6 +44,15 @@ String ticketText({
     } else if (diff < 0) {
       b.writeln('Se le devolvió ${money(-diff)}');
     }
+  } else if (sale.kind == SaleKind.pagada && creditCents > 0) {
+    // Saldo a favor: pagó parte con lo que ya había abonado.
+    final rest = sale.paidCents - creditCents;
+    b.writeln('Saldo a favor -${money(creditCents)}');
+    if (rest > 0) {
+      b.writeln(
+        'Pagó ${money(rest)} con ${(sale.split ? sale.payments.last.method : sale.method ?? PayMethod.efectivo).label.toLowerCase()}',
+      );
+    }
   } else if (sale.kind == SaleKind.pagada && sale.split) {
     b.writeln('Pagado: ${[for (final p in sale.payments) '${p.method.label} ${money(p.amountCents)}'].join(' · ')}');
     if (sale.receivedCents != null && sale.cashCents > 0) {
@@ -54,6 +64,11 @@ String ticketText({
       b.writeln('Recibido ${money(sale.receivedCents!)} · Cambio ${money(sale.changeCents)}');
     }
   } else {
+    if (exchange != null) {
+      final diff = sale.totalCents - exchange.cents;
+      b.writeln('Regresó (venta ${exchange.folio}) -${money(exchange.cents)}');
+      b.writeln(diff >= 0 ? 'Se sumó a su cuenta ${money(diff)}' : 'Se quitó de su cuenta ${money(-diff)}');
+    }
     b.writeln('A cuenta de ${customerName ?? 'cliente'}');
     if (newBalanceCents != null) b.writeln('Saldo pendiente: ${money(newBalanceCents)}');
   }

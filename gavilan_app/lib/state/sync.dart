@@ -111,6 +111,7 @@ const _tableLabels = {
   'purchases': 'Compra a proveedor',
   'supplier_payments': 'Pago a proveedor',
   'stock_counts': 'Conteo de inventario',
+  'credit_uses': 'Saldo a favor usado en una venta',
   'batches': 'Tanda',
   'batch_orders': 'Pedido de tanda',
   'restaurant_tables': 'Mesa',
@@ -553,6 +554,27 @@ class SyncController extends Notifier<SyncStatus> {
   Future<void> sendPasswordReset(String email) => _remote!.sendPasswordReset(email);
 
   Future<void> updatePassword(String password) => _remote!.updatePassword(password);
+
+  /// Borra la cuenta en la nube (y, si es dueño, sus negocios con todo su historial). Después se borran de este
+  /// teléfono los datos del negocio enlazado: ya no hay cuenta que los respalde.
+  Future<void> deleteAccount() async {
+    final linked = state.linked;
+    await _remote!.deleteAccount();
+    if (linked) {
+      const notice = 'Tu cuenta se borró. También se borraron de este celular los datos del negocio.';
+      final switcher = ref.read(businessSwitcherProvider);
+      if (switcher != null) {
+        await switcher.forgetActive(notice: notice);
+      } else {
+        await _store?.setLinkedUser(null);
+        await _store?.setRole(null);
+        ref.read(storeProvider.notifier).resetAll();
+        await ref.read(storeProvider.notifier).flush();
+        if (ref.mounted) state = state.copyWith(problem: notice, linked: false, pending: 0, failed: 0);
+      }
+    }
+    if (ref.mounted) state = state.copyWith(clearEmail: true);
+  }
 
   /// Cierra la sesión. Los datos se quedan en el teléfono y lo pendiente sube al volver a entrar.
   Future<void> signOut() async {

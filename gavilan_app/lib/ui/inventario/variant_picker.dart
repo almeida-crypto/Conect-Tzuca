@@ -58,6 +58,7 @@ class _VariantPicker extends ConsumerWidget {
               for (final v in g.value)
                 _SizeTile(
                   variant: v,
+                  price: v.priceCents == model.priceCents ? null : v.priceCents,
                   // Con colores en filas, la talla basta; sin tallas, el color.
                   label: (g.key != null ? v.size : null) ?? v.variantLabel,
                   available: v.trackStock ? v.stock : null,
@@ -76,6 +77,7 @@ class _VariantPicker extends ConsumerWidget {
 class _SizeTile extends StatelessWidget {
   const _SizeTile({
     required this.variant,
+    this.price,
     required this.label,
     required this.available,
     required this.enabled,
@@ -83,6 +85,9 @@ class _SizeTile extends StatelessWidget {
   });
 
   final Product variant;
+
+  /// Precio de esta talla cuando no es el del modelo.
+  final int? price;
   final String label;
   final double? available;
   final bool enabled;
@@ -118,6 +123,8 @@ class _SizeTile extends StatelessWidget {
               mainAxisSize: MainAxisSize.min,
               children: [
                 Text(label, style: GText.sans(size: 16, weight: FontWeight.w800)),
+                if (price != null)
+                  Text(money(price!, hideZeroCents: true), style: GText.figures(size: 11.5, color: GColors.marca)),
                 const SizedBox(height: 2),
                 Text(
                   out ? 'Agotada' : (available == null ? '—' : 'Hay ${qtyLabel(available!)}'),

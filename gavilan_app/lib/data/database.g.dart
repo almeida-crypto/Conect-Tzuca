@@ -6138,6 +6138,357 @@ class StockCountsTableCompanion extends UpdateCompanion<StockCountRow> {
   }
 }
 
+class $CreditUsesTableTable extends CreditUsesTable with TableInfo<$CreditUsesTableTable, CreditUseRow> {
+  @override
+  final GeneratedDatabase attachedDatabase;
+  final String? _alias;
+  $CreditUsesTableTable(this.attachedDatabase, [this._alias]);
+  static const VerificationMeta _idMeta = const VerificationMeta('id');
+  @override
+  late final GeneratedColumn<String> id = GeneratedColumn<String>(
+    'id',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _layawayIdMeta = const VerificationMeta('layawayId');
+  @override
+  late final GeneratedColumn<String> layawayId = GeneratedColumn<String>(
+    'layaway_id',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _saleIdMeta = const VerificationMeta('saleId');
+  @override
+  late final GeneratedColumn<String> saleId = GeneratedColumn<String>(
+    'sale_id',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _sessionIdMeta = const VerificationMeta('sessionId');
+  @override
+  late final GeneratedColumn<String> sessionId = GeneratedColumn<String>(
+    'session_id',
+    aliasedName,
+    true,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+  );
+  static const VerificationMeta _amountCentsMeta = const VerificationMeta('amountCents');
+  @override
+  late final GeneratedColumn<int> amountCents = GeneratedColumn<int>(
+    'amount_cents',
+    aliasedName,
+    false,
+    type: DriftSqlType.int,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _createdAtMeta = const VerificationMeta('createdAt');
+  @override
+  late final GeneratedColumn<DateTime> createdAt = GeneratedColumn<DateTime>(
+    'created_at',
+    aliasedName,
+    false,
+    type: DriftSqlType.dateTime,
+    requiredDuringInsert: true,
+  );
+  @override
+  List<GeneratedColumn> get $columns => [id, layawayId, saleId, sessionId, amountCents, createdAt];
+  @override
+  String get aliasedName => _alias ?? actualTableName;
+  @override
+  String get actualTableName => $name;
+  static const String $name = 'credit_uses';
+  @override
+  VerificationContext validateIntegrity(Insertable<CreditUseRow> instance, {bool isInserting = false}) {
+    final context = VerificationContext();
+    final data = instance.toColumns(true);
+    if (data.containsKey('id')) {
+      context.handle(_idMeta, id.isAcceptableOrUnknown(data['id']!, _idMeta));
+    } else if (isInserting) {
+      context.missing(_idMeta);
+    }
+    if (data.containsKey('layaway_id')) {
+      context.handle(_layawayIdMeta, layawayId.isAcceptableOrUnknown(data['layaway_id']!, _layawayIdMeta));
+    } else if (isInserting) {
+      context.missing(_layawayIdMeta);
+    }
+    if (data.containsKey('sale_id')) {
+      context.handle(_saleIdMeta, saleId.isAcceptableOrUnknown(data['sale_id']!, _saleIdMeta));
+    } else if (isInserting) {
+      context.missing(_saleIdMeta);
+    }
+    if (data.containsKey('session_id')) {
+      context.handle(_sessionIdMeta, sessionId.isAcceptableOrUnknown(data['session_id']!, _sessionIdMeta));
+    }
+    if (data.containsKey('amount_cents')) {
+      context.handle(_amountCentsMeta, amountCents.isAcceptableOrUnknown(data['amount_cents']!, _amountCentsMeta));
+    } else if (isInserting) {
+      context.missing(_amountCentsMeta);
+    }
+    if (data.containsKey('created_at')) {
+      context.handle(_createdAtMeta, createdAt.isAcceptableOrUnknown(data['created_at']!, _createdAtMeta));
+    } else if (isInserting) {
+      context.missing(_createdAtMeta);
+    }
+    return context;
+  }
+
+  @override
+  Set<GeneratedColumn> get $primaryKey => {id};
+  @override
+  CreditUseRow map(Map<String, dynamic> data, {String? tablePrefix}) {
+    final effectivePrefix = tablePrefix != null ? '$tablePrefix.' : '';
+    return CreditUseRow(
+      id: attachedDatabase.typeMapping.read(DriftSqlType.string, data['${effectivePrefix}id'])!,
+      layawayId: attachedDatabase.typeMapping.read(DriftSqlType.string, data['${effectivePrefix}layaway_id'])!,
+      saleId: attachedDatabase.typeMapping.read(DriftSqlType.string, data['${effectivePrefix}sale_id'])!,
+      sessionId: attachedDatabase.typeMapping.read(DriftSqlType.string, data['${effectivePrefix}session_id']),
+      amountCents: attachedDatabase.typeMapping.read(DriftSqlType.int, data['${effectivePrefix}amount_cents'])!,
+      createdAt: attachedDatabase.typeMapping.read(DriftSqlType.dateTime, data['${effectivePrefix}created_at'])!,
+    );
+  }
+
+  @override
+  $CreditUsesTableTable createAlias(String alias) {
+    return $CreditUsesTableTable(attachedDatabase, alias);
+  }
+}
+
+class CreditUseRow extends DataClass implements Insertable<CreditUseRow> {
+  final String id;
+  final String layawayId;
+  final String saleId;
+  final String? sessionId;
+  final int amountCents;
+  final DateTime createdAt;
+  const CreditUseRow({
+    required this.id,
+    required this.layawayId,
+    required this.saleId,
+    this.sessionId,
+    required this.amountCents,
+    required this.createdAt,
+  });
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    map['id'] = Variable<String>(id);
+    map['layaway_id'] = Variable<String>(layawayId);
+    map['sale_id'] = Variable<String>(saleId);
+    if (!nullToAbsent || sessionId != null) {
+      map['session_id'] = Variable<String>(sessionId);
+    }
+    map['amount_cents'] = Variable<int>(amountCents);
+    map['created_at'] = Variable<DateTime>(createdAt);
+    return map;
+  }
+
+  CreditUsesTableCompanion toCompanion(bool nullToAbsent) {
+    return CreditUsesTableCompanion(
+      id: Value(id),
+      layawayId: Value(layawayId),
+      saleId: Value(saleId),
+      sessionId: sessionId == null && nullToAbsent ? const Value.absent() : Value(sessionId),
+      amountCents: Value(amountCents),
+      createdAt: Value(createdAt),
+    );
+  }
+
+  factory CreditUseRow.fromJson(Map<String, dynamic> json, {ValueSerializer? serializer}) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return CreditUseRow(
+      id: serializer.fromJson<String>(json['id']),
+      layawayId: serializer.fromJson<String>(json['layawayId']),
+      saleId: serializer.fromJson<String>(json['saleId']),
+      sessionId: serializer.fromJson<String?>(json['sessionId']),
+      amountCents: serializer.fromJson<int>(json['amountCents']),
+      createdAt: serializer.fromJson<DateTime>(json['createdAt']),
+    );
+  }
+  @override
+  Map<String, dynamic> toJson({ValueSerializer? serializer}) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return <String, dynamic>{
+      'id': serializer.toJson<String>(id),
+      'layawayId': serializer.toJson<String>(layawayId),
+      'saleId': serializer.toJson<String>(saleId),
+      'sessionId': serializer.toJson<String?>(sessionId),
+      'amountCents': serializer.toJson<int>(amountCents),
+      'createdAt': serializer.toJson<DateTime>(createdAt),
+    };
+  }
+
+  CreditUseRow copyWith({
+    String? id,
+    String? layawayId,
+    String? saleId,
+    Value<String?> sessionId = const Value.absent(),
+    int? amountCents,
+    DateTime? createdAt,
+  }) => CreditUseRow(
+    id: id ?? this.id,
+    layawayId: layawayId ?? this.layawayId,
+    saleId: saleId ?? this.saleId,
+    sessionId: sessionId.present ? sessionId.value : this.sessionId,
+    amountCents: amountCents ?? this.amountCents,
+    createdAt: createdAt ?? this.createdAt,
+  );
+  CreditUseRow copyWithCompanion(CreditUsesTableCompanion data) {
+    return CreditUseRow(
+      id: data.id.present ? data.id.value : this.id,
+      layawayId: data.layawayId.present ? data.layawayId.value : this.layawayId,
+      saleId: data.saleId.present ? data.saleId.value : this.saleId,
+      sessionId: data.sessionId.present ? data.sessionId.value : this.sessionId,
+      amountCents: data.amountCents.present ? data.amountCents.value : this.amountCents,
+      createdAt: data.createdAt.present ? data.createdAt.value : this.createdAt,
+    );
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('CreditUseRow(')
+          ..write('id: $id, ')
+          ..write('layawayId: $layawayId, ')
+          ..write('saleId: $saleId, ')
+          ..write('sessionId: $sessionId, ')
+          ..write('amountCents: $amountCents, ')
+          ..write('createdAt: $createdAt')
+          ..write(')'))
+        .toString();
+  }
+
+  @override
+  int get hashCode => Object.hash(id, layawayId, saleId, sessionId, amountCents, createdAt);
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      (other is CreditUseRow &&
+          other.id == this.id &&
+          other.layawayId == this.layawayId &&
+          other.saleId == this.saleId &&
+          other.sessionId == this.sessionId &&
+          other.amountCents == this.amountCents &&
+          other.createdAt == this.createdAt);
+}
+
+class CreditUsesTableCompanion extends UpdateCompanion<CreditUseRow> {
+  final Value<String> id;
+  final Value<String> layawayId;
+  final Value<String> saleId;
+  final Value<String?> sessionId;
+  final Value<int> amountCents;
+  final Value<DateTime> createdAt;
+  final Value<int> rowid;
+  const CreditUsesTableCompanion({
+    this.id = const Value.absent(),
+    this.layawayId = const Value.absent(),
+    this.saleId = const Value.absent(),
+    this.sessionId = const Value.absent(),
+    this.amountCents = const Value.absent(),
+    this.createdAt = const Value.absent(),
+    this.rowid = const Value.absent(),
+  });
+  CreditUsesTableCompanion.insert({
+    required String id,
+    required String layawayId,
+    required String saleId,
+    this.sessionId = const Value.absent(),
+    required int amountCents,
+    required DateTime createdAt,
+    this.rowid = const Value.absent(),
+  }) : id = Value(id),
+       layawayId = Value(layawayId),
+       saleId = Value(saleId),
+       amountCents = Value(amountCents),
+       createdAt = Value(createdAt);
+  static Insertable<CreditUseRow> custom({
+    Expression<String>? id,
+    Expression<String>? layawayId,
+    Expression<String>? saleId,
+    Expression<String>? sessionId,
+    Expression<int>? amountCents,
+    Expression<DateTime>? createdAt,
+    Expression<int>? rowid,
+  }) {
+    return RawValuesInsertable({
+      if (id != null) 'id': id,
+      if (layawayId != null) 'layaway_id': layawayId,
+      if (saleId != null) 'sale_id': saleId,
+      if (sessionId != null) 'session_id': sessionId,
+      if (amountCents != null) 'amount_cents': amountCents,
+      if (createdAt != null) 'created_at': createdAt,
+      if (rowid != null) 'rowid': rowid,
+    });
+  }
+
+  CreditUsesTableCompanion copyWith({
+    Value<String>? id,
+    Value<String>? layawayId,
+    Value<String>? saleId,
+    Value<String?>? sessionId,
+    Value<int>? amountCents,
+    Value<DateTime>? createdAt,
+    Value<int>? rowid,
+  }) {
+    return CreditUsesTableCompanion(
+      id: id ?? this.id,
+      layawayId: layawayId ?? this.layawayId,
+      saleId: saleId ?? this.saleId,
+      sessionId: sessionId ?? this.sessionId,
+      amountCents: amountCents ?? this.amountCents,
+      createdAt: createdAt ?? this.createdAt,
+      rowid: rowid ?? this.rowid,
+    );
+  }
+
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    if (id.present) {
+      map['id'] = Variable<String>(id.value);
+    }
+    if (layawayId.present) {
+      map['layaway_id'] = Variable<String>(layawayId.value);
+    }
+    if (saleId.present) {
+      map['sale_id'] = Variable<String>(saleId.value);
+    }
+    if (sessionId.present) {
+      map['session_id'] = Variable<String>(sessionId.value);
+    }
+    if (amountCents.present) {
+      map['amount_cents'] = Variable<int>(amountCents.value);
+    }
+    if (createdAt.present) {
+      map['created_at'] = Variable<DateTime>(createdAt.value);
+    }
+    if (rowid.present) {
+      map['rowid'] = Variable<int>(rowid.value);
+    }
+    return map;
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('CreditUsesTableCompanion(')
+          ..write('id: $id, ')
+          ..write('layawayId: $layawayId, ')
+          ..write('saleId: $saleId, ')
+          ..write('sessionId: $sessionId, ')
+          ..write('amountCents: $amountCents, ')
+          ..write('createdAt: $createdAt, ')
+          ..write('rowid: $rowid')
+          ..write(')'))
+        .toString();
+  }
+}
+
 class $BatchesTableTable extends BatchesTable with TableInfo<$BatchesTableTable, BatchRow> {
   @override
   final GeneratedDatabase attachedDatabase;
@@ -11690,6 +12041,7 @@ abstract class _$GavilanDb extends GeneratedDatabase {
   late final $PurchasesTableTable purchasesTable = $PurchasesTableTable(this);
   late final $SupplierPaymentsTableTable supplierPaymentsTable = $SupplierPaymentsTableTable(this);
   late final $StockCountsTableTable stockCountsTable = $StockCountsTableTable(this);
+  late final $CreditUsesTableTable creditUsesTable = $CreditUsesTableTable(this);
   late final $BatchesTableTable batchesTable = $BatchesTableTable(this);
   late final $BatchOrdersTableTable batchOrdersTable = $BatchOrdersTableTable(this);
   late final $ProductsTableTable productsTable = $ProductsTableTable(this);
@@ -11722,6 +12074,7 @@ abstract class _$GavilanDb extends GeneratedDatabase {
     purchasesTable,
     supplierPaymentsTable,
     stockCountsTable,
+    creditUsesTable,
     batchesTable,
     batchOrdersTable,
     productsTable,
@@ -14690,6 +15043,184 @@ typedef $$StockCountsTableTableProcessedTableManager =
       StockCountRow,
       PrefetchHooks Function()
     >;
+typedef $$CreditUsesTableTableCreateCompanionBuilder = CreditUsesTableCompanion Function({
+  required String id,
+  required String layawayId,
+  required String saleId,
+  Value<String?> sessionId,
+  required int amountCents,
+  required DateTime createdAt,
+  Value<int> rowid,
+});
+typedef $$CreditUsesTableTableUpdateCompanionBuilder = CreditUsesTableCompanion Function({
+  Value<String> id,
+  Value<String> layawayId,
+  Value<String> saleId,
+  Value<String?> sessionId,
+  Value<int> amountCents,
+  Value<DateTime> createdAt,
+  Value<int> rowid,
+});
+
+class $$CreditUsesTableTableFilterComposer extends Composer<_$GavilanDb, $CreditUsesTableTable> {
+  $$CreditUsesTableTableFilterComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnFilters<String> get id => $composableBuilder(column: $table.id, builder: (column) => ColumnFilters(column));
+
+  ColumnFilters<String> get layawayId =>
+      $composableBuilder(column: $table.layawayId, builder: (column) => ColumnFilters(column));
+
+  ColumnFilters<String> get saleId =>
+      $composableBuilder(column: $table.saleId, builder: (column) => ColumnFilters(column));
+
+  ColumnFilters<String> get sessionId =>
+      $composableBuilder(column: $table.sessionId, builder: (column) => ColumnFilters(column));
+
+  ColumnFilters<int> get amountCents =>
+      $composableBuilder(column: $table.amountCents, builder: (column) => ColumnFilters(column));
+
+  ColumnFilters<DateTime> get createdAt =>
+      $composableBuilder(column: $table.createdAt, builder: (column) => ColumnFilters(column));
+}
+
+class $$CreditUsesTableTableOrderingComposer extends Composer<_$GavilanDb, $CreditUsesTableTable> {
+  $$CreditUsesTableTableOrderingComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnOrderings<String> get id => $composableBuilder(column: $table.id, builder: (column) => ColumnOrderings(column));
+
+  ColumnOrderings<String> get layawayId =>
+      $composableBuilder(column: $table.layawayId, builder: (column) => ColumnOrderings(column));
+
+  ColumnOrderings<String> get saleId =>
+      $composableBuilder(column: $table.saleId, builder: (column) => ColumnOrderings(column));
+
+  ColumnOrderings<String> get sessionId =>
+      $composableBuilder(column: $table.sessionId, builder: (column) => ColumnOrderings(column));
+
+  ColumnOrderings<int> get amountCents =>
+      $composableBuilder(column: $table.amountCents, builder: (column) => ColumnOrderings(column));
+
+  ColumnOrderings<DateTime> get createdAt =>
+      $composableBuilder(column: $table.createdAt, builder: (column) => ColumnOrderings(column));
+}
+
+class $$CreditUsesTableTableAnnotationComposer extends Composer<_$GavilanDb, $CreditUsesTableTable> {
+  $$CreditUsesTableTableAnnotationComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  GeneratedColumn<String> get id => $composableBuilder(column: $table.id, builder: (column) => column);
+
+  GeneratedColumn<String> get layawayId => $composableBuilder(column: $table.layawayId, builder: (column) => column);
+
+  GeneratedColumn<String> get saleId => $composableBuilder(column: $table.saleId, builder: (column) => column);
+
+  GeneratedColumn<String> get sessionId => $composableBuilder(column: $table.sessionId, builder: (column) => column);
+
+  GeneratedColumn<int> get amountCents => $composableBuilder(column: $table.amountCents, builder: (column) => column);
+
+  GeneratedColumn<DateTime> get createdAt => $composableBuilder(column: $table.createdAt, builder: (column) => column);
+}
+
+class $$CreditUsesTableTableTableManager
+    extends
+        RootTableManager<
+          _$GavilanDb,
+          $CreditUsesTableTable,
+          CreditUseRow,
+          $$CreditUsesTableTableFilterComposer,
+          $$CreditUsesTableTableOrderingComposer,
+          $$CreditUsesTableTableAnnotationComposer,
+          $$CreditUsesTableTableCreateCompanionBuilder,
+          $$CreditUsesTableTableUpdateCompanionBuilder,
+          (CreditUseRow, BaseReferences<_$GavilanDb, $CreditUsesTableTable, CreditUseRow>),
+          CreditUseRow,
+          PrefetchHooks Function()
+        > {
+  $$CreditUsesTableTableTableManager(_$GavilanDb db, $CreditUsesTableTable table)
+    : super(
+        TableManagerState(
+          db: db,
+          table: table,
+          createFilteringComposer: () => $$CreditUsesTableTableFilterComposer($db: db, $table: table),
+          createOrderingComposer: () => $$CreditUsesTableTableOrderingComposer($db: db, $table: table),
+          createComputedFieldComposer: () => $$CreditUsesTableTableAnnotationComposer($db: db, $table: table),
+          updateCompanionCallback:
+              ({
+                Value<String> id = const Value.absent(),
+                Value<String> layawayId = const Value.absent(),
+                Value<String> saleId = const Value.absent(),
+                Value<String?> sessionId = const Value.absent(),
+                Value<int> amountCents = const Value.absent(),
+                Value<DateTime> createdAt = const Value.absent(),
+                Value<int> rowid = const Value.absent(),
+              }) => CreditUsesTableCompanion(
+                id: id,
+                layawayId: layawayId,
+                saleId: saleId,
+                sessionId: sessionId,
+                amountCents: amountCents,
+                createdAt: createdAt,
+                rowid: rowid,
+              ),
+          createCompanionCallback:
+              ({
+                required String id,
+                required String layawayId,
+                required String saleId,
+                Value<String?> sessionId = const Value.absent(),
+                required int amountCents,
+                required DateTime createdAt,
+                Value<int> rowid = const Value.absent(),
+              }) => CreditUsesTableCompanion.insert(
+                id: id,
+                layawayId: layawayId,
+                saleId: saleId,
+                sessionId: sessionId,
+                amountCents: amountCents,
+                createdAt: createdAt,
+                rowid: rowid,
+              ),
+          withReferenceMapper: (p0) => p0
+              .map(
+                (e) => (
+                  e.readTable<$CreditUsesTableTable, CreditUseRow>(table),
+                  BaseReferences<_$GavilanDb, $CreditUsesTableTable, CreditUseRow>(db, table, e),
+                ),
+              )
+              .toList(),
+          prefetchHooksCallback: null,
+        ),
+      );
+}
+
+typedef $$CreditUsesTableTableProcessedTableManager =
+    ProcessedTableManager<
+      _$GavilanDb,
+      $CreditUsesTableTable,
+      CreditUseRow,
+      $$CreditUsesTableTableFilterComposer,
+      $$CreditUsesTableTableOrderingComposer,
+      $$CreditUsesTableTableAnnotationComposer,
+      $$CreditUsesTableTableCreateCompanionBuilder,
+      $$CreditUsesTableTableUpdateCompanionBuilder,
+      (CreditUseRow, BaseReferences<_$GavilanDb, $CreditUsesTableTable, CreditUseRow>),
+      CreditUseRow,
+      PrefetchHooks Function()
+    >;
 typedef $$BatchesTableTableCreateCompanionBuilder = BatchesTableCompanion Function({
   required String id,
   required String name,
@@ -17369,6 +17900,8 @@ class $GavilanDbManager {
       $$SupplierPaymentsTableTableTableManager(_db, _db.supplierPaymentsTable);
   $$StockCountsTableTableTableManager get stockCountsTable =>
       $$StockCountsTableTableTableManager(_db, _db.stockCountsTable);
+  $$CreditUsesTableTableTableManager get creditUsesTable =>
+      $$CreditUsesTableTableTableManager(_db, _db.creditUsesTable);
   $$BatchesTableTableTableManager get batchesTable => $$BatchesTableTableTableManager(_db, _db.batchesTable);
   $$BatchOrdersTableTableTableManager get batchOrdersTable =>
       $$BatchOrdersTableTableTableManager(_db, _db.batchOrdersTable);

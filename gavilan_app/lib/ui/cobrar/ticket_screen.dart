@@ -136,11 +136,17 @@ class _TicketScreenState extends ConsumerState<TicketScreen> {
         (sale.lines.length > 1 || piecesLeft > 1 || returns.isNotEmpty) &&
         piecesLeft > 0.0001;
     // Cambio de talla o de producto: también lo hace el cajero (si no hay que devolver dinero).
-    final canExchange = paid && !sale.cancelled && piecesLeft > 0.0001 && ref.watch(permissionsProvider).charge;
+    final canExchange =
+        (paid || sale.customerId != null) &&
+        !sale.cancelled &&
+        piecesLeft > 0.0001 &&
+        ref.watch(permissionsProvider).charge;
     // Ya tuvo un cambio hoy: se corrige la venta nueva, no esta.
     final lockedByExchange = store.hadExchangeToday(sale);
     final exchanges = store.exchangesInto(sale.id);
     final exchangeCredit = exchanges.fold(0, (a, r) => a + r.amountCents);
+    // Saldo a favor de un apartado cancelado que pagó parte de esta venta.
+    final creditPaid = store.creditPaidOf(sale.id);
     final order = sale.orderId == null ? null : store.orderById(sale.orderId!);
     final place = order == null ? null : store.orderTitle(order);
     final logo = plan.limits.logo ? store.logo : null;
@@ -151,6 +157,7 @@ class _TicketScreenState extends ConsumerState<TicketScreen> {
             cents: exchangeCredit,
           );
     final text = ticketText(
+      creditCents: creditPaid,
       exchange: exchangeInfo,
       returns: returns,
       place: place,
@@ -163,6 +170,7 @@ class _TicketScreenState extends ConsumerState<TicketScreen> {
 
     void printTicket() => printHtml(
       ticketHtml(
+        creditCents: creditPaid,
         exchange: exchangeInfo,
         returns: returns,
         place: place,
@@ -291,6 +299,17 @@ class _TicketScreenState extends ConsumerState<TicketScreen> {
                                     _row('Se le devolvió', money(exchangeCredit - sale.totalCents), bold: true)
                                   else
                                     _row('Diferencia', money(0)),
+                                ] else if (paid && creditPaid > 0) ...[
+                                  _row('Saldo a favor', '-${money(creditPaid)}'),
+                                  if (sale.paidCents - creditPaid > 0) ...[
+                                    _row('Pagó', money(sale.paidCents - creditPaid), bold: true),
+                                    _row(
+                                      'Pago',
+                                      sale.split
+                                          ? sale.payments.last.method.label
+                                          : (sale.method ?? PayMethod.efectivo).label,
+                                    ),
+                                  ],
                                 ] else if (paid && sale.split) ...[
                                   // Pagada en partes: cada pago con su método.
                                   for (final p in sale.payments) _row(p.method.label, money(p.amountCents)),
@@ -305,6 +324,20 @@ class _TicketScreenState extends ConsumerState<TicketScreen> {
                                     _row('Cambio', money(sale.changeCents)),
                                   ],
                                 ] else ...[
+                                  // Cambio de una venta fiada: lo que regresó se quitó de la deuda.
+                                  for (final r in exchanges)
+                                    _row(
+                                      'Regresó (venta ${store.sales.where((x) => x.id == r.saleId).firstOrNull?.folioLabel ?? ''})',
+                                      '-${money(r.amountCents)}',
+                                    ),
+                                  if (exchanges.isNotEmpty)
+                                    _row(
+                                      sale.totalCents >= exchangeCredit
+                                          ? 'Se sumó a su cuenta'
+                                          : 'Se quitó de su cuenta',
+                                      money((sale.totalCents - exchangeCredit).abs()),
+                                      bold: true,
+                                    ),
                                   _row('Cliente', customer?.name ?? ''),
                                   _row('Saldo pendiente', money(balance ?? 0)),
                                 ],

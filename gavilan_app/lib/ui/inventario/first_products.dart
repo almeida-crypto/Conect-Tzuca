@@ -56,7 +56,7 @@ class FirstProductsCard extends ConsumerWidget {
               icon: Icons.checklist_rounded,
               color: GColors.marca,
               title: 'Elegir de una lista',
-              text: 'Productos comunes de tiendita: márcalos y ponles tu precio.',
+              text: 'De tiendita, fonda, papelería, ferretería o farmacia: márcalos y ponles tu precio.',
               highlighted: true,
               onTap: () => _starter(context),
             ),

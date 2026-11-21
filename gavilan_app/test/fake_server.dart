@@ -19,6 +19,9 @@ class FakeServer {
   final Map<String, Map<String, MemberRole>> membership = {};
   final Map<String, ({String business, MemberRole role, String name})> invites = {}; // código -> invitación
   final Set<String> rejectTables = {};
+
+  /// Cuentas que se borraron (delete_my_account).
+  final deletedUsers = <String>[];
   final liveEvents = StreamController<void>.broadcast();
   DateTime _clock = DateTime.utc(2026, 10, 26, 12);
   int writes = 0;
@@ -191,6 +194,23 @@ class FakeRemote implements SyncRemote {
   @override
   Future<void> removeMember(String memberId) async {
     server.membership.remove(memberId);
+  }
+
+  /// Como delete_my_account: sus negocios (de dueño) se borran completos y deja de estar en los demás.
+  @override
+  Future<void> deleteAccount() async {
+    _check();
+    final mine = server.membership.remove(_user) ?? const <String, MemberRole>{};
+    for (final e in mine.entries.where((e) => e.value == MemberRole.owner)) {
+      for (final t in server.tables.values) {
+        t.removeWhere((id, r) => r['business_id'] == e.key || id == e.key);
+      }
+      for (final m in server.membership.values) {
+        m.remove(e.key);
+      }
+    }
+    server.deletedUsers.add(_user!);
+    await signOut();
   }
 
   /// Como Realtime: avisa a los demás teléfonos cuando cambian comandas o platillos.

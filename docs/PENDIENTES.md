@@ -36,7 +36,7 @@ Prioridad: **Alta** = sin esto no se puede usar con un negocio real · **Media**
 - [x] **Baja** · Corte del dueño que junte las cajas de todos los celulares del día ("Todas las cajas"). *18/11/2026*
 - [x] **Alta** · Cada celular con su propia caja (antes uno podía tomar la caja abierta de otro). *18/11/2026*
 - [x] **Baja** · Ponerle nombre a cada caja ("Mostrador", "Barra") en lugar de la clave del celular. *18/11/2026*
-- [ ] **Baja** · Listas de inicio para otros giros (fonda, papelería, ferretería, farmacia).
+- [x] **Baja** · Listas de inicio para otros giros (fonda, papelería, ferretería, farmacia). *21/11/2026*
 - [x] **Media** · En el navegador los datos se guardan (`sqlite3.wasm` y `drift_worker.js` en `web/`) y se respaldan en Supabase igual que en el celular. *11/11/2026*
 - [x] **Alta** · Indicador real en el encabezado: Sin internet, Sin respaldo, Por subir, Respaldado o Revisar respaldo. *26/10/2026*
 - [x] **Media** · Folios que no chocan entre teléfonos: cada uno tiene su clave ("K7-0043") y su propia numeración. *09/11/2026*
@@ -76,13 +76,13 @@ Prioridad: **Alta** = sin esto no se puede usar con un negocio real · **Media**
 - [x] **Media** · Foto del artículo apartado (cámara + Supabase Storage). *18/11/2026*
 - [x] **Media** · Tallas y colores en productos (cada talla con su existencia y código). *20/11/2026*
 - [x] **Media** · Apartar piezas del inventario, reglas del dueño al cancelar (devolver, porcentaje, anticipo, nada o saldo a favor), entregado y recordatorios por WhatsApp. *20/11/2026*
-- [ ] **Baja** · Usar el saldo a favor también en una venta normal de Cobrar (hoy se usa en otro apartado).
-- [ ] **Baja** · Precio distinto por talla (hoy todas las tallas valen lo del modelo).
+- [x] **Baja** · Usar el saldo a favor también en una venta normal de Cobrar. *21/11/2026*
+- [x] **Baja** · Precio distinto por talla. *21/11/2026*
 - [x] **Media** · Cambio de talla o de producto desde el ticket: solo se cobra o devuelve la diferencia. *20/11/2026*
 - [x] **Media** · Compras a proveedores: lo que llega entra al inventario con su costo, lo que se debe y los pagos. *20/11/2026*
 - [x] **Media** · Conteo de inventario con lector, cámara o a mano, con faltantes a costo. *20/11/2026*
-- [ ] **Baja** · Cambio de una venta fiada (hoy solo pagadas).
-- [ ] **Baja** · Compras: pedido sugerido al proveedor según lo que se acaba.
+- [x] **Baja** · Cambio de una venta fiada (la diferencia va a su cuenta). *21/11/2026*
+- [x] **Baja** · Compras: pedido sugerido al proveedor según lo que se vende y se acaba. *21/11/2026*
 - [x] **Media** · Pacas y lotes: inversión, ventas rápidas, barra de recuperación y ganancia; entra al corte. El plan gratis permite 1 paca activa. *31/10/2026*
 - [x] **Media** · Pedidos por tanda: entrega y pago en dos toques, insumos, ganancia y aviso por WhatsApp. *31/10/2026*
 - [ ] **Baja** · Decidir si lo cobrado de las tandas entra al corte de caja (hoy no entra: muchas tandas se cobran fuera del mostrador).
@@ -98,7 +98,7 @@ Prioridad: **Alta** = sin esto no se puede usar con un negocio real · **Media**
 - [x] **Media** · Equipo y roles: el dueño invita cajeros y administradores con un código; el cajero no cambia el catálogo. *09/11/2026*
 - [ ] **Media** · Probar el equipo con dos cuentas reales: el dueño invita desde su celular y alguien se une desde otro.
 - [x] **Media** · Invitar meseros y cocina. *09/11/2026*
-- [ ] **Baja** · Validar en la base que solo el plan Negocio pueda invitar (hoy solo lo limita la app, con la vista previa).
+- [x] **Baja** · Validar en la base que solo el plan Negocio pueda invitar (`create_invite`, migración 0032). *19/11/2026*
 - [ ] **Baja** · Impresora térmica Bluetooth o USB.
 - [x] **Baja** · Tope de fiado general y por cliente, aviso al fiar de más (el cajero necesita PIN) y atraso en ámbar (30 días) y rojo (60). *18/11/2026*
 - [x] **Media** · Ganancia por producto en el corte (vendido, precio, costo, ganancia y margen), para dueño y administradores. También en los cortes anteriores. *12/11/2026*
@@ -165,3 +165,18 @@ Mejoras acordadas en el PDF, pendientes en el repositorio del Directorio:
 - [ ] SMTP propio (Resend o Brevo) en Supabase Auth.
 - [ ] Monitor (UptimeRobot) para evitar el arranque en frío de Render.
 - [ ] Reglas del piloto de repartidores: cuota $0, mensaje por WhatsApp y tope de $100 en efectivo.
+
+## Etapa 6 · Google Play (prueba cerrada)
+Guía completa en [play-store/GUIA-PRUEBA-CERRADA.md](../play-store/GUIA-PRUEBA-CERRADA.md).
+- [x] **Alta** · Borrar la cuenta desde la app y página web para pedirlo (requisito de Google). *21/11/2026*
+- [x] **Alta** · Aviso de privacidad, textos de la ficha, respuestas de los formularios, ícono 512, imagen destacada y capturas. *21/11/2026*
+- [x] **Alta** · App Bundle 1.14.0 (17) firmado con la llave de carga. *21/11/2026*
+- [ ] **Alta** · Cuenta de desarrollador de Google Play (personal, 25 USD, verificación de identidad). La crea el usuario.
+- [ ] **Alta** · Supabase Pro antes de invitar probadores (el gratis se pausa a los 7 días).
+- [ ] **Alta** · Correo propio (Resend o Brevo) para confirmaciones: con 15 altas el mismo día el de Supabase no alcanza.
+- [ ] **Alta** · Correo de contacto en `play-store/web/*.html` (`CORREO_DE_CONTACTO`) y publicar las dos páginas.
+- [ ] **Alta** · Decidir el plan de los probadores en la nube (subirlo a mano o que los negocios nuevos empiecen en Negocio durante la prueba).
+- [ ] **Alta** · Prueba cerrada con 12+ probadores durante 14 días seguidos; luego pedir producción.
+- [ ] **Media** · Cuenta de prueba para los revisores de Google (la crea el usuario) con su negocio en plan Negocio.
+- [ ] **Media** · Antes de cobrar los planes dentro de la app: Google Play Billing (o decidir otra forma permitida).
+

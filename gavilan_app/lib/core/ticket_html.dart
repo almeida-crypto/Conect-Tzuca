@@ -18,6 +18,7 @@ String ticketHtml({
   Uint8List? logo,
   List<SaleReturn> returns = const [],
   ({String folio, int cents})? exchange,
+  int creditCents = 0,
 }) {
   final paid = sale.kind == SaleKind.pagada;
   final rows = StringBuffer();
@@ -47,6 +48,13 @@ String ticketHtml({
     } else if (diff < 0) {
       row('Se le devolvió', money(-diff), strong: true);
     }
+  } else if (paid && creditCents > 0) {
+    final rest = sale.paidCents - creditCents;
+    row('Saldo a favor', '-${money(creditCents)}');
+    if (rest > 0) {
+      row('Pagó', money(rest), strong: true);
+      row('Pago', (sale.split ? sale.payments.last.method : sale.method ?? PayMethod.efectivo).label);
+    }
   } else if (paid && sale.split) {
     for (final p in sale.payments) {
       row(p.method.label, money(p.amountCents));
@@ -62,6 +70,11 @@ String ticketHtml({
       row('Cambio', money(sale.changeCents));
     }
   } else {
+    if (exchange != null) {
+      final diff = sale.totalCents - exchange.cents;
+      row('Regresó (venta ${exchange.folio})', '-${money(exchange.cents)}');
+      row(diff >= 0 ? 'Se sumó a su cuenta' : 'Se quitó de su cuenta', money(diff.abs()), strong: true);
+    }
     row('Cliente', customerName ?? '');
     row('Saldo pendiente', money(newBalanceCents ?? 0));
   }

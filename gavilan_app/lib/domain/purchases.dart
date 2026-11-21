@@ -175,3 +175,35 @@ class StockCount {
 }
 
 String _qty(double q) => q == q.roundToDouble() ? q.toInt().toString() : q.toStringAsFixed(2);
+
+/// Un renglón del pedido sugerido: cuánto pedir de un producto y a quién (el proveedor de su última compra).
+class RestockLine {
+  const RestockLine({required this.product, required this.qty, required this.perDay, this.supplierId});
+
+  final Product product;
+  final double qty;
+
+  /// Lo que se vende al día (promedio de las últimas cuatro semanas).
+  final double perDay;
+  final String? supplierId;
+
+  int get costCents => (product.costCents * qty).round();
+}
+
+/// El mensaje del pedido para mandarle al proveedor por WhatsApp.
+String restockMessage({required String business, String? supplier, required List<(String, double)> lines}) {
+  final b = StringBuffer()
+    ..writeln(
+      supplier == null
+          ? 'Hola, te hago un pedido para *$business*:'
+          : 'Hola $supplier, te hago un pedido para *$business*:',
+    )
+    ..writeln('');
+  for (final (name, qty) in lines) {
+    b.writeln('• ${_qty(qty)} $name');
+  }
+  b
+    ..writeln('')
+    ..writeln('¡Gracias!');
+  return b.toString().trimRight();
+}

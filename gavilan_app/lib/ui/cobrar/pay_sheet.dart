@@ -50,6 +50,41 @@ class _PaySheetState extends ConsumerState<_PaySheet> {
   /// Descuento a toda la cuenta, en centavos.
   int _discount = 0;
 
+  /// Cliente cuyo saldo a favor (de un apartado cancelado) paga parte o toda la cuenta.
+  Customer? _creditOf;
+
+  /// Lo que paga el saldo a favor de [total].
+  int _creditFor(int total) => _creditOf == null ? 0 : ref.read(storeProvider).creditOf(_creditOf!.id).clamp(0, total);
+
+  Future<void> _pickCredit() async {
+    final store = ref.read(storeProvider);
+    final picked = await showGSheet<Customer>(
+      context,
+      (ctx) => Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          const SheetHeader('¿De quién es el saldo a favor?'),
+          for (final (c, cents) in store.customersWithCredit)
+            ListTile(
+              contentPadding: EdgeInsets.zero,
+              leading: const Icon(Icons.savings_outlined, color: GColors.cenote),
+              title: Text(c.name, style: GText.sans(size: 14.5, weight: FontWeight.w700)),
+              trailing: Text(money(cents), style: GText.amount(size: 15, color: GColors.cenote)),
+              onTap: () => Navigator.of(ctx).pop(c),
+            ),
+        ],
+      ),
+    );
+    if (picked != null && mounted) {
+      setState(() {
+        _creditOf = picked;
+        _received = null;
+        _otherMode = false;
+        _error = null;
+      });
+    }
+  }
+
   /// Propina (solo en una mesa o para llevar del restaurante), en centavos; [_tipPct] si fue por porcentaje.
   int _tip = 0;
   int? _tipPct;
@@ -132,10 +167,20 @@ class _PaySheetState extends ConsumerState<_PaySheet> {
     // Lo fiado no lleva propina.
     final tip = kind == SaleKind.pagada && orderId != null ? _tipFor(bill) : 0;
     final total = bill + tip;
+    // Saldo a favor: paga parte; lo demás (lo que falta) con la forma de pago. Entra como efectivo a la venta y
+    // en el corte se descuenta igual, porque ese dinero ya estaba en la caja.
+    final credit = kind == SaleKind.pagada && payments.isEmpty ? _creditFor(total) : 0;
+    final due = total - credit;
+    if (credit > 0 && due > 0 && _method != PayMethod.efectivo) {
+      payments = [
+        SalePayment(method: PayMethod.efectivo, amountCents: credit),
+        SalePayment(method: _method, amountCents: due),
+      ];
+    }
     int? received = cashReceived;
-    if (kind == SaleKind.pagada && payments.isEmpty && _method == PayMethod.efectivo) {
+    if (kind == SaleKind.pagada && payments.isEmpty && _method == PayMethod.efectivo && due > 0) {
       received = _otherMode ? parseMoney(_other.text) : _received;
-      if (received != null && received < total) {
+      if (received != null && received < due) {
         setState(() => _error = 'Lo recibido es menos que el total');
         return;
       }
@@ -145,13 +190,18 @@ class _PaySheetState extends ConsumerState<_PaySheet> {
       }
     }
     final store = ref.read(storeProvider.notifier);
+    if (credit > 0 && payments.isEmpty) {
+      received = (received ?? due) + credit;
+      customerId ??= _creditOf!.id;
+    }
+    final method = credit > 0 && payments.isEmpty ? PayMethod.efectivo : _method;
     final paid = payments.isNotEmpty ? received : received ?? (kind == SaleKind.pagada ? total : null);
     final Sale sale;
     if (orderId == null) {
       sale = store.checkout(
         lines: ref.read(cartProvider),
         kind: kind,
-        method: _method,
+        method: method,
         receivedCents: paid,
         customerId: customerId,
         discountCents: _discount,
@@ -163,7 +213,7 @@ class _PaySheetState extends ConsumerState<_PaySheet> {
         orderId,
         widget.items!,
         kind: kind,
-        method: _method,
+        method: method,
         receivedCents: paid,
         customerId: customerId,
         discountCents: _discount,
@@ -179,7 +229,7 @@ class _PaySheetState extends ConsumerState<_PaySheet> {
       sale = store.chargeOrder(
         orderId,
         kind: kind,
-        method: _method,
+        method: method,
         receivedCents: paid,
         customerId: customerId,
         discountCents: _discount,
@@ -187,6 +237,7 @@ class _PaySheetState extends ConsumerState<_PaySheet> {
         tipCents: tip,
       );
     }
+    if (credit > 0) store.useCreditInSale(sale.id, _creditOf!.id, credit);
     final navigator = Navigator.of(context);
     navigator.pop();
     navigator.push(MaterialPageRoute(builder: (_) => TicketScreen(saleId: sale.id)));
@@ -313,8 +364,13 @@ class _PaySheetState extends ConsumerState<_PaySheet> {
     final tip = tips ? _tipFor(bill) : 0;
     // Lo que paga el cliente: la cuenta más la propina (los billetes y el cambio se calculan con esto).
     final total = bill + tip;
+    final store = ref.watch(storeProvider);
+    final credit = _creditFor(total);
+    // Lo que falta después del saldo a favor: con esto se calculan los billetes y el cambio.
+    final due = total - credit;
     final received = _otherMode ? parseMoney(_other.text) : _received;
-    final change = (_method == PayMethod.efectivo && received != null) ? received - total : 0;
+    final change = (_method == PayMethod.efectivo && received != null) ? received - due : 0;
+    final credits = store.customersWithCredit;
 
     final keyboard = MediaQuery.sizeOf(context).width >= 900;
     final methods = ref.watch(storeProvider).acceptedMethods;
@@ -379,6 +435,45 @@ class _PaySheetState extends ConsumerState<_PaySheet> {
               ],
             ),
           ],
+          if (_creditOf != null)
+            Container(
+              margin: const EdgeInsets.only(top: 8),
+              padding: const EdgeInsets.fromLTRB(12, 6, 4, 6),
+              decoration: BoxDecoration(
+                color: GColors.cenoteSuave,
+                borderRadius: BorderRadius.circular(GShape.radiusSmall),
+              ),
+              child: Row(
+                children: [
+                  const Icon(Icons.savings_outlined, size: 18, color: GColors.cenoteOscuro),
+                  const SizedBox(width: 8),
+                  Expanded(
+                    child: Text(
+                      'Saldo a favor de ${_creditOf!.name}: -${money(credit)}\n'
+                      '${due > 0 ? 'Falta ${money(due)}' : 'Lo cubre todo'}',
+                      style: GText.sans(size: 13, weight: FontWeight.w700, color: GColors.cenoteOscuro),
+                    ),
+                  ),
+                  IconButton(
+                    tooltip: 'No usar el saldo a favor',
+                    icon: const Icon(Icons.close, size: 18),
+                    onPressed: () => setState(() => _creditOf = null),
+                  ),
+                ],
+              ),
+            )
+          else if (credits.isNotEmpty)
+            Align(
+              alignment: Alignment.centerLeft,
+              child: TextButton.icon(
+                onPressed: _pickCredit,
+                icon: const Icon(Icons.savings_outlined, size: 18, color: GColors.cenote),
+                label: Text(
+                  'Usar saldo a favor',
+                  style: GText.sans(size: 13.5, weight: FontWeight.w700, color: GColors.cenote),
+                ),
+              ),
+            ),
           if (_discount > 0)
             Padding(
               padding: const EdgeInsets.only(top: 2),
@@ -402,7 +497,7 @@ class _PaySheetState extends ConsumerState<_PaySheet> {
                 child: Text(methods.length < 2 ? 'Solo efectivo' : 'Forma de pago', style: GText.sans(size: 12)),
               ),
               TextButton.icon(
-                onPressed: total > 0 ? () => _divide(total) : null,
+                onPressed: total > 0 && _creditOf == null ? () => _divide(total) : null,
                 icon: const Icon(Icons.call_split_rounded, size: 18, color: GColors.cenote),
                 label: Text(
                   widget.orderId == null ? 'Pagar en partes' : 'Dividir la cuenta',
@@ -419,7 +514,7 @@ class _PaySheetState extends ConsumerState<_PaySheet> {
               _error = null;
             }),
           ),
-          if (_method == PayMethod.efectivo) ...[
+          if (_method == PayMethod.efectivo && due > 0) ...[
             const SizedBox(height: 14),
             Text('¿Con cuánto paga?', style: GText.sans(size: 12)),
             const SizedBox(height: 6),
@@ -436,7 +531,7 @@ class _PaySheetState extends ConsumerState<_PaySheet> {
                     }),
                   ),
                 ),
-                for (final b in suggestedBills(total)) ...[
+                for (final b in suggestedBills(due)) ...[
                   const SizedBox(width: 6),
                   Expanded(
                     child: GChip(
@@ -506,7 +601,9 @@ class _PaySheetState extends ConsumerState<_PaySheet> {
               const SizedBox(width: 8),
               Expanded(
                 child: GButton(
-                  label: _method == PayMethod.efectivo
+                  label: due == 0 && credit > 0
+                      ? 'Pagar con saldo a favor'
+                      : _method == PayMethod.efectivo
                       ? 'Cobrar en efectivo'
                       : 'Cobrar con ${_method.label.toLowerCase()}',
                   kind: GButtonKind.money,

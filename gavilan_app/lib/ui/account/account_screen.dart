@@ -246,6 +246,59 @@ class _AccountScreenState extends ConsumerState<AccountScreen> {
     }
   }
 
+  /// Google Play lo pide: borrar la cuenta desde la app. Se confirma escribiendo BORRAR.
+  Future<void> _deleteAccount() async {
+    final typed = TextEditingController();
+    final ok = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => StatefulBuilder(
+        builder: (ctx, setInner) => AlertDialog(
+          title: const Text('¿Borrar tu cuenta?'),
+          content: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                'Se borra tu cuenta de Gavilán. Si eres dueño de un negocio, se borra de la nube con todo su '
+                'historial (ventas, fiados, productos, fotos) y tu equipo pierde el acceso. Lo que registraste en '
+                'negocios de otros se queda allá, sin tu nombre de usuario.\n\nNo se puede deshacer.',
+                style: GText.sans(size: 14, weight: FontWeight.w400),
+              ),
+              const SizedBox(height: 12),
+              TextField(
+                controller: typed,
+                onChanged: (_) => setInner(() {}),
+                textCapitalization: TextCapitalization.characters,
+                decoration: const InputDecoration(labelText: 'Escribe BORRAR para confirmar'),
+              ),
+            ],
+          ),
+          actions: [
+            TextButton(onPressed: () => Navigator.of(ctx).pop(false), child: const Text('Cancelar')),
+            TextButton(
+              onPressed: typed.text.trim().toUpperCase() == 'BORRAR' ? () => Navigator.of(ctx).pop(true) : null,
+              child: Text(
+                'Borrar cuenta',
+                style: GText.sans(size: 14, weight: FontWeight.w800, color: GColors.rojo),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+    typed.dispose();
+    if (ok != true || !mounted) return;
+    setState(() => _working = true);
+    try {
+      await _sync.deleteAccount();
+      if (mounted) setState(() => _info = 'Tu cuenta se borró.');
+    } on SyncException catch (e) {
+      if (mounted) setState(() => _error = e.message);
+    } finally {
+      if (mounted) setState(() => _working = false);
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     final sync = ref.watch(syncProvider);
@@ -425,6 +478,11 @@ class _AccountScreenState extends ConsumerState<AccountScreen> {
         ),
       const SizedBox(height: 10),
       GButton(label: 'Cerrar sesión', kind: GButtonKind.outline, expand: true, onPressed: _signOut),
+      const SizedBox(height: 6),
+      TextButton(
+        onPressed: _working ? null : _deleteAccount,
+        child: Text('Borrar mi cuenta', style: GText.sans(size: 13, color: GColors.rojo)),
+      ),
       // En el navegador la sesión se queda guardada: en una computadora de varios, mejor cerrarla al terminar.
       if (kIsWeb)
         Padding(

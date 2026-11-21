@@ -111,9 +111,24 @@ void main() {
       expect(store().returnItems(sale.id, {0: 1}, reason: 'x'), isNull);
     });
 
-    test('lo fiado no se cambia aquí', () {
-      final sale = store().checkout(lines: [line(size('26'))], kind: SaleKind.fiada, customerId: 'c1');
-      expect(store().exchange(sale.id, {0: 1}, [line(size('27'))]), isNull);
+    test('lo fiado se cambia: la diferencia va a su cuenta y la caja no se mueve', () {
+      final sale = store().checkout(
+        lines: [line(state().productById('calcetas')!)],
+        kind: SaleKind.fiada,
+        customerId: 'c1',
+      );
+      final debt = state().balanceOf('c1');
+      final before = summary();
+      final done = store().exchange(sale.id, {0: 1}, [line(size('27'))])!;
+      expect(done.sale.kind, SaleKind.fiada);
+      expect(done.sale.customerId, 'c1');
+      expect(done.ret.cashCents, 0);
+      expect(state().balanceOf('c1'), debt + 89900 - 5000);
+      final after = summary();
+      expect(after.expectedCashCents, before.expectedCashCents);
+      expect(after.totalSoldCents, before.totalSoldCents + 89900 - 5000);
+      expect(state().productById('calcetas')!.stock, 10);
+      expect(size('27').stock, 1);
     });
   });
 

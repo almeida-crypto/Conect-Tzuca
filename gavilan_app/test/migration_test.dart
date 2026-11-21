@@ -18,9 +18,9 @@ import 'generated_migrations/schema.dart';
 /// drift_schemas/drift_schema_vN.json`), regenerar (`dart run drift_dev schema generate --data-classes
 /// --companions drift_schemas/ test/generated_migrations/`) y agregar N a [current] aquí.
 void main() {
-  /// Versiones de la base que salieron en un APK (1.1.1, 1.6.1, 1.8.0, 1.9.0, 1.10.0/1.11.0 y 1.12.0).
-  const released = [7, 10, 14, 15, 16, 19];
-  const current = 21;
+  /// Versiones de la base que salieron en un APK (1.1.1, 1.6.1, 1.8.0, 1.9.0, 1.10.0/1.11.0, 1.12.0 y 1.13.0).
+  const released = [7, 10, 14, 15, 16, 19, 21];
+  const current = 22;
 
   driftRuntimeOptions.dontWarnAboutMultipleDatabases = true;
   late SchemaVerifier verifier;

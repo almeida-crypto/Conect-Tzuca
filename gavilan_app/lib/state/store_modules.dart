@@ -169,6 +169,35 @@ mixin _ModuleOps on _StoreCore {
     }
   }
 
+  /// El saldo a favor de [customerId] pagó [cents] de la venta [saleId] (del apartado cancelado más viejo al más
+  /// nuevo). No vuelve a entrar a la caja: en el corte se descuenta lo que la venta contó como efectivo.
+  void useCreditInSale(String saleId, String customerId, int cents) {
+    final sale = state.sales.where((s) => s.id == saleId).firstOrNull;
+    if (sale == null || cents <= 0) return;
+    var left = cents.clamp(0, state.creditOf(customerId));
+    final sources = state.layaways.where((l) => l.customerId == customerId && state.creditLeftOf(l.id) > 0).toList()
+      ..sort((a, b) => a.createdAt.compareTo(b.createdAt));
+    final uses = <CreditUse>[];
+    for (final src in sources) {
+      if (left <= 0) break;
+      final use = left.clamp(0, state.creditLeftOf(src.id));
+      uses.add(
+        CreditUse(
+          id: newId(),
+          layawayId: src.id,
+          saleId: saleId,
+          sessionId: sale.sessionId,
+          amountCents: use,
+          createdAt: sale.createdAt,
+        ),
+      );
+      left -= use;
+      state = state.copyWith(creditUses: [...state.creditUses, uses.last]);
+    }
+    if (uses.isEmpty) return;
+    _save((r) => r.insertCreditUses(uses));
+  }
+
   /// Se lo llevó: ya liquidado, sale de "por entregar".
   void deliverLayaway(String layawayId) {
     final l = state.layawayById(layawayId);

@@ -523,7 +523,15 @@ class CashSummary {
     this.tipsPaidCents = 0,
     this.exchangeCents = 0,
     this.supplierCashCents = 0,
+    this.exchangeOnCreditCents = 0,
+    this.creditUsedCents = 0,
   });
+
+  /// Lo que regresó en cambios de ventas fiadas (se quitó de la deuda): no se vende dos veces.
+  final int exchangeOnCreditCents;
+
+  /// Saldo a favor que pagó ventas: entró como efectivo en la venta pero ya estaba en la caja.
+  final int creditUsedCents;
 
   /// Mercancía que regresó en cambios: pagó parte de las ventas nuevas, así que no entró como dinero.
   final int exchangeCents;
@@ -571,8 +579,10 @@ class CashSummary {
       gastosCents -
       tipsPaidCents -
       exchangeCents -
-      supplierCashCents;
-  int get totalSoldCents => cashSalesCents + otherSalesCents + creditSalesCents + lotSalesCents - exchangeCents;
+      supplierCashCents -
+      creditUsedCents;
+  int get totalSoldCents =>
+      cashSalesCents + otherSalesCents + creditSalesCents + lotSalesCents - exchangeCents - exchangeOnCreditCents;
 
   /// Lo que entró por tarjeta y transferencia (ventas, abonos, apartados y propinas).
   int get otherInCents => otherSalesCents + otherAbonosCents + otherLayawayCents + otherTipsCents;
@@ -596,6 +606,8 @@ class CashSummary {
     tipsPaidCents: tipsPaidCents + o.tipsPaidCents,
     exchangeCents: exchangeCents + o.exchangeCents,
     supplierCashCents: supplierCashCents + o.supplierCashCents,
+    exchangeOnCreditCents: exchangeOnCreditCents + o.exchangeOnCreditCents,
+    creditUsedCents: creditUsedCents + o.creditUsedCents,
   );
 
   static const zero = CashSummary(
@@ -828,6 +840,26 @@ class LayawayPayment {
   final String? fromLayawayId;
 
   bool get fromCredit => fromLayawayId != null;
+}
+
+/// Saldo a favor (de un apartado cancelado) que pagó parte de una venta de Cobrar. Ese dinero ya había entrado a
+/// la caja: en la venta entra como efectivo y en el corte de [sessionId] se descuenta igual.
+class CreditUse {
+  const CreditUse({
+    required this.id,
+    required this.layawayId,
+    required this.saleId,
+    required this.amountCents,
+    required this.createdAt,
+    this.sessionId,
+  });
+
+  final String id;
+  final String layawayId;
+  final String saleId;
+  final String? sessionId;
+  final int amountCents;
+  final DateTime createdAt;
 }
 
 // ---------- Pedidos por tanda ----------

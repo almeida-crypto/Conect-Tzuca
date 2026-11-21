@@ -83,6 +83,24 @@ SaleReturnRow _saleReturnRow(SaleReturn r) => SaleReturnRow(
   exchangeSaleId: r.exchangeSaleId,
 );
 
+CreditUse _creditUse(CreditUseRow r) => CreditUse(
+  id: r.id,
+  layawayId: r.layawayId,
+  saleId: r.saleId,
+  sessionId: r.sessionId,
+  amountCents: r.amountCents,
+  createdAt: r.createdAt,
+);
+
+CreditUseRow _creditUseRow(CreditUse u) => CreditUseRow(
+  id: u.id,
+  layawayId: u.layawayId,
+  saleId: u.saleId,
+  sessionId: u.sessionId,
+  amountCents: u.amountCents,
+  createdAt: u.createdAt,
+);
+
 Supplier _supplier(SupplierRow r) => Supplier(id: r.id, name: r.name, phone: r.phone, active: r.active);
 
 SupplierRow _supplierRow(Supplier s) => SupplierRow(id: s.id, name: s.name, phone: s.phone, active: s.active);

@@ -86,6 +86,9 @@ abstract class StoreRepository {
   });
   Future<void> setLayawayRules(LayawayRules rules);
 
+  /// Saldo a favor que pagó parte de una venta (uno por cada apartado cancelado de donde salió).
+  Future<void> insertCreditUses(List<CreditUse> uses);
+
   // ---------- Compras a proveedores y conteos ----------
   Future<void> upsertSupplier(Supplier supplier);
 
@@ -241,6 +244,9 @@ class MemoryRepository implements StoreRepository {
 
   @override
   Future<void> setLayawayRules(LayawayRules rules) async {}
+
+  @override
+  Future<void> insertCreditUses(List<CreditUse> uses) async {}
 
   @override
   Future<void> upsertSupplier(Supplier supplier) async {}

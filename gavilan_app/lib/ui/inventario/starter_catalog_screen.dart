@@ -15,8 +15,9 @@ import '../widgets/buttons.dart';
 import '../widgets/common.dart';
 import '../widgets/product_icons.dart';
 
-/// Lista de productos comunes de tiendita: se marcan los que se venden, se escribe su precio de venta y se
-/// dan de alta todos juntos. Regresa cuántos se agregaron.
+/// Lista de productos comunes de cada giro (tiendita, fonda, papelería, ferretería, farmacia): se marcan los que
+/// se venden, se escribe su precio de venta y se dan de alta todos juntos. Abre en la del tipo de negocio y se
+/// puede cambiar; lo marcado en otra lista no se pierde. Regresa cuántos se agregaron.
 class StarterCatalogScreen extends ConsumerStatefulWidget {
   const StarterCatalogScreen({super.key});
 
@@ -28,6 +29,7 @@ class _StarterCatalogScreenState extends ConsumerState<StarterCatalogScreen> {
   final _prices = <StarterItem, TextEditingController>{};
   final _picked = <StarterItem>{};
   bool _showErrors = false;
+  late StarterKind _kind = StarterKind.of(ref.read(storeProvider).businessType);
 
   @override
   void dispose() {
@@ -48,6 +50,8 @@ class _StarterCatalogScreenState extends ConsumerState<StarterCatalogScreen> {
     for (final i in _picked)
       if (_priceOf(i) == null) i,
   ];
+
+  int _pickedIn(StarterKind k) => k.groups.fold(0, (a, g) => a + g.items.where(_picked.contains).length);
 
   void _toggle(StarterItem item) => setState(() => _picked.contains(item) ? _picked.remove(item) : _picked.add(item));
 
@@ -71,11 +75,13 @@ class _StarterCatalogScreenState extends ConsumerState<StarterCatalogScreen> {
       return;
     }
     final notifier = ref.read(storeProvider.notifier);
-    // En el orden de la lista, para que el catálogo quede acomodado igual.
+    // En el orden de las listas, para que el catálogo quede acomodado igual (sin repetir nombres).
+    final names = <String>{};
     final ordered = [
-      for (final g in starterCatalog)
-        for (final i in g.items)
-          if (_picked.contains(i)) i,
+      for (final k in StarterKind.values)
+        for (final g in k.groups)
+          for (final i in g.items)
+            if (_picked.contains(i) && names.add(i.name.toLowerCase())) i,
     ];
     for (final i in ordered) {
       notifier.saveProduct(Product(id: newId(), name: i.name, priceCents: _priceOf(i)!, iconId: i.iconId));
@@ -112,12 +118,27 @@ class _StarterCatalogScreenState extends ConsumerState<StarterCatalogScreen> {
               Padding(
                 padding: const EdgeInsets.fromLTRB(16, 4, 16, 0),
                 child: Text(
-                  'El número gris es solo un ejemplo: escribe el precio de venta de tu tienda. '
+                  'El número gris es solo un ejemplo: escribe el precio de venta de tu negocio. '
                   'Después puedes cambiar nombres y precios, y agregar el costo de compra en Inventario.',
                   style: GText.sans(size: 13.5, weight: FontWeight.w400, color: GColors.tintaSuave),
                 ),
               ),
-              for (final g in starterCatalog) ...[
+              Padding(
+                padding: const EdgeInsets.fromLTRB(16, 12, 16, 0),
+                child: Wrap(
+                  spacing: 8,
+                  runSpacing: 6,
+                  children: [
+                    for (final k in StarterKind.values)
+                      ChoiceChip(
+                        label: Text(_pickedIn(k) > 0 ? '${k.label} (${_pickedIn(k)})' : k.label),
+                        selected: _kind == k,
+                        onSelected: (_) => setState(() => _kind = k),
+                      ),
+                  ],
+                ),
+              ),
+              for (final g in _kind.groups) ...[
                 SectionTitle(g.title),
                 GCard(
                   margin: const EdgeInsets.symmetric(horizontal: 16),

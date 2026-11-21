@@ -534,6 +534,58 @@ void main() {
     expect(other.state.stockCounts, hasLength(1));
   });
 
+  test('el saldo a favor que paga una venta llega al otro celular y su caja cuadra', () async {
+    final a = await phone();
+    final lupe = await _setUpShop(a);
+    final l = a.store.addLayaway(customerId: lupe, description: 'Vestido', totalCents: 60000, depositCents: 30000);
+    a.store.cancelLayaway(l.id, creditCents: 30000);
+    final sale = a.store.checkout(
+      lines: const [SaleLine(key: 'x', name: 'Blusa', unitCents: 25000, qty: 1)],
+      kind: SaleKind.pagada,
+      method: PayMethod.efectivo,
+      customerId: lupe,
+    );
+    a.store.useCreditInSale(sale.id, lupe, 25000);
+    await a.login('mary@correo.mx');
+    await a.settle();
+    expect(a.status.pending, 0);
+    expect(server.rows('credit_uses').single['amount'], 250);
+
+    final b = await phone();
+    await b.login('mary@correo.mx');
+    expect(b.state.creditOf(lupe), 5000);
+    expect(b.cashOf(a.state.openSession!.id), a.expectedCash());
+  });
+
+  test('borrar la cuenta: el negocio del dueño se va de la nube y del celular; lo del cajero se queda', () async {
+    final owner = await phone(device: 'K7');
+    await _setUpShop(owner);
+    await owner.login('mary@correo.mx');
+    await owner.settle();
+    final bid = owner.state.businessId;
+    final code = await owner.sync.createInvite(MemberRole.cashier, 'Juan');
+    final cashier = await phone(device: 'R3');
+    await cashier.sync.signIn('juan@correo.mx', 'secreta1');
+    await cashier.sync.joinWithCode(formatInviteCode(code));
+    final sale = cashier.sell('coca', 1);
+    await cashier.settle();
+
+    // El cajero borra su cuenta: su venta se queda en el negocio y su celular ya no tiene los datos.
+    await cashier.sync.deleteAccount();
+    await cashier.store.flush();
+    expect(server.deletedUsers, ['juan@correo.mx']);
+    expect(server.table('sales')[sale.id], isNotNull);
+    expect(cashier.state.sales, isEmpty);
+    expect(cashier.status.signedIn, isFalse);
+
+    // La dueña borra la suya: el negocio completo se va de la nube.
+    await owner.sync.deleteAccount();
+    await owner.store.flush();
+    expect(server.rows('businesses').where((r) => r['id'] == bid), isEmpty);
+    expect(server.rows('sales').where((r) => r['business_id'] == bid), isEmpty);
+    expect(owner.state.businessName, isEmpty);
+  });
+
   test('los enlaces del correo abren la sesión en la app', () async {
     final a = await phone();
     await _setUpShop(a);

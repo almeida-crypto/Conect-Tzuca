@@ -54,6 +54,9 @@ abstract class SyncRemote {
   Future<void> revokeInvite(String inviteId);
   Future<void> removeMember(String memberId);
 
+  /// Borra la cuenta: los negocios donde es dueño (con sus fotos) y el usuario. Cierra la sesión.
+  Future<void> deleteAccount();
+
   /// Avisa cuando otro teléfono cambia comandas o platillos (Supabase Realtime).
   Stream<void> live(String businessId);
 
@@ -269,6 +272,26 @@ class SupabaseRemote implements SyncRemote {
   @override
   Future<void> removeMember(String memberId) =>
       _guard(() => client.rpc('remove_member', params: {'p_member': memberId}));
+
+  @override
+  Future<void> deleteAccount() => _guard(() async {
+    // Las fotos se borran desde aquí: Storage no deja borrarlas desde la base.
+    for (final b in await myBusinesses()) {
+      if (b.role == MemberRole.owner) await _removeFolder(b.id);
+    }
+    await client.rpc<void>('delete_my_account');
+    await client.auth.signOut();
+  });
+
+  Future<void> _removeFolder(String businessId) async {
+    final bucket = client.storage.from(_photos);
+    for (var round = 0; round < 50; round++) {
+      final files = await bucket.list(path: businessId, searchOptions: const SearchOptions(limit: 100));
+      if (files.isEmpty) return;
+      await bucket.remove([for (final f in files) '$businessId/${f.name}']);
+      if (files.length < 100) return;
+    }
+  }
 
   @override
   Future<void> createBusiness({required String id, required String name}) =>

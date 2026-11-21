@@ -45,6 +45,17 @@ class PurchasesScreen extends ConsumerWidget {
                 onPressed: () => showGSheet(context, (_) => const _NewPurchaseSheet()),
               ),
             ),
+            Padding(
+              padding: const EdgeInsets.fromLTRB(16, 0, 16, 8),
+              child: GButton(
+                label: 'Armar pedido',
+                icon: Icons.playlist_add_check_rounded,
+                kind: GButtonKind.outline,
+                expand: true,
+                onPressed: () =>
+                    Navigator.of(context).push(MaterialPageRoute<void>(builder: (_) => const RestockScreen())),
+              ),
+            ),
             if (debt > 0)
               Padding(
                 padding: const EdgeInsets.fromLTRB(16, 4, 16, 4),
@@ -209,23 +220,30 @@ Future<({String name, String? phone})?> _askSupplier(BuildContext context, {Supp
 enum _PaidNow { todo, nada, parte }
 
 class _Line {
-  _Line(this.product, {required int costCents}) : cost = TextEditingController(text: centsInput(costCents));
+  _Line(this.product, {required int costCents, this.qty = 1})
+    : cost = TextEditingController(text: centsInput(costCents));
 
   final Product product;
-  double qty = 1;
+  double qty;
   final TextEditingController cost;
 }
 
 class _NewPurchaseSheet extends ConsumerStatefulWidget {
-  const _NewPurchaseSheet();
+  const _NewPurchaseSheet({this.supplierId, this.lines = const []});
+
+  /// Desde un pedido: el proveedor y lo que se pidió, ya escritos (se pueden corregir).
+  final String? supplierId;
+  final List<(Product, double)> lines;
 
   @override
   ConsumerState<_NewPurchaseSheet> createState() => _NewPurchaseSheetState();
 }
 
 class _NewPurchaseSheetState extends ConsumerState<_NewPurchaseSheet> {
-  Supplier? _supplier;
-  final _lines = <_Line>[];
+  late Supplier? _supplier = widget.supplierId == null
+      ? null
+      : ref.read(storeProvider).supplierById(widget.supplierId!);
+  late final _lines = <_Line>[for (final (p, q) in widget.lines) _Line(p, costCents: p.costCents, qty: q)];
   bool _updateCost = true;
   _PaidNow _paid = _PaidNow.todo;
   final _part = TextEditingController();
@@ -669,6 +687,214 @@ class _SupplierSheetState extends ConsumerState<_SupplierSheet> {
           ],
         ),
       ],
+    );
+  }
+}
+
+/// Pedido sugerido: lo que se está acabando, cuánto pedir para que alcance y a qué proveedor (el de la última
+/// compra). Se manda por WhatsApp y, cuando llega, se registra la compra con lo pedido ya escrito.
+class RestockScreen extends ConsumerStatefulWidget {
+  const RestockScreen({super.key});
+
+  @override
+  ConsumerState<RestockScreen> createState() => _RestockScreenState();
+}
+
+class _RestockScreenState extends ConsumerState<RestockScreen> {
+  int _days = 7;
+
+  /// Lo que se cambió a mano (producto → piezas) y lo que se quitó del pedido.
+  final _qty = <String, double>{};
+  final _skip = <String>{};
+
+  double _qtyOf(RestockLine l) => _qty[l.product.id] ?? l.qty;
+
+  Future<void> _edit(RestockLine l) async {
+    final c = TextEditingController(text: qtyLabel(_qtyOf(l)));
+    final v = await showDialog<String>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: Text(l.product.name),
+        content: TextField(
+          controller: c,
+          autofocus: true,
+          keyboardType: const TextInputType.numberWithOptions(decimal: true),
+          inputFormatters: const [QtyInputFormatter()],
+          decoration: InputDecoration(labelText: '¿Cuántos pides?', helperText: 'Hay ${qtyLabel(l.product.stock)}'),
+          onSubmitted: (v) => Navigator.of(ctx).pop(v),
+        ),
+        actions: [TextButton(onPressed: () => Navigator.of(ctx).pop(c.text), child: const Text('Listo'))],
+      ),
+    );
+    c.dispose();
+    final q = v == null ? null : parseQty(v);
+    if (q != null && q > 0) setState(() => _qty[l.product.id] = q);
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final store = ref.watch(storeProvider);
+    final suggestions = store.restockSuggestions(now: DateTime.now(), coverDays: _days);
+    final groups = <String?, List<RestockLine>>{};
+    for (final l in suggestions) {
+      groups.putIfAbsent(l.supplierId, () => []).add(l);
+    }
+    final order = groups.keys.toList()
+      ..sort((a, b) {
+        if (a == null) return 1;
+        if (b == null) return -1;
+        return (store.supplierById(a)?.name ?? '').compareTo(store.supplierById(b)?.name ?? '');
+      });
+
+    return Scaffold(
+      appBar: AppBar(
+        backgroundColor: GColors.fondo,
+        surfaceTintColor: Colors.transparent,
+        title: Text('Armar pedido', style: GText.sans(size: 17, weight: FontWeight.w800)),
+      ),
+      body: SafeArea(
+        child: ListView(
+          padding: const EdgeInsets.only(bottom: 24),
+          children: [
+            Padding(
+              padding: const EdgeInsets.fromLTRB(16, 4, 16, 6),
+              child: Text(
+                'Con lo que vendiste en las últimas 4 semanas y tu aviso de mínimo: lo que hay que pedir para que '
+                'alcance. Cambia las piezas o quita lo que no quieras.',
+                style: GText.muted(size: 13),
+              ),
+            ),
+            Padding(
+              padding: const EdgeInsets.fromLTRB(16, 4, 16, 8),
+              child: Row(
+                children: [
+                  for (final (i, (d, label)) in [(7, '1 semana'), (15, '2 semanas'), (30, '1 mes')].indexed) ...[
+                    if (i > 0) const SizedBox(width: 6),
+                    Expanded(
+                      child: GChip(label: label, selected: _days == d, onTap: () => setState(() => _days = d)),
+                    ),
+                  ],
+                ],
+              ),
+            ),
+            if (suggestions.isEmpty)
+              const EmptyInvite(
+                title: 'No hace falta pedir nada',
+                body: 'Con lo que hay alcanza para ese tiempo. Pon el aviso de mínimo en tus productos para que salgan aquí.',
+              ),
+            for (final sid in order) _group(store, sid, groups[sid]!),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _group(StoreState store, String? supplierId, List<RestockLine> lines) {
+    final supplier = supplierId == null ? null : store.supplierById(supplierId);
+    final picked = lines.where((l) => !_skip.contains(l.product.id)).toList();
+    final cost = picked.fold(0, (a, l) => a + (l.product.costCents * _qtyOf(l)).round());
+    return GCard(
+      margin: const EdgeInsets.fromLTRB(16, 6, 16, 6),
+      padding: const EdgeInsets.fromLTRB(14, 12, 8, 10),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          Row(
+            children: [
+              Expanded(
+                child: Text(
+                  supplier?.name ?? 'Sin proveedor todavía',
+                  style: GText.sans(size: 15, weight: FontWeight.w800),
+                ),
+              ),
+              if (cost > 0) Text('≈ ${money(cost, hideZeroCents: true)}', style: GText.figures(size: 13)),
+              const SizedBox(width: 6),
+            ],
+          ),
+          if (supplier == null)
+            Text('Nunca se les ha registrado compra: elige el proveedor al recibirlos.', style: GText.muted(size: 12)),
+          const SizedBox(height: 4),
+          for (final l in lines)
+            Row(
+              children: [
+                Checkbox(
+                  value: !_skip.contains(l.product.id),
+                  onChanged: (v) => setState(() => v == true ? _skip.remove(l.product.id) : _skip.add(l.product.id)),
+                ),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(l.product.name, style: GText.sans(size: 13.5, weight: FontWeight.w700)),
+                      Text(
+                        [
+                          'Hay ${qtyLabel(l.product.stock)}',
+                          if (l.perDay > 0) 'se venden ~${qtyLabel((l.perDay * 7).ceilToDouble())} por semana',
+                        ].join(' · '),
+                        style: GText.sans(size: 11.5, color: l.product.stock <= 0 ? GColors.rojo : GColors.tintaSuave),
+                      ),
+                    ],
+                  ),
+                ),
+                InkWell(
+                  onTap: () => _edit(l),
+                  borderRadius: BorderRadius.circular(GShape.radiusSmall),
+                  child: Container(
+                    width: 56,
+                    height: 38,
+                    alignment: Alignment.center,
+                    decoration: BoxDecoration(
+                      border: Border.all(color: GColors.linea),
+                      borderRadius: BorderRadius.circular(GShape.radiusSmall),
+                    ),
+                    child: Text(qtyLabel(_qtyOf(l)), style: GText.amount(size: 16)),
+                  ),
+                ),
+                const SizedBox(width: 6),
+              ],
+            ),
+          const SizedBox(height: 8),
+          Row(
+            children: [
+              Expanded(
+                child: GButton(
+                  label: 'WhatsApp',
+                  icon: Icons.send_outlined,
+                  kind: GButtonKind.outline,
+                  onPressed: picked.isEmpty
+                      ? null
+                      : () => shareText(
+                          context,
+                          restockMessage(
+                            business: store.businessName,
+                            supplier: supplier?.name,
+                            lines: [for (final l in picked) (l.product.name, _qtyOf(l))],
+                          ),
+                        ),
+                ),
+              ),
+              const SizedBox(width: 8),
+              Expanded(
+                child: GButton(
+                  label: 'Ya llegó',
+                  icon: Icons.local_shipping_outlined,
+                  kind: GButtonKind.dark,
+                  onPressed: picked.isEmpty
+                      ? null
+                      : () => showGSheet(
+                          context,
+                          (_) => _NewPurchaseSheet(
+                            supplierId: supplierId,
+                            lines: [for (final l in picked) (l.product, _qtyOf(l))],
+                          ),
+                        ),
+                ),
+              ),
+              const SizedBox(width: 6),
+            ],
+          ),
+        ],
+      ),
     );
   }
 }

@@ -106,6 +106,24 @@ RemoteRow saleReturnToRemote(SaleReturn r) => {
   'exchange_sale_id': r.exchangeSaleId,
 };
 
+RemoteRow creditUseToRemote(CreditUse u) => {
+  'id': u.id,
+  'layaway_id': u.layawayId,
+  'sale_id': u.saleId,
+  'cash_session_id': u.sessionId,
+  'amount': _pesos(u.amountCents),
+  'created_at': _iso(u.createdAt),
+};
+
+CreditUseRow creditUseFromRemote(RemoteRow r) => CreditUseRow(
+  id: r['id']! as String,
+  layawayId: r['layaway_id']! as String,
+  saleId: r['sale_id']! as String,
+  sessionId: r['cash_session_id'] as String?,
+  amountCents: _cents(r['amount']),
+  createdAt: _date(r['created_at']),
+);
+
 RemoteRow supplierToRemote(Supplier s) => {'id': s.id, 'name': s.name, 'phone': s.phone, 'is_active': s.active};
 
 SupplierRow supplierFromRemote(RemoteRow r) => SupplierRow(

@@ -106,6 +106,23 @@ class SaleReturnsTable extends Table {
 
 // ---------- Compras a proveedores y conteos (v21) ----------
 
+/// Saldo a favor usado en una venta (v22).
+@DataClassName('CreditUseRow')
+class CreditUsesTable extends Table {
+  @override
+  String get tableName => 'credit_uses';
+
+  TextColumn get id => text()();
+  TextColumn get layawayId => text()();
+  TextColumn get saleId => text()();
+  TextColumn get sessionId => text().nullable()();
+  IntColumn get amountCents => integer()();
+  DateTimeColumn get createdAt => dateTime()();
+
+  @override
+  Set<Column> get primaryKey => {id};
+}
+
 @DataClassName('SupplierRow')
 class SuppliersTable extends Table {
   @override
@@ -552,6 +569,7 @@ class ExtrasTable extends Table {
     PurchasesTable,
     SupplierPaymentsTable,
     StockCountsTable,
+    CreditUsesTable,
     BatchesTable,
     BatchOrdersTable,
     ProductsTable,
@@ -581,7 +599,7 @@ class GavilanDb extends _$GavilanDb {
   );
 
   @override
-  int get schemaVersion => 21;
+  int get schemaVersion => 22;
 
   @override
   MigrationStrategy get migration => MigrationStrategy(
@@ -683,6 +701,8 @@ class GavilanDb extends _$GavilanDb {
           await m.createTable(table);
         }
       }
+      // v22: saldo a favor usado en ventas de Cobrar.
+      if (from < 22) await m.createTable(creditUsesTable);
     },
   );
 }

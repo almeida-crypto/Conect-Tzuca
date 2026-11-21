@@ -71,6 +71,7 @@ const pullTables = [
   'purchases',
   'supplier_payments',
   'stock_counts',
+  'credit_uses',
   'batches',
   'batch_orders',
   'restaurant_tables',
@@ -268,6 +269,7 @@ class DriftRepository implements StoreRepository, SyncStore {
         )..orderBy([(t) => OrderingTerm.asc(t.createdAt)])).get())
           _supplierPayment(r),
       ],
+      creditUses: [for (final r in await db.select(db.creditUsesTable).get()) _creditUse(r)],
       stockCounts: [
         for (final r in await (db.select(db.stockCountsTable)..orderBy([(t) => OrderingTerm.asc(t.createdAt)])).get())
           _stockCount(r),
@@ -411,6 +413,7 @@ class DriftRepository implements StoreRepository, SyncStore {
       b.insertAll(db.purchasesTable, state.purchases.map(_purchaseRow));
       b.insertAll(db.supplierPaymentsTable, state.supplierPayments.map(_supplierPaymentRow));
       b.insertAll(db.stockCountsTable, state.stockCounts.map(_stockCountRow));
+      b.insertAll(db.creditUsesTable, state.creditUses.map(_creditUseRow));
       b.insertAll(db.floorItemsTable, state.floorItems.map(_floorItemRow));
       b.insertAll(db.batchesTable, state.batches.map(_batchRow));
       b.insertAll(db.batchOrdersTable, state.batchOrders.map(_batchOrderRow));
@@ -749,6 +752,14 @@ class DriftRepository implements StoreRepository, SyncStore {
   });
 
   @override
+  Future<void> insertCreditUses(List<CreditUse> uses) => db.transaction(() async {
+    for (final u in uses) {
+      await db.into(db.creditUsesTable).put(_creditUseRow(u));
+    }
+    await _enqueue([(table: 'credit_uses', rows: uses.map(creditUseToRemote).toList())]);
+  });
+
+  @override
   Future<void> upsertSupplier(Supplier supplier) => db.transaction(() async {
     await db.into(db.suppliersTable).put(_supplierRow(supplier));
     await _enqueue([
@@ -975,6 +986,7 @@ class DriftRepository implements StoreRepository, SyncStore {
       if (s.supplierPayments.isNotEmpty)
         (table: 'supplier_payments', rows: s.supplierPayments.map(supplierPaymentToRemote).toList()),
       if (s.stockCounts.isNotEmpty) (table: 'stock_counts', rows: s.stockCounts.map(stockCountToRemote).toList()),
+      if (s.creditUses.isNotEmpty) (table: 'credit_uses', rows: s.creditUses.map(creditUseToRemote).toList()),
       if (s.batches.isNotEmpty) (table: 'batches', rows: s.batches.map(batchToRemote).toList()),
       if (s.batchOrders.isNotEmpty) (table: 'batch_orders', rows: s.batchOrders.map(batchOrderToRemote).toList()),
       if (s.tables.isNotEmpty) (table: 'restaurant_tables', rows: s.tables.map(tableToRemote).toList()),
@@ -1145,6 +1157,8 @@ class DriftRepository implements StoreRepository, SyncStore {
           await db.into(db.supplierPaymentsTable).put(supplierPaymentFromRemote(r));
         case 'stock_counts':
           await db.into(db.stockCountsTable).put(stockCountFromRemote(r));
+        case 'credit_uses':
+          await db.into(db.creditUsesTable).put(creditUseFromRemote(r));
         case 'batches':
           await db.into(db.batchesTable).put(batchFromRemote(r));
         case 'batch_orders':

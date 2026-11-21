@@ -233,7 +233,13 @@ abstract class _StoreCore extends Notifier<StoreState> {
   /// Guarda un modelo con sus tallas y colores. Cada combinación de [drafts] trae cuántas piezas hay (si es
   /// nueva) o cuántas llegaron (si ya existía). Las que ya no están en la lista se ocultan (no se borran: sus
   /// ventas siguen en los reportes). Precio, costo, icono y dónde se vende son los del modelo.
-  void saveModel(Product model, List<({String? size, String? color, double qty})> drafts, {double? minStock}) {
+  /// [prices]: precio propio de una talla (por [variantKey]); las demás valen lo del modelo.
+  void saveModel(
+    Product model,
+    List<({String? size, String? color, double qty})> drafts, {
+    double? minStock,
+    Map<String, int> prices = const {},
+  }) {
     final prior = state.productById(model.id);
     // Un producto suelto que pasa a tener tallas: su existencia se reparte en las tallas.
     if (prior != null && !state.isModel(prior) && prior.trackStock && prior.stock != 0) {
@@ -258,7 +264,7 @@ abstract class _StoreCore extends Notifier<StoreState> {
             size: d.size,
             color: d.color,
             name: name,
-            priceCents: base.priceCents,
+            priceCents: prices[key] ?? base.priceCents,
             costCents: base.costCents,
             iconId: base.iconId,
             trackStock: true,
@@ -271,7 +277,7 @@ abstract class _StoreCore extends Notifier<StoreState> {
         saveProduct(
           old.copyWith(
             name: name,
-            priceCents: base.priceCents,
+            priceCents: prices[key] ?? base.priceCents,
             costCents: base.costCents,
             iconId: base.iconId,
             trackStock: true,
@@ -469,13 +475,10 @@ abstract class _StoreCore extends Notifier<StoreState> {
   }) {
     final original = state.sales.where((s) => s.id == saleId).firstOrNull;
     final open = state.openSession;
-    if (original == null ||
-        original.cancelled ||
-        original.kind != SaleKind.pagada ||
-        open == null ||
-        newLines.isEmpty) {
-      return null;
-    }
+    if (original == null || original.cancelled || open == null || newLines.isEmpty) return null;
+    // Fiada: lo que regresa se quita de su deuda y lo nuevo se le fía (sin dinero de por medio).
+    final onCredit = original.kind == SaleKind.fiada;
+    if (onCredit && original.customerId == null) return null;
     final already = state.returnedOf(original.id);
     final earlier = state.returnsOf(original.id);
     final factor = original.subtotalCents == 0 ? 1.0 : original.totalCents / original.subtotalCents;
@@ -501,24 +504,26 @@ abstract class _StoreCore extends Notifier<StoreState> {
     final diff = newTotal - value;
     // Lo devuelto entra como efectivo a la venta nueva y sale igual en el cambio: en el cajón solo queda la
     // diferencia. Si la diferencia se paga con tarjeta o transferencia, va como un pago aparte.
-    final payments = diff > 0 && method != PayMethod.efectivo
+    final payments = !onCredit && diff > 0 && method != PayMethod.efectivo
         ? [SalePayment(method: PayMethod.efectivo, amountCents: value), SalePayment(method: method, amountCents: diff)]
         : const <SalePayment>[];
-    final sale = checkout(
-      lines: newLines,
-      kind: SaleKind.pagada,
-      method: payments.isEmpty ? PayMethod.efectivo : null,
-      payments: payments,
-      receivedCents: payments.isEmpty && diff > 0 ? (receivedCents ?? diff) + value : null,
-      customerId: original.customerId,
-    );
+    final sale = onCredit
+        ? checkout(lines: newLines, kind: SaleKind.fiada, customerId: original.customerId)
+        : checkout(
+            lines: newLines,
+            kind: SaleKind.pagada,
+            method: payments.isEmpty ? PayMethod.efectivo : null,
+            payments: payments,
+            receivedCents: payments.isEmpty && diff > 0 ? (receivedCents ?? diff) + value : null,
+            customerId: original.customerId,
+          );
     final ret = SaleReturn(
       id: newId(),
       saleId: original.id,
       sessionId: open.id,
       lines: lines,
       amountCents: value,
-      cashCents: value,
+      cashCents: onCredit ? 0 : value,
       reason: reason.trim().isEmpty ? 'Cambio' : reason.trim(),
       clerk: _clerkName,
       createdAt: _now(),
@@ -533,11 +538,24 @@ abstract class _StoreCore extends Notifier<StoreState> {
         if (p.trackStock && backByProduct.containsKey(p.id)) p.copyWith(stock: p.stock + backByProduct[p.id]!),
     ];
     final byId = {for (final p in restocked) p.id: p};
+    final reversal = onCredit
+        ? CreditEntry(
+            id: newId(),
+            customerId: original.customerId!,
+            type: CreditType.cancelacion,
+            amountCents: value,
+            createdAt: _now(),
+            saleId: original.id,
+            sessionId: open.id,
+            clerk: _clerkName,
+          )
+        : null;
     state = state.copyWith(
       saleReturns: [...state.saleReturns, ret],
       products: [for (final p in state.products) byId[p.id] ?? p],
+      credit: reversal == null ? null : [...state.credit, reversal],
     );
-    _save((r) => r.recordReturn(ret: ret, restocked: restocked));
+    _save((r) => r.recordReturn(ret: ret, restocked: restocked, reversal: reversal));
     return (sale: sale, ret: ret);
   }
 
